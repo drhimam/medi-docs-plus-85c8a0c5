@@ -57,6 +57,24 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
+        },
+        soap: {
+          subjective: "hsl(var(--soap-subjective))",
+          subjectiveBorder: "hsl(var(--soap-subjective-border))",
+          objective: "hsl(var(--soap-objective))",
+          objectiveBorder: "hsl(var(--soap-objective-border))",
+          assessment: "hsl(var(--soap-assessment))",
+          assessmentBorder: "hsl(var(--soap-assessment-border))",
+          plan: "hsl(var(--soap-plan))",
+          planBorder: "hsl(var(--soap-plan-border))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
