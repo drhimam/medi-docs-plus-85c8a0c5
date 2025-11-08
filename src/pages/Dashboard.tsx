@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { Navigate, Route, Routes, Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+
+const Patients = lazy(() => import("./dashboard/Patients"));
+const PatientDetail = lazy(() => import("./dashboard/PatientDetail"));
+const VisitDetail = lazy(() => import("./dashboard/VisitDetail"));
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -71,14 +75,6 @@ const Dashboard = () => {
       <Link to="/dashboard/patients" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-sidebar-accent transition-colors text-sidebar-foreground">
         <Users className="h-5 w-5" />
         <span>Patients</span>
-      </Link>
-      <Link to="/dashboard/soap-notes" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-sidebar-accent transition-colors text-sidebar-foreground">
-        <FileText className="h-5 w-5" />
-        <span>SOAP Notes</span>
-      </Link>
-      <Link to="/dashboard/prescriptions" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-sidebar-accent transition-colors text-sidebar-foreground">
-        <Pill className="h-5 w-5" />
-        <span>Prescriptions</span>
       </Link>
       <Link to="/dashboard/knowledge" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-sidebar-accent transition-colors text-sidebar-foreground">
         <BookOpen className="h-5 w-5" />
@@ -146,13 +142,19 @@ const Dashboard = () => {
 
         {/* Main Content Area */}
         <main className="flex-1 overflow-auto p-6">
-          <Routes>
-            <Route index element={<DashboardHome />} />
-            <Route path="patients" element={<div>Patients page coming soon...</div>} />
-            <Route path="soap-notes" element={<div>SOAP Notes page coming soon...</div>} />
-            <Route path="prescriptions" element={<div>Prescriptions page coming soon...</div>} />
-            <Route path="knowledge" element={<div>Knowledge Base page coming soon...</div>} />
-          </Routes>
+          <Suspense fallback={
+            <div className="flex items-center justify-center py-12">
+              <Activity className="h-8 w-8 animate-pulse text-primary" />
+            </div>
+          }>
+            <Routes>
+              <Route index element={<DashboardHome />} />
+              <Route path="patients" element={<Patients />} />
+              <Route path="patients/:patientId" element={<PatientDetail />} />
+              <Route path="patients/:patientId/visits/:visitId" element={<VisitDetail />} />
+              <Route path="knowledge" element={<div>Knowledge Base page coming soon...</div>} />
+            </Routes>
+          </Suspense>
         </main>
       </div>
     </div>
