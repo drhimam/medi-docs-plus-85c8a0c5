@@ -97,12 +97,55 @@ const AddPatient = () => {
   const alcoholConsumption = watch("alcohol_consumption");
   const bloodGroup = watch("blood_group");
 
+  const calculateCompletionStatus = (data: PatientFormData): string => {
+    // Count all filled fields (28 total fields)
+    let filledCount = 0;
+    const totalFields = 28;
+
+    // Count required fields (always filled due to validation)
+    if (data.first_name) filledCount++;
+    if (data.last_name) filledCount++;
+    if (data.date_of_birth) filledCount++;
+    if (data.gender) filledCount++;
+    if (data.contact_number) filledCount++;
+    if (data.smoking_status) filledCount++;
+    if (data.alcohol_consumption) filledCount++;
+
+    // Count optional fields
+    if (data.email) filledCount++;
+    if (data.address) filledCount++;
+    if (data.blood_group) filledCount++;
+    if (data.health_card_number) filledCount++;
+    if (data.medical_history_ongoing) filledCount++;
+    if (data.medical_history_past) filledCount++;
+    if (data.surgical_history) filledCount++;
+    if (data.hospitalization_history) filledCount++;
+    if (data.family_history) filledCount++;
+    if (data.mental_health_history) filledCount++;
+    if (data.ongoing_medications) filledCount++;
+    if (data.supplements) filledCount++;
+    if (data.vaccinations) filledCount++;
+    if (data.allergic_history_food) filledCount++;
+    if (data.allergic_history_drug) filledCount++;
+    if (data.allergic_history_env) filledCount++;
+    if (data.recreational_drug_use) filledCount++;
+    if (data.exercise_habits) filledCount++;
+    if (data.diet) filledCount++;
+    if (data.occupation) filledCount++;
+    if (data.living_environment) filledCount++;
+
+    const completionPercentage = (filledCount / totalFields) * 100;
+    return completionPercentage >= 85 ? "completed" : "incomplete";
+  };
+
   const onSubmit = async (data: PatientFormData) => {
     setLoading(true);
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
+
+      const completionStatus = calculateCompletionStatus(data);
 
       const patientData = {
         user_id: user.id,
@@ -125,6 +168,7 @@ const AddPatient = () => {
         allergic_history_env: data.allergic_history_env 
           ? data.allergic_history_env.split(",").map(a => a.trim()).filter(Boolean) 
           : [],
+        completion_status: completionStatus,
       };
 
       const { error } = await (supabase as any)
@@ -143,9 +187,9 @@ const AddPatient = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pt-[72px]">
       {/* Sticky Header */}
-      <div className="sticky top-0 z-10 bg-background border-b">
+      <div className="fixed top-[72px] left-0 right-0 z-10 bg-background border-b">
         <div className="max-w-5xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4 flex-1">

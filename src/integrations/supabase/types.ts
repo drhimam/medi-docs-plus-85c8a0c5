@@ -14,7 +14,114 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      patients: {
+        Row: {
+          address: string | null
+          alcohol_consumption: string
+          allergic_history_drug: Json | null
+          allergic_history_env: Json | null
+          allergic_history_food: Json | null
+          blood_group: string | null
+          completion_status: string
+          contact_number: string
+          created_at: string
+          date_of_birth: string
+          diet: string | null
+          email: string | null
+          exercise_habits: string | null
+          family_history: string | null
+          first_name: string
+          gender: string
+          health_card_number: string | null
+          hospitalization_history: string | null
+          id: string
+          last_name: string
+          living_environment: string | null
+          medical_history_ongoing: string | null
+          medical_history_past: string | null
+          mental_health_history: string | null
+          occupation: string | null
+          ongoing_medications: Json | null
+          recreational_drug_use: string | null
+          smoking_status: string
+          supplements: Json | null
+          surgical_history: string | null
+          updated_at: string
+          user_id: string
+          vaccinations: Json | null
+        }
+        Insert: {
+          address?: string | null
+          alcohol_consumption: string
+          allergic_history_drug?: Json | null
+          allergic_history_env?: Json | null
+          allergic_history_food?: Json | null
+          blood_group?: string | null
+          completion_status?: string
+          contact_number: string
+          created_at?: string
+          date_of_birth: string
+          diet?: string | null
+          email?: string | null
+          exercise_habits?: string | null
+          family_history?: string | null
+          first_name: string
+          gender: string
+          health_card_number?: string | null
+          hospitalization_history?: string | null
+          id?: string
+          last_name: string
+          living_environment?: string | null
+          medical_history_ongoing?: string | null
+          medical_history_past?: string | null
+          mental_health_history?: string | null
+          occupation?: string | null
+          ongoing_medications?: Json | null
+          recreational_drug_use?: string | null
+          smoking_status: string
+          supplements?: Json | null
+          surgical_history?: string | null
+          updated_at?: string
+          user_id: string
+          vaccinations?: Json | null
+        }
+        Update: {
+          address?: string | null
+          alcohol_consumption?: string
+          allergic_history_drug?: Json | null
+          allergic_history_env?: Json | null
+          allergic_history_food?: Json | null
+          blood_group?: string | null
+          completion_status?: string
+          contact_number?: string
+          created_at?: string
+          date_of_birth?: string
+          diet?: string | null
+          email?: string | null
+          exercise_habits?: string | null
+          family_history?: string | null
+          first_name?: string
+          gender?: string
+          health_card_number?: string | null
+          hospitalization_history?: string | null
+          id?: string
+          last_name?: string
+          living_environment?: string | null
+          medical_history_ongoing?: string | null
+          medical_history_past?: string | null
+          mental_health_history?: string | null
+          occupation?: string | null
+          ongoing_medications?: Json | null
+          recreational_drug_use?: string | null
+          smoking_status?: string
+          supplements?: Json | null
+          surgical_history?: string | null
+          updated_at?: string
+          user_id?: string
+          vaccinations?: Json | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
