@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,49 +13,91 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
 
+const patientSchema = z.object({
+  first_name: z.string().min(1, "First name is required").max(100, "First name must be less than 100 characters"),
+  last_name: z.string().min(1, "Last name is required").max(100, "Last name must be less than 100 characters"),
+  date_of_birth: z.string().min(1, "Date of birth is required"),
+  gender: z.enum(["MALE", "FEMALE", "OTHER"]),
+  contact_number: z.string().regex(/^\d+$/, "Phone number must contain only digits").min(10, "Phone number must be at least 10 digits"),
+  email: z.string().email("Invalid email address").optional().or(z.literal("")),
+  address: z.string().optional(),
+  blood_group: z.string().optional(),
+  health_card_number: z.string().optional(),
+  
+  medical_history_ongoing: z.string().optional(),
+  medical_history_past: z.string().optional(),
+  surgical_history: z.string().optional(),
+  hospitalization_history: z.string().optional(),
+  family_history: z.string().optional(),
+  mental_health_history: z.string().optional(),
+  
+  ongoing_medications: z.string().optional(),
+  supplements: z.string().optional(),
+  vaccinations: z.string().optional(),
+  
+  allergic_history_food: z.string().optional(),
+  allergic_history_drug: z.string().optional(),
+  allergic_history_env: z.string().optional(),
+  
+  smoking_status: z.enum(["NEVER", "FORMER", "CURRENT"]),
+  alcohol_consumption: z.enum(["NEVER", "OCCASIONAL", "MODERATE", "HEAVY"]),
+  recreational_drug_use: z.string().optional(),
+  exercise_habits: z.string().optional(),
+  diet: z.string().optional(),
+  occupation: z.string().optional(),
+  living_environment: z.string().optional(),
+});
+
+type PatientFormData = z.infer<typeof patientSchema>;
+
 const AddPatient = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    first_name: "",
-    last_name: "",
-    date_of_birth: "",
-    gender: "MALE",
-    contact_number: "",
-    email: "",
-    address: "",
-    blood_group: "",
-    
-    // Medical History
-    medical_history_ongoing: "",
-    medical_history_past: "",
-    surgical_history: "",
-    hospitalization_history: "",
-    family_history: "",
-    mental_health_history: "",
-    
-    // Medications & Supplements
-    ongoing_medications: "",
-    supplements: "",
-    vaccinations: "",
-    
-    // Allergies
-    allergic_history_food: "",
-    allergic_history_drug: "",
-    allergic_history_env: "",
-    
-    // Social History
-    smoking_status: "NEVER",
-    alcohol_consumption: "NEVER",
-    recreational_drug_use: "",
-    exercise_habits: "",
-    diet: "",
-    occupation: "",
-    living_environment: "",
+  
+  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<PatientFormData>({
+    resolver: zodResolver(patientSchema),
+    defaultValues: {
+      first_name: "",
+      last_name: "",
+      date_of_birth: "",
+      gender: "MALE",
+      contact_number: "",
+      email: "",
+      address: "",
+      blood_group: "",
+      health_card_number: "",
+      
+      medical_history_ongoing: "",
+      medical_history_past: "",
+      surgical_history: "",
+      hospitalization_history: "",
+      family_history: "",
+      mental_health_history: "",
+      
+      ongoing_medications: "",
+      supplements: "",
+      vaccinations: "",
+      
+      allergic_history_food: "",
+      allergic_history_drug: "",
+      allergic_history_env: "",
+      
+      smoking_status: "NEVER",
+      alcohol_consumption: "NEVER",
+      recreational_drug_use: "",
+      exercise_habits: "",
+      diet: "",
+      occupation: "",
+      living_environment: "",
+    },
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const gender = watch("gender");
+  const smokingStatus = watch("smoking_status");
+  const alcoholConsumption = watch("alcohol_consumption");
+  const bloodGroup = watch("blood_group");
+
+  const onSubmit = async (data: PatientFormData) => {
     setLoading(true);
 
     try {
@@ -61,24 +106,24 @@ const AddPatient = () => {
 
       const patientData = {
         user_id: user.id,
-        ...formData,
-        ongoing_medications: formData.ongoing_medications 
-          ? formData.ongoing_medications.split(",").map(m => m.trim()).filter(Boolean) 
+        ...data,
+        ongoing_medications: data.ongoing_medications 
+          ? data.ongoing_medications.split(",").map(m => m.trim()).filter(Boolean) 
           : [],
-        supplements: formData.supplements 
-          ? formData.supplements.split(",").map(s => s.trim()).filter(Boolean) 
+        supplements: data.supplements 
+          ? data.supplements.split(",").map(s => s.trim()).filter(Boolean) 
           : [],
-        vaccinations: formData.vaccinations 
-          ? formData.vaccinations.split(",").map(v => v.trim()).filter(Boolean) 
+        vaccinations: data.vaccinations 
+          ? data.vaccinations.split(",").map(v => v.trim()).filter(Boolean) 
           : [],
-        allergic_history_food: formData.allergic_history_food 
-          ? formData.allergic_history_food.split(",").map(a => a.trim()).filter(Boolean) 
+        allergic_history_food: data.allergic_history_food 
+          ? data.allergic_history_food.split(",").map(a => a.trim()).filter(Boolean) 
           : [],
-        allergic_history_drug: formData.allergic_history_drug 
-          ? formData.allergic_history_drug.split(",").map(a => a.trim()).filter(Boolean) 
+        allergic_history_drug: data.allergic_history_drug 
+          ? data.allergic_history_drug.split(",").map(a => a.trim()).filter(Boolean) 
           : [],
-        allergic_history_env: formData.allergic_history_env 
-          ? formData.allergic_history_env.split(",").map(a => a.trim()).filter(Boolean) 
+        allergic_history_env: data.allergic_history_env 
+          ? data.allergic_history_env.split(",").map(a => a.trim()).filter(Boolean) 
           : [],
       };
 
@@ -92,7 +137,6 @@ const AddPatient = () => {
       navigate("/dashboard/patients");
     } catch (error: any) {
       toast.error(error.message || "Failed to add patient");
-      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -100,23 +144,49 @@ const AddPatient = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-5xl mx-auto p-6">
-        <div className="mb-6">
-          <Button
-            variant="ghost"
-            onClick={() => navigate("/dashboard/patients")}
-            className="mb-4"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Patients
-          </Button>
-          <h1 className="text-3xl font-bold text-foreground">Add New Patient</h1>
-          <p className="text-muted-foreground mt-2">
-            Complete patient registration form with comprehensive medical information
-          </p>
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-10 bg-background border-b">
+        <div className="max-w-5xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4 flex-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate("/dashboard/patients")}
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">Add New Patient</h1>
+                <p className="text-sm text-muted-foreground">
+                  Complete patient registration form with comprehensive medical information
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => navigate("/dashboard/patients")}
+                disabled={loading}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={loading}
+                onClick={handleSubmit(onSubmit)}
+              >
+                {loading ? "Saving..." : "Add Patient"}
+              </Button>
+            </div>
+          </div>
         </div>
+      </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="max-w-5xl mx-auto p-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Demographics Section */}
           <Card>
             <CardHeader>
@@ -129,35 +199,38 @@ const AddPatient = () => {
                   <Label htmlFor="first_name">First Name *</Label>
                   <Input
                     id="first_name"
-                    required
-                    value={formData.first_name}
-                    onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                    {...register("first_name")}
                   />
+                  {errors.first_name && (
+                    <p className="text-sm text-destructive mt-1">{errors.first_name.message}</p>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="last_name">Last Name *</Label>
                   <Input
                     id="last_name"
-                    required
-                    value={formData.last_name}
-                    onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                    {...register("last_name")}
                   />
+                  {errors.last_name && (
+                    <p className="text-sm text-destructive mt-1">{errors.last_name.message}</p>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="date_of_birth">Date of Birth *</Label>
                   <Input
                     id="date_of_birth"
                     type="date"
-                    required
-                    value={formData.date_of_birth}
-                    onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
+                    {...register("date_of_birth")}
                   />
+                  {errors.date_of_birth && (
+                    <p className="text-sm text-destructive mt-1">{errors.date_of_birth.message}</p>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="gender">Gender *</Label>
                   <Select
-                    value={formData.gender}
-                    onValueChange={(value) => setFormData({ ...formData, gender: value })}
+                    value={gender}
+                    onValueChange={(value) => setValue("gender", value as "MALE" | "FEMALE" | "OTHER")}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -170,29 +243,40 @@ const AddPatient = () => {
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="contact_number">Contact Number *</Label>
+                  <Label htmlFor="contact_number">Contact Number * (digits only)</Label>
                   <Input
                     id="contact_number"
-                    type="tel"
-                    required
-                    value={formData.contact_number}
-                    onChange={(e) => setFormData({ ...formData, contact_number: e.target.value })}
+                    placeholder="1234567890"
+                    {...register("contact_number")}
                   />
+                  {errors.contact_number && (
+                    <p className="text-sm text-destructive mt-1">{errors.contact_number.message}</p>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="email">Email</Label>
                   <Input
                     id="email"
                     type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    {...register("email")}
+                  />
+                  {errors.email && (
+                    <p className="text-sm text-destructive mt-1">{errors.email.message}</p>
+                  )}
+                </div>
+                <div>
+                  <Label htmlFor="health_card_number">Health Card / Insurance No.</Label>
+                  <Input
+                    id="health_card_number"
+                    placeholder="Enter health card or insurance number"
+                    {...register("health_card_number")}
                   />
                 </div>
                 <div>
                   <Label htmlFor="blood_group">Blood Group</Label>
                   <Select
-                    value={formData.blood_group}
-                    onValueChange={(value) => setFormData({ ...formData, blood_group: value })}
+                    value={bloodGroup}
+                    onValueChange={(value) => setValue("blood_group", value)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select blood group" />
@@ -214,8 +298,7 @@ const AddPatient = () => {
                 <Label htmlFor="address">Address</Label>
                 <Textarea
                   id="address"
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  {...register("address")}
                   rows={3}
                 />
               </div>
@@ -234,8 +317,7 @@ const AddPatient = () => {
                 <Textarea
                   id="medical_history_ongoing"
                   placeholder="List current medical conditions..."
-                  value={formData.medical_history_ongoing}
-                  onChange={(e) => setFormData({ ...formData, medical_history_ongoing: e.target.value })}
+                  {...register("medical_history_ongoing")}
                   rows={3}
                 />
               </div>
@@ -244,8 +326,7 @@ const AddPatient = () => {
                 <Textarea
                   id="medical_history_past"
                   placeholder="List past medical conditions..."
-                  value={formData.medical_history_past}
-                  onChange={(e) => setFormData({ ...formData, medical_history_past: e.target.value })}
+                  {...register("medical_history_past")}
                   rows={3}
                 />
               </div>
@@ -254,8 +335,7 @@ const AddPatient = () => {
                 <Textarea
                   id="surgical_history"
                   placeholder="List past surgeries and procedures..."
-                  value={formData.surgical_history}
-                  onChange={(e) => setFormData({ ...formData, surgical_history: e.target.value })}
+                  {...register("surgical_history")}
                   rows={3}
                 />
               </div>
@@ -264,8 +344,7 @@ const AddPatient = () => {
                 <Textarea
                   id="hospitalization_history"
                   placeholder="List past hospitalizations..."
-                  value={formData.hospitalization_history}
-                  onChange={(e) => setFormData({ ...formData, hospitalization_history: e.target.value })}
+                  {...register("hospitalization_history")}
                   rows={3}
                 />
               </div>
@@ -274,8 +353,7 @@ const AddPatient = () => {
                 <Textarea
                   id="family_history"
                   placeholder="List family medical history (e.g., diabetes, heart disease)..."
-                  value={formData.family_history}
-                  onChange={(e) => setFormData({ ...formData, family_history: e.target.value })}
+                  {...register("family_history")}
                   rows={3}
                 />
               </div>
@@ -284,8 +362,7 @@ const AddPatient = () => {
                 <Textarea
                   id="mental_health_history"
                   placeholder="List mental health conditions and treatments..."
-                  value={formData.mental_health_history}
-                  onChange={(e) => setFormData({ ...formData, mental_health_history: e.target.value })}
+                  {...register("mental_health_history")}
                   rows={3}
                 />
               </div>
@@ -304,8 +381,7 @@ const AddPatient = () => {
                 <Textarea
                   id="ongoing_medications"
                   placeholder="Enter medications separated by commas (e.g., Aspirin 100mg daily, Metformin 500mg twice daily)"
-                  value={formData.ongoing_medications}
-                  onChange={(e) => setFormData({ ...formData, ongoing_medications: e.target.value })}
+                  {...register("ongoing_medications")}
                   rows={3}
                 />
                 <p className="text-sm text-muted-foreground mt-1">Separate multiple items with commas</p>
@@ -315,8 +391,7 @@ const AddPatient = () => {
                 <Textarea
                   id="supplements"
                   placeholder="Enter supplements separated by commas (e.g., Vitamin D, Omega-3)"
-                  value={formData.supplements}
-                  onChange={(e) => setFormData({ ...formData, supplements: e.target.value })}
+                  {...register("supplements")}
                   rows={3}
                 />
                 <p className="text-sm text-muted-foreground mt-1">Separate multiple items with commas</p>
@@ -326,8 +401,7 @@ const AddPatient = () => {
                 <Textarea
                   id="vaccinations"
                   placeholder="Enter vaccinations separated by commas (e.g., COVID-19 2023, Flu 2023)"
-                  value={formData.vaccinations}
-                  onChange={(e) => setFormData({ ...formData, vaccinations: e.target.value })}
+                  {...register("vaccinations")}
                   rows={3}
                 />
                 <p className="text-sm text-muted-foreground mt-1">Separate multiple items with commas</p>
@@ -347,8 +421,7 @@ const AddPatient = () => {
                 <Textarea
                   id="allergic_history_drug"
                   placeholder="Enter drug allergies separated by commas (e.g., Penicillin, Aspirin)"
-                  value={formData.allergic_history_drug}
-                  onChange={(e) => setFormData({ ...formData, allergic_history_drug: e.target.value })}
+                  {...register("allergic_history_drug")}
                   rows={3}
                 />
                 <p className="text-sm text-muted-foreground mt-1">Separate multiple items with commas</p>
@@ -358,8 +431,7 @@ const AddPatient = () => {
                 <Textarea
                   id="allergic_history_food"
                   placeholder="Enter food allergies separated by commas (e.g., Peanuts, Shellfish)"
-                  value={formData.allergic_history_food}
-                  onChange={(e) => setFormData({ ...formData, allergic_history_food: e.target.value })}
+                  {...register("allergic_history_food")}
                   rows={3}
                 />
                 <p className="text-sm text-muted-foreground mt-1">Separate multiple items with commas</p>
@@ -369,8 +441,7 @@ const AddPatient = () => {
                 <Textarea
                   id="allergic_history_env"
                   placeholder="Enter environmental allergies separated by commas (e.g., Pollen, Dust)"
-                  value={formData.allergic_history_env}
-                  onChange={(e) => setFormData({ ...formData, allergic_history_env: e.target.value })}
+                  {...register("allergic_history_env")}
                   rows={3}
                 />
                 <p className="text-sm text-muted-foreground mt-1">Separate multiple items with commas</p>
@@ -389,8 +460,8 @@ const AddPatient = () => {
                 <div>
                   <Label htmlFor="smoking_status">Smoking Status</Label>
                   <Select
-                    value={formData.smoking_status}
-                    onValueChange={(value) => setFormData({ ...formData, smoking_status: value })}
+                    value={smokingStatus}
+                    onValueChange={(value) => setValue("smoking_status", value as "NEVER" | "FORMER" | "CURRENT")}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -405,8 +476,8 @@ const AddPatient = () => {
                 <div>
                   <Label htmlFor="alcohol_consumption">Alcohol Consumption</Label>
                   <Select
-                    value={formData.alcohol_consumption}
-                    onValueChange={(value) => setFormData({ ...formData, alcohol_consumption: value })}
+                    value={alcoholConsumption}
+                    onValueChange={(value) => setValue("alcohol_consumption", value as "NEVER" | "OCCASIONAL" | "MODERATE" | "HEAVY")}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -425,8 +496,7 @@ const AddPatient = () => {
                 <Textarea
                   id="recreational_drug_use"
                   placeholder="Document any recreational drug use..."
-                  value={formData.recreational_drug_use}
-                  onChange={(e) => setFormData({ ...formData, recreational_drug_use: e.target.value })}
+                  {...register("recreational_drug_use")}
                   rows={2}
                 />
               </div>
@@ -435,8 +505,7 @@ const AddPatient = () => {
                 <Textarea
                   id="exercise_habits"
                   placeholder="Describe exercise routine and frequency..."
-                  value={formData.exercise_habits}
-                  onChange={(e) => setFormData({ ...formData, exercise_habits: e.target.value })}
+                  {...register("exercise_habits")}
                   rows={2}
                 />
               </div>
@@ -445,8 +514,7 @@ const AddPatient = () => {
                 <Textarea
                   id="diet"
                   placeholder="Describe dietary habits and restrictions..."
-                  value={formData.diet}
-                  onChange={(e) => setFormData({ ...formData, diet: e.target.value })}
+                  {...register("diet")}
                   rows={2}
                 />
               </div>
@@ -455,8 +523,7 @@ const AddPatient = () => {
                 <Input
                   id="occupation"
                   placeholder="Enter occupation"
-                  value={formData.occupation}
-                  onChange={(e) => setFormData({ ...formData, occupation: e.target.value })}
+                  {...register("occupation")}
                 />
               </div>
               <div>
@@ -464,28 +531,12 @@ const AddPatient = () => {
                 <Textarea
                   id="living_environment"
                   placeholder="Describe living conditions, housing type, etc..."
-                  value={formData.living_environment}
-                  onChange={(e) => setFormData({ ...formData, living_environment: e.target.value })}
+                  {...register("living_environment")}
                   rows={2}
                 />
               </div>
             </CardContent>
           </Card>
-
-          {/* Action Buttons */}
-          <div className="flex gap-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate("/dashboard/patients")}
-              disabled={loading}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? "Saving..." : "Add Patient"}
-            </Button>
-          </div>
         </form>
       </div>
     </div>
