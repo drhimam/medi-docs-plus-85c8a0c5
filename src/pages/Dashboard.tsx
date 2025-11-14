@@ -1,19 +1,17 @@
 import { useEffect, useState, lazy, Suspense } from "react";
-import { Navigate, Route, Routes, Link, useNavigate } from "react-router-dom";
+import { Navigate, Route, Routes, Link, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { 
   Activity, 
   Users, 
   FileText, 
-  Pill, 
   BookOpen, 
   LogOut,
   LayoutDashboard,
-  Menu
+  Sparkles
 } from "lucide-react";
 import { toast } from "sonner";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 const Patients = lazy(() => import("./dashboard/Patients"));
 const PatientDetail = lazy(() => import("./dashboard/PatientDetail"));
@@ -21,6 +19,7 @@ const VisitDetail = lazy(() => import("./dashboard/VisitDetail"));
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -66,97 +65,136 @@ const Dashboard = () => {
     return <Navigate to="/login" replace />;
   }
 
-  const NavLinks = () => (
-    <>
-      <Link to="/dashboard" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-sidebar-accent transition-colors text-sidebar-foreground">
-        <LayoutDashboard className="h-5 w-5" />
-        <span>Dashboard</span>
-      </Link>
-      <Link to="/dashboard/patients" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-sidebar-accent transition-colors text-sidebar-foreground">
-        <Users className="h-5 w-5" />
-        <span>Patients</span>
-      </Link>
-      <Link to="/dashboard/knowledge" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-sidebar-accent transition-colors text-sidebar-foreground">
-        <BookOpen className="h-5 w-5" />
-        <span>Knowledge Base</span>
-      </Link>
-    </>
-  );
+  const isActive = (path: string) => {
+    if (path === "/dashboard" && location.pathname === "/dashboard") return true;
+    if (path !== "/dashboard" && location.pathname.startsWith(path)) return true;
+    return false;
+  };
 
   return (
-    <div className="flex h-screen bg-background">
-      {/* Desktop Sidebar */}
-      <aside className="hidden md:flex w-64 flex-col bg-sidebar border-r border-sidebar-border">
-        <div className="p-6 border-b border-sidebar-border">
+    <div className="flex flex-col h-screen bg-background">
+      {/* Top Navigation Bar */}
+      <header className="border-b bg-card">
+        <div className="flex items-center justify-between px-6 py-4">
+          {/* Logo */}
           <div className="flex items-center gap-2">
-            <Activity className="h-8 w-8 text-sidebar-foreground" />
-            <h1 className="text-xl font-bold text-sidebar-foreground">AiMediPedia</h1>
+            <Activity className="h-7 w-7 text-primary" />
+            <h1 className="text-xl font-bold text-foreground">aiMedipedia</h1>
           </div>
-        </div>
-        
-        <nav className="flex-1 p-4 space-y-2">
-          <NavLinks />
-        </nav>
-        
-        <div className="p-4 border-t border-sidebar-border">
+
+          {/* Navigation Links */}
+          <nav className="hidden md:flex items-center gap-1">
+            <Link to="/dashboard">
+              <Button 
+                variant={isActive("/dashboard") && location.pathname === "/dashboard" ? "default" : "ghost"}
+                className="gap-2"
+              >
+                <LayoutDashboard className="h-4 w-4" />
+                Dashboard
+              </Button>
+            </Link>
+            <Link to="/dashboard/patients">
+              <Button 
+                variant={isActive("/dashboard/patients") ? "default" : "ghost"}
+                className="gap-2"
+              >
+                <Users className="h-4 w-4" />
+                Patients
+              </Button>
+            </Link>
+            <Link to="/dashboard/ai-tools">
+              <Button 
+                variant={isActive("/dashboard/ai-tools") ? "default" : "ghost"}
+                className="gap-2"
+              >
+                <Sparkles className="h-4 w-4" />
+                AI Tools
+              </Button>
+            </Link>
+            <Link to="/dashboard/knowledge">
+              <Button 
+                variant={isActive("/dashboard/knowledge") ? "default" : "ghost"}
+                className="gap-2"
+              >
+                <BookOpen className="h-4 w-4" />
+                Knowledge Base
+              </Button>
+            </Link>
+          </nav>
+
+          {/* Logout Button */}
           <Button
             variant="ghost"
-            className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent"
             onClick={handleLogout}
+            className="gap-2"
           >
-            <LogOut className="h-5 w-5 mr-3" />
-            Logout
+            <LogOut className="h-4 w-4" />
+            <span className="hidden sm:inline">Logout</span>
           </Button>
         </div>
-      </aside>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Mobile Header */}
-        <header className="md:hidden flex items-center justify-between p-4 border-b bg-card">
-          <div className="flex items-center gap-2">
-            <Activity className="h-6 w-6 text-primary" />
-            <h1 className="text-lg font-bold">AiMediPedia</h1>
+        {/* Mobile Navigation */}
+        <div className="md:hidden border-t px-4 py-2 flex gap-2 overflow-x-auto">
+          <Link to="/dashboard">
+            <Button 
+              size="sm"
+              variant={isActive("/dashboard") && location.pathname === "/dashboard" ? "default" : "ghost"}
+              className="gap-1.5 whitespace-nowrap"
+            >
+              <LayoutDashboard className="h-4 w-4" />
+              Dashboard
+            </Button>
+          </Link>
+          <Link to="/dashboard/patients">
+            <Button 
+              size="sm"
+              variant={isActive("/dashboard/patients") ? "default" : "ghost"}
+              className="gap-1.5 whitespace-nowrap"
+            >
+              <Users className="h-4 w-4" />
+              Patients
+            </Button>
+          </Link>
+          <Link to="/dashboard/ai-tools">
+            <Button 
+              size="sm"
+              variant={isActive("/dashboard/ai-tools") ? "default" : "ghost"}
+              className="gap-1.5 whitespace-nowrap"
+            >
+              <Sparkles className="h-4 w-4" />
+              AI Tools
+            </Button>
+          </Link>
+          <Link to="/dashboard/knowledge">
+            <Button 
+              size="sm"
+              variant={isActive("/dashboard/knowledge") ? "default" : "ghost"}
+              className="gap-1.5 whitespace-nowrap"
+            >
+              <BookOpen className="h-4 w-4" />
+              Knowledge
+            </Button>
+          </Link>
+        </div>
+      </header>
+
+      {/* Main Content Area */}
+      <main className="flex-1 overflow-auto p-6">
+        <Suspense fallback={
+          <div className="flex items-center justify-center py-12">
+            <Activity className="h-8 w-8 animate-pulse text-primary" />
           </div>
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <Menu className="h-6 w-6" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-64 bg-sidebar">
-              <nav className="flex flex-col gap-2 mt-8">
-                <NavLinks />
-                <Button
-                  variant="ghost"
-                  className="justify-start text-sidebar-foreground hover:bg-sidebar-accent mt-4"
-                  onClick={handleLogout}
-                >
-                  <LogOut className="h-5 w-5 mr-3" />
-                  Logout
-                </Button>
-              </nav>
-            </SheetContent>
-          </Sheet>
-        </header>
-
-        {/* Main Content Area */}
-        <main className="flex-1 overflow-auto p-6">
-          <Suspense fallback={
-            <div className="flex items-center justify-center py-12">
-              <Activity className="h-8 w-8 animate-pulse text-primary" />
-            </div>
-          }>
-            <Routes>
-              <Route index element={<DashboardHome />} />
-              <Route path="patients" element={<Patients />} />
-              <Route path="patients/:patientId" element={<PatientDetail />} />
-              <Route path="patients/:patientId/visits/:visitId" element={<VisitDetail />} />
-              <Route path="knowledge" element={<div>Knowledge Base page coming soon...</div>} />
-            </Routes>
-          </Suspense>
-        </main>
-      </div>
+        }>
+          <Routes>
+            <Route index element={<DashboardHome />} />
+            <Route path="patients" element={<Patients />} />
+            <Route path="patients/:patientId" element={<PatientDetail />} />
+            <Route path="patients/:patientId/visits/:visitId" element={<VisitDetail />} />
+            <Route path="ai-tools" element={<AITools />} />
+            <Route path="knowledge" element={<div>Knowledge Base page coming soon...</div>} />
+          </Routes>
+        </Suspense>
+      </main>
     </div>
   );
 };
@@ -209,13 +247,28 @@ const DashboardHome = () => {
               Add New Patient
             </Button>
           </Link>
-          <Link to="/dashboard/soap-notes">
+          <Link to="/dashboard/ai-tools">
             <Button className="w-full justify-start" size="lg" variant="outline">
-              <FileText className="h-5 w-5 mr-2" />
-              Create SOAP Note
+              <Sparkles className="h-5 w-5 mr-2" />
+              AI Tools
             </Button>
           </Link>
         </div>
+      </div>
+    </div>
+  );
+};
+
+const AITools = () => {
+  return (
+    <div>
+      <h2 className="text-3xl font-bold mb-6">AI Tools</h2>
+      <div className="bg-card border rounded-lg p-8 text-center">
+        <Sparkles className="h-16 w-16 text-primary mx-auto mb-4" />
+        <h3 className="text-xl font-semibold mb-2">AI-Powered Medical Tools</h3>
+        <p className="text-muted-foreground">
+          Advanced AI tools for medical documentation and analysis coming soon...
+        </p>
       </div>
     </div>
   );

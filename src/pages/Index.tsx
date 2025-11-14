@@ -45,7 +45,7 @@ const Index = () => {
           <nav className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Activity className="h-8 w-8 text-primary" />
-              <h1 className="text-2xl font-bold text-primary">AiMediPedia</h1>
+              <h1 className="text-2xl font-bold text-primary">aiMedipedia</h1>
             </div>
             <div className="flex gap-4">
               <Link to="/login">
