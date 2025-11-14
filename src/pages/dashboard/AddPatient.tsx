@@ -189,7 +189,7 @@ const AddPatient = () => {
   return (
     <div className="min-h-screen bg-background pt-[72px]">
       {/* Sticky Header */}
-      <div className="fixed top-[72px] left-0 right-0 z-10 bg-background border-b">
+      <div className="fixed top-[72px] left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/95 border-b shadow-sm">
         <div className="max-w-5xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4 flex-1">
