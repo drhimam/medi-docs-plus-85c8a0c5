@@ -3,13 +3,37 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, Plus, Calendar, Activity, FileText } from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import {
+  ArrowLeft,
+  Plus,
+  MoreVertical,
+  ChevronDown,
+  Edit,
+  Trash2,
+  FileDown,
+  AlertCircle,
+} from "lucide-react";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Patient {
   id: string;
@@ -19,14 +43,28 @@ interface Patient {
   gender: string;
   contact_number: string;
   email: string | null;
+  address: string | null;
   blood_group: string | null;
+  health_card_number: string | null;
   medical_history_ongoing: string | null;
   medical_history_past: string | null;
-  ongoing_medications: string[];
-  allergic_history_drug: string[];
+  surgical_history: string | null;
+  hospitalization_history: string | null;
+  family_history: string | null;
+  mental_health_history: string | null;
+  ongoing_medications: any;
+  supplements: any;
+  vaccinations: any;
+  allergic_history_drug: any;
+  allergic_history_food: any;
+  allergic_history_env: any;
   smoking_status: string;
   alcohol_consumption: string;
+  recreational_drug_use: string | null;
+  exercise_habits: string | null;
+  diet: string | null;
   occupation: string | null;
+  living_environment: string | null;
 }
 
 interface Visit {
@@ -43,27 +81,6 @@ const PatientDetail = () => {
   const [patient, setPatient] = useState<Patient | null>(null);
   const [visits, setVisits] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    visit_type: "CONSULTATION",
-    chief_complaint: "",
-    history_of_present_illness: "",
-    duration: "",
-    onset: "",
-    severity: "",
-    vital_signs: {
-      bp: "",
-      pulse: "",
-      temp: "",
-      resp: "",
-      spo2: "",
-      weight: "",
-      height: "",
-    },
-    general_appearance: "",
-    physical_examination: "",
-    review_of_systems: "",
-  });
 
   useEffect(() => {
     fetchPatient();
@@ -103,39 +120,6 @@ const PatientDetail = () => {
     }
   };
 
-  const handleSubmitVisit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const { data, error } = await (supabase as any)
-        .from("visits")
-        .insert([
-          {
-            patient_id: patientId,
-            ...formData,
-            vital_signs: formData.vital_signs,
-          },
-        ])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      if (data) {
-        toast.success("Visit added successfully!");
-        setDialogOpen(false);
-        fetchVisits();
-        navigate(`/dashboard/patients/${patientId}/visits/${data.id}`);
-      }
-    } catch (error: any) {
-      toast.error(error.message || "Failed to add visit");
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const calculateAge = (dob: string) => {
     const birthDate = new Date(dob);
     const today = new Date();
@@ -147,10 +131,47 @@ const PatientDetail = () => {
     return age;
   };
 
+  const getAllergies = () => {
+    const allergies = [];
+    if (patient?.allergic_history_drug && Array.isArray(patient.allergic_history_drug) && patient.allergic_history_drug.length > 0) {
+      allergies.push(...patient.allergic_history_drug.map((a: any) => `Drug: ${a}`));
+    }
+    if (patient?.allergic_history_food && Array.isArray(patient.allergic_history_food) && patient.allergic_history_food.length > 0) {
+      allergies.push(...patient.allergic_history_food.map((a: any) => `Food: ${a}`));
+    }
+    if (patient?.allergic_history_env && Array.isArray(patient.allergic_history_env) && patient.allergic_history_env.length > 0) {
+      allergies.push(...patient.allergic_history_env.map((a: any) => `Env: ${a}`));
+    }
+    return allergies.length > 0 ? allergies.join(", ") : "None";
+  };
+
+  const handleDelete = async () => {
+    if (!confirm("Are you sure you want to delete this patient?")) return;
+    
+    try {
+      const { error } = await (supabase as any)
+        .from("patients")
+        .delete()
+        .eq("id", patientId);
+
+      if (error) throw error;
+      toast.success("Patient deleted successfully");
+      navigate("/dashboard/patients");
+    } catch (error: any) {
+      toast.error("Failed to delete patient");
+      console.error(error);
+    }
+  };
+
+  const handleExport = (format: string) => {
+    toast.info(`Export to ${format.toUpperCase()} feature coming soon`);
+  };
+
   if (loading) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">Loading patient...</p>
+        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
+        <p className="mt-4 text-muted-foreground">Loading patient...</p>
       </div>
     );
   }
@@ -160,6 +181,7 @@ const PatientDetail = () => {
       <div className="text-center py-12">
         <p className="text-muted-foreground">Patient not found</p>
         <Button onClick={() => navigate("/dashboard/patients")} className="mt-4">
+          <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Patients
         </Button>
       </div>
@@ -167,312 +189,299 @@ const PatientDetail = () => {
   }
 
   return (
-    <div>
-      <Button variant="ghost" onClick={() => navigate("/dashboard/patients")} className="mb-4">
-        <ArrowLeft className="h-4 w-4 mr-2" />
+    <div className="space-y-6">
+      <Button
+        variant="ghost"
+        onClick={() => navigate("/dashboard/patients")}
+        className="mb-4"
+      >
+        <ArrowLeft className="mr-2 h-4 w-4" />
         Back to Patients
       </Button>
 
-      {/* Patient Header */}
-      <Card className="p-6 mb-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <h2 className="text-3xl font-bold mb-2">
+      {/* Header Section */}
+      <Card className="p-6">
+        <div className="flex justify-between items-start">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold text-foreground">
               {patient.first_name} {patient.last_name}
-            </h2>
-            <div className="flex gap-4 text-sm text-muted-foreground">
-              <span>{calculateAge(patient.date_of_birth)} years old</span>
-              <span>•</span>
-              <span>{patient.gender}</span>
-              <span>•</span>
-              <span>{patient.contact_number}</span>
-              {patient.blood_group && (
-                <>
-                  <span>•</span>
-                  <span>Blood Group: {patient.blood_group}</span>
-                </>
-              )}
+            </h1>
+            <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+              <span>DOB: {patient.date_of_birth} ({calculateAge(patient.date_of_birth)} years)</span>
+              <span>Health Card: {patient.health_card_number || "Not provided"}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-destructive" />
+              <span className="text-sm">Allergies: {getAllergies()}</span>
             </div>
           </div>
-          
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                New Visit
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon">
+                <MoreVertical className="h-4 w-4" />
               </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Add New Visit</DialogTitle>
-              </DialogHeader>
-              
-              <form onSubmit={handleSubmitVisit} className="space-y-6">
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-lg">Visit Information</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="visit_type">Visit Type</Label>
-                      <Select 
-                        value={formData.visit_type} 
-                        onValueChange={(value) => setFormData({ ...formData, visit_type: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="CONSULTATION">Consultation</SelectItem>
-                          <SelectItem value="FOLLOW_UP">Follow-up</SelectItem>
-                          <SelectItem value="EMERGENCY">Emergency</SelectItem>
-                          <SelectItem value="ROUTINE_CHECKUP">Routine Checkup</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2 col-span-2">
-                      <Label htmlFor="chief_complaint">Chief Complaint *</Label>
-                      <Input
-                        id="chief_complaint"
-                        value={formData.chief_complaint}
-                        onChange={(e) => setFormData({ ...formData, chief_complaint: e.target.value })}
-                        placeholder="e.g., Chest pain, Fever, Headache"
-                        required
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-lg">History of Present Illness</h3>
-                  <Textarea
-                    value={formData.history_of_present_illness}
-                    onChange={(e) => setFormData({ ...formData, history_of_present_illness: e.target.value })}
-                    rows={4}
-                    placeholder="Describe the patient's current illness..."
-                  />
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="duration">Duration</Label>
-                      <Input
-                        id="duration"
-                        value={formData.duration}
-                        onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                        placeholder="e.g., 3 days"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="onset">Onset</Label>
-                      <Input
-                        id="onset"
-                        value={formData.onset}
-                        onChange={(e) => setFormData({ ...formData, onset: e.target.value })}
-                        placeholder="e.g., Sudden"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="severity">Severity</Label>
-                      <Select
-                        value={formData.severity}
-                        onValueChange={(value) => setFormData({ ...formData, severity: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="MILD">Mild</SelectItem>
-                          <SelectItem value="MODERATE">Moderate</SelectItem>
-                          <SelectItem value="SEVERE">Severe</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-lg">Vital Signs</h3>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="bp">Blood Pressure</Label>
-                      <Input
-                        id="bp"
-                        value={formData.vital_signs.bp}
-                        onChange={(e) => setFormData({ 
-                          ...formData, 
-                          vital_signs: { ...formData.vital_signs, bp: e.target.value }
-                        })}
-                        placeholder="120/80"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="pulse">Pulse (bpm)</Label>
-                      <Input
-                        id="pulse"
-                        value={formData.vital_signs.pulse}
-                        onChange={(e) => setFormData({ 
-                          ...formData, 
-                          vital_signs: { ...formData.vital_signs, pulse: e.target.value }
-                        })}
-                        placeholder="72"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="temp">Temperature (°F)</Label>
-                      <Input
-                        id="temp"
-                        value={formData.vital_signs.temp}
-                        onChange={(e) => setFormData({ 
-                          ...formData, 
-                          vital_signs: { ...formData.vital_signs, temp: e.target.value }
-                        })}
-                        placeholder="98.6"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="spo2">SpO2 (%)</Label>
-                      <Input
-                        id="spo2"
-                        value={formData.vital_signs.spo2}
-                        onChange={(e) => setFormData({ 
-                          ...formData, 
-                          vital_signs: { ...formData.vital_signs, spo2: e.target.value }
-                        })}
-                        placeholder="98"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="weight">Weight (kg)</Label>
-                      <Input
-                        id="weight"
-                        value={formData.vital_signs.weight}
-                        onChange={(e) => setFormData({ 
-                          ...formData, 
-                          vital_signs: { ...formData.vital_signs, weight: e.target.value }
-                        })}
-                        placeholder="70"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="height">Height (cm)</Label>
-                      <Input
-                        id="height"
-                        value={formData.vital_signs.height}
-                        onChange={(e) => setFormData({ 
-                          ...formData, 
-                          vital_signs: { ...formData.vital_signs, height: e.target.value }
-                        })}
-                        placeholder="170"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-lg">Physical Examination</h3>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="general_appearance">General Appearance</Label>
-                      <Textarea
-                        id="general_appearance"
-                        value={formData.general_appearance}
-                        onChange={(e) => setFormData({ ...formData, general_appearance: e.target.value })}
-                        rows={2}
-                        placeholder="Patient appears well, alert and oriented..."
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="physical_examination">Physical Examination Findings</Label>
-                      <Textarea
-                        id="physical_examination"
-                        value={formData.physical_examination}
-                        onChange={(e) => setFormData({ ...formData, physical_examination: e.target.value })}
-                        rows={3}
-                        placeholder="Cardiovascular, Respiratory, Abdominal findings..."
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={loading}>
-                    {loading ? "Creating..." : "Create Visit"}
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        {/* Medical History Summary */}
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
-          {patient.medical_history_ongoing && (
-            <div>
-              <h3 className="font-semibold mb-2">Ongoing Conditions</h3>
-              <p className="text-sm text-muted-foreground">{patient.medical_history_ongoing}</p>
-            </div>
-          )}
-          {patient.ongoing_medications && patient.ongoing_medications.length > 0 && (
-            <div>
-              <h3 className="font-semibold mb-2">Current Medications</h3>
-              <p className="text-sm text-muted-foreground">{patient.ongoing_medications.join(", ")}</p>
-            </div>
-          )}
-          {patient.allergic_history_drug && patient.allergic_history_drug.length > 0 && (
-            <div>
-              <h3 className="font-semibold mb-2 text-destructive">Drug Allergies</h3>
-              <p className="text-sm text-destructive">{patient.allergic_history_drug.join(", ")}</p>
-            </div>
-          )}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => toast.info("Edit feature coming soon")}>
+                <Edit className="mr-2 h-4 w-4" />
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleDelete} className="text-destructive">
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport("md")}>
+                <FileDown className="mr-2 h-4 w-4" />
+                Export MD
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport("pdf")}>
+                <FileDown className="mr-2 h-4 w-4" />
+                Export PDF
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </Card>
 
-      {/* Visits Section */}
-      <div>
-        <h3 className="text-2xl font-bold mb-4">Visit History</h3>
-        {visits.length === 0 ? (
-          <Card className="p-12 text-center">
-            <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h4 className="text-lg font-semibold mb-2">No visits recorded</h4>
-            <p className="text-muted-foreground mb-4">Create the first visit for this patient</p>
-            <Button onClick={() => setDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Visit
-            </Button>
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            {visits.map((visit) => (
-              <Card
-                key={visit.id}
-                className="p-4 hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-primary/50"
-                onClick={() => navigate(`/dashboard/patients/${patientId}/visits/${visit.id}`)}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-full bg-accent/10 flex items-center justify-center">
-                      <FileText className="h-5 w-5 text-accent" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold">{visit.chief_complaint}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {visit.visit_type.replace("_", " ")} • {new Date(visit.visit_date).toLocaleDateString()}
-                      </p>
-                    </div>
+      {/* Section 1: Patient Information - Collapsible */}
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold">Patient Information</h2>
+
+        {/* Demographics */}
+        <Collapsible>
+          <Card>
+            <CollapsibleTrigger className="w-full p-4 flex justify-between items-center hover:bg-accent/50 transition-colors">
+              <h3 className="text-lg font-medium">Demographics</h3>
+              <ChevronDown className="h-5 w-5 transition-transform duration-200" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="p-4 pt-0 space-y-3 border-t">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Gender</p>
+                    <p className="font-medium">{patient.gender}</p>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      visit.status === "COMPLETED" ? "bg-success/10 text-success" : "bg-warning/10 text-warning"
-                    }`}>
-                      {visit.status}
-                    </span>
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Blood Group</p>
+                    <p className="font-medium">{patient.blood_group || "Not recorded"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Contact</p>
+                    <p className="font-medium">{patient.contact_number}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Email</p>
+                    <p className="font-medium">{patient.email || "Not provided"}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-sm text-muted-foreground">Address</p>
+                    <p className="font-medium">{patient.address || "Not provided"}</p>
                   </div>
                 </div>
-              </Card>
-            ))}
-          </div>
-        )}
+              </div>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+
+        {/* Medical History */}
+        <Collapsible>
+          <Card>
+            <CollapsibleTrigger className="w-full p-4 flex justify-between items-center hover:bg-accent/50 transition-colors">
+              <h3 className="text-lg font-medium">Medical History</h3>
+              <ChevronDown className="h-5 w-5 transition-transform duration-200" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="p-4 pt-0 space-y-3 border-t">
+                <div>
+                  <p className="text-sm text-muted-foreground">Ongoing Conditions</p>
+                  <p className="font-medium">{patient.medical_history_ongoing || "None recorded"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Past Medical History</p>
+                  <p className="font-medium">{patient.medical_history_past || "None recorded"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Surgical History</p>
+                  <p className="font-medium">{patient.surgical_history || "None recorded"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Hospitalization History</p>
+                  <p className="font-medium">{patient.hospitalization_history || "None recorded"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Family History</p>
+                  <p className="font-medium">{patient.family_history || "None recorded"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Mental Health History</p>
+                  <p className="font-medium">{patient.mental_health_history || "None recorded"}</p>
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+
+        {/* Medications & Supplements */}
+        <Collapsible>
+          <Card>
+            <CollapsibleTrigger className="w-full p-4 flex justify-between items-center hover:bg-accent/50 transition-colors">
+              <h3 className="text-lg font-medium">Medications & Supplements</h3>
+              <ChevronDown className="h-5 w-5 transition-transform duration-200" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="p-4 pt-0 space-y-3 border-t">
+                <div>
+                  <p className="text-sm text-muted-foreground">Ongoing Medications</p>
+                  <p className="font-medium">
+                    {patient.ongoing_medications && Array.isArray(patient.ongoing_medications) && patient.ongoing_medications.length > 0
+                      ? patient.ongoing_medications.join(", ")
+                      : "None"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Supplements</p>
+                  <p className="font-medium">
+                    {patient.supplements && Array.isArray(patient.supplements) && patient.supplements.length > 0
+                      ? patient.supplements.join(", ")
+                      : "None"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Vaccinations</p>
+                  <p className="font-medium">
+                    {patient.vaccinations && Array.isArray(patient.vaccinations) && patient.vaccinations.length > 0
+                      ? patient.vaccinations.join(", ")
+                      : "None"}
+                  </p>
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+
+        {/* Social History */}
+        <Collapsible>
+          <Card>
+            <CollapsibleTrigger className="w-full p-4 flex justify-between items-center hover:bg-accent/50 transition-colors">
+              <h3 className="text-lg font-medium">Social History</h3>
+              <ChevronDown className="h-5 w-5 transition-transform duration-200" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="p-4 pt-0 space-y-3 border-t">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Smoking Status</p>
+                    <p className="font-medium">{patient.smoking_status}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Alcohol Consumption</p>
+                    <p className="font-medium">{patient.alcohol_consumption}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Recreational Drug Use</p>
+                    <p className="font-medium">{patient.recreational_drug_use || "Not recorded"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Exercise Habits</p>
+                    <p className="font-medium">{patient.exercise_habits || "Not recorded"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Diet</p>
+                    <p className="font-medium">{patient.diet || "Not recorded"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Occupation</p>
+                    <p className="font-medium">{patient.occupation || "Not recorded"}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-sm text-muted-foreground">Living Environment</p>
+                    <p className="font-medium">{patient.living_environment || "Not recorded"}</p>
+                  </div>
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+      </div>
+
+      {/* Section 2: Visits Table */}
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h2 className="text-xl font-semibold">Visit History</h2>
+          <Button onClick={() => toast.info("Add visit feature coming soon")}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Visit
+          </Button>
+        </div>
+
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Chief Complaint</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {visits.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    No visits recorded yet
+                  </TableCell>
+                </TableRow>
+              ) : (
+                visits.map((visit) => (
+                  <TableRow key={visit.id}>
+                    <TableCell>{visit.visit_date}</TableCell>
+                    <TableCell>{visit.visit_type}</TableCell>
+                    <TableCell>{visit.chief_complaint}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{visit.status}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => navigate(`/dashboard/patients/${patientId}/visits/${visit.id}`)}
+                      >
+                        View
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </Card>
+      </div>
+
+      {/* Section 3: Uploaded Documents */}
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold">Uploaded Documents</h2>
+
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Document Name</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Upload Date</TableHead>
+                <TableHead>Associated Visit</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  No documents uploaded yet. Documents are uploaded during individual visits.
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </Card>
       </div>
     </div>
   );
