@@ -14,8 +14,10 @@ import {
 import { toast } from "sonner";
 
 const Patients = lazy(() => import("./dashboard/Patients"));
+const AddPatient = lazy(() => import("./dashboard/AddPatient"));
 const PatientDetail = lazy(() => import("./dashboard/PatientDetail"));
 const VisitDetail = lazy(() => import("./dashboard/VisitDetail"));
+const AITools = lazy(() => import("./dashboard/AITools"));
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -187,9 +189,10 @@ const Dashboard = () => {
         }>
           <Routes>
             <Route index element={<DashboardHome />} />
-            <Route path="patients" element={<Patients />} />
-            <Route path="patients/:patientId" element={<PatientDetail />} />
-            <Route path="patients/:patientId/visits/:visitId" element={<VisitDetail />} />
+          <Route path="patients" element={<Patients />} />
+          <Route path="patients/add" element={<AddPatient />} />
+          <Route path="patients/:patientId" element={<PatientDetail />} />
+          <Route path="patients/:patientId/visits/:visitId" element={<VisitDetail />} />
             <Route path="ai-tools" element={<AITools />} />
             <Route path="knowledge" element={<div>Knowledge Base page coming soon...</div>} />
           </Routes>
@@ -254,21 +257,6 @@ const DashboardHome = () => {
             </Button>
           </Link>
         </div>
-      </div>
-    </div>
-  );
-};
-
-const AITools = () => {
-  return (
-    <div>
-      <h2 className="text-3xl font-bold mb-6">AI Tools</h2>
-      <div className="bg-card border rounded-lg p-8 text-center">
-        <Sparkles className="h-16 w-16 text-primary mx-auto mb-4" />
-        <h3 className="text-xl font-semibold mb-2">AI-Powered Medical Tools</h3>
-        <p className="text-muted-foreground">
-          Advanced AI tools for medical documentation and analysis coming soon...
-        </p>
       </div>
     </div>
   );
