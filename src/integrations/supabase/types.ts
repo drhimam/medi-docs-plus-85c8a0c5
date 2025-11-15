@@ -14,6 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
+      documents: {
+        Row: {
+          created_at: string
+          description: string
+          document_date: string
+          document_type: string
+          file_name: string
+          file_path: string
+          file_size: number
+          file_type: string
+          id: string
+          patient_id: string
+          upload_date: string
+          user_id: string
+          visit_id: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          document_date: string
+          document_type: string
+          file_name: string
+          file_path: string
+          file_size: number
+          file_type: string
+          id?: string
+          patient_id: string
+          upload_date?: string
+          user_id: string
+          visit_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          document_date?: string
+          document_type?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          patient_id?: string
+          upload_date?: string
+          user_id?: string
+          visit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patients: {
         Row: {
           address: string | null
@@ -121,6 +184,89 @@ export type Database = {
           vaccinations?: Json | null
         }
         Relationships: []
+      }
+      visits: {
+        Row: {
+          created_at: string
+          hpi: string | null
+          id: string
+          investigation: string | null
+          patient_id: string
+          physical_examination: string | null
+          reason_for_visit: string
+          ros: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          visit_date: string
+          visit_type: string
+          vital_signs_bmi: string | null
+          vital_signs_bp: string | null
+          vital_signs_general_appearance: string | null
+          vital_signs_height: string | null
+          vital_signs_pulse: string | null
+          vital_signs_respiratory_rate: string | null
+          vital_signs_spo2: string | null
+          vital_signs_temp: string | null
+          vital_signs_weight: string | null
+        }
+        Insert: {
+          created_at?: string
+          hpi?: string | null
+          id?: string
+          investigation?: string | null
+          patient_id: string
+          physical_examination?: string | null
+          reason_for_visit: string
+          ros?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          visit_date?: string
+          visit_type: string
+          vital_signs_bmi?: string | null
+          vital_signs_bp?: string | null
+          vital_signs_general_appearance?: string | null
+          vital_signs_height?: string | null
+          vital_signs_pulse?: string | null
+          vital_signs_respiratory_rate?: string | null
+          vital_signs_spo2?: string | null
+          vital_signs_temp?: string | null
+          vital_signs_weight?: string | null
+        }
+        Update: {
+          created_at?: string
+          hpi?: string | null
+          id?: string
+          investigation?: string | null
+          patient_id?: string
+          physical_examination?: string | null
+          reason_for_visit?: string
+          ros?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          visit_date?: string
+          visit_type?: string
+          vital_signs_bmi?: string | null
+          vital_signs_bp?: string | null
+          vital_signs_general_appearance?: string | null
+          vital_signs_height?: string | null
+          vital_signs_pulse?: string | null
+          vital_signs_respiratory_rate?: string | null
+          vital_signs_spo2?: string | null
+          vital_signs_temp?: string | null
+          vital_signs_weight?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visits_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

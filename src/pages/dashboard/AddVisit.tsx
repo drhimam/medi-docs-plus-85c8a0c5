@@ -1,0 +1,466 @@
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "@/hooks/use-toast";
+import { Loader2, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import HPIBuilder from "@/components/visit/HPIBuilder";
+import ROSBuilder from "@/components/visit/ROSBuilder";
+
+export default function AddVisit() {
+  const { patientId } = useParams();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [patient, setPatient] = useState<any>(null);
+  const [visitId, setVisitId] = useState<string | null>(null);
+  const [showHPIBuilder, setShowHPIBuilder] = useState(false);
+  const [showROSBuilder, setShowROSBuilder] = useState(false);
+
+  const [formData, setFormData] = useState({
+    reasonForVisit: "",
+    visitType: "consultation",
+    hpi: "",
+    ros: "",
+    vitalSignsBP: "",
+    vitalSignsPulse: "",
+    vitalSignsTemp: "",
+    vitalSignsRespiratoryRate: "",
+    vitalSignsSpO2: "",
+    vitalSignsWeight: "",
+    vitalSignsHeight: "",
+    vitalSignsBMI: "",
+    vitalSignsGeneralAppearance: "",
+    physicalExamination: "",
+    investigation: "",
+  });
+
+  useEffect(() => {
+    fetchPatient();
+  }, [patientId]);
+
+  // Auto-calculate BMI when weight or height changes
+  useEffect(() => {
+    const weight = parseFloat(formData.vitalSignsWeight);
+    const height = parseFloat(formData.vitalSignsHeight);
+    if (weight && height && height > 0) {
+      const heightInMeters = height / 100;
+      const bmi = (weight / (heightInMeters * heightInMeters)).toFixed(2);
+      setFormData((prev) => ({ ...prev, vitalSignsBMI: bmi }));
+    }
+  }, [formData.vitalSignsWeight, formData.vitalSignsHeight]);
+
+  const fetchPatient = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("patients")
+        .select("*")
+        .eq("id", patientId)
+        .single();
+
+      if (error) throw error;
+      setPatient(data);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+      navigate("/dashboard/patients");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleCreateVisit = async () => {
+    if (!formData.reasonForVisit || !formData.visitType) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in reason for visit and visit type",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No authenticated user");
+
+      const { data, error } = await supabase
+        .from("visits")
+        .insert({
+          patient_id: patientId,
+          user_id: user.id,
+          reason_for_visit: formData.reasonForVisit,
+          visit_type: formData.visitType,
+          hpi: formData.hpi,
+          ros: formData.ros,
+          vital_signs_bp: formData.vitalSignsBP,
+          vital_signs_pulse: formData.vitalSignsPulse,
+          vital_signs_temp: formData.vitalSignsTemp,
+          vital_signs_respiratory_rate: formData.vitalSignsRespiratoryRate,
+          vital_signs_spo2: formData.vitalSignsSpO2,
+          vital_signs_weight: formData.vitalSignsWeight,
+          vital_signs_height: formData.vitalSignsHeight,
+          vital_signs_bmi: formData.vitalSignsBMI,
+          vital_signs_general_appearance: formData.vitalSignsGeneralAppearance,
+          physical_examination: formData.physicalExamination,
+          investigation: formData.investigation,
+          status: "draft",
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setVisitId(data.id);
+      toast({
+        title: "Success",
+        description: "Visit created successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleProceedToDocumentation = () => {
+    // This will be implemented in the next prompt
+    toast({
+      title: "Coming Soon",
+      description: "Clinical documentation page will be available soon",
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!patient) {
+    return (
+      <div className="container mx-auto p-6">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>Patient not found</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  const allergicInfo = [
+    ...(Array.isArray(patient.allergic_history_food) ? patient.allergic_history_food : []),
+    ...(Array.isArray(patient.allergic_history_drug) ? patient.allergic_history_drug : []),
+    ...(Array.isArray(patient.allergic_history_env) ? patient.allergic_history_env : []),
+  ].join(", ") || "None";
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <div className="bg-card border-b sticky top-0 z-10">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-2xl font-bold">New Visit</h1>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => navigate(`/dashboard/patients/${patientId}`)}
+              >
+                Cancel
+              </Button>
+              {!visitId ? (
+                <Button onClick={handleCreateVisit} disabled={saving}>
+                  {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Create Visit
+                </Button>
+              ) : (
+                <Button onClick={handleProceedToDocumentation}>
+                  Proceed to Documentation
+                </Button>
+              )}
+            </div>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div>
+              <span className="text-muted-foreground">Patient: </span>
+              <span className="font-medium">{patient.first_name} {patient.last_name}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">ID: </span>
+              <span className="font-medium">{patient.id.slice(0, 8)}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">DOB: </span>
+              <span className="font-medium">{new Date(patient.date_of_birth).toLocaleDateString()}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Blood Group: </span>
+              <span className="font-medium">{patient.blood_group || "N/A"}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Contact: </span>
+              <span className="font-medium">{patient.contact_number}</span>
+            </div>
+            <div className="col-span-2 md:col-span-3">
+              <span className="text-muted-foreground">Allergies: </span>
+              <span className="font-medium">{allergicInfo}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Form Content */}
+      <div className="container mx-auto px-6 py-6 space-y-6">
+        {/* Section 1: Visit Details */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Visit Details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="reasonForVisit">Reason for Visit *</Label>
+              <Input
+                id="reasonForVisit"
+                value={formData.reasonForVisit}
+                onChange={(e) => handleInputChange("reasonForVisit", e.target.value)}
+                placeholder="Enter reason for visit"
+              />
+            </div>
+            <div>
+              <Label htmlFor="visitType">Visit Type *</Label>
+              <Select value={formData.visitType} onValueChange={(value) => handleInputChange("visitType", value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="consultation">Consultation</SelectItem>
+                  <SelectItem value="follow-up">Follow Up</SelectItem>
+                  <SelectItem value="vaccination">Vaccination</SelectItem>
+                  <SelectItem value="emergency">Emergency</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Section 2: Subjective */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Subjective</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label htmlFor="hpi">History of Present Illness (HPI)</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowHPIBuilder(true)}
+                >
+                  Add Complaint
+                </Button>
+              </div>
+              <Textarea
+                id="hpi"
+                value={formData.hpi}
+                onChange={(e) => handleInputChange("hpi", e.target.value)}
+                placeholder="Enter history of present illness..."
+                className="min-h-[120px]"
+              />
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label htmlFor="ros">Review of Systems (ROS)</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowROSBuilder(true)}
+                >
+                  ROS Builder
+                </Button>
+              </div>
+              <Textarea
+                id="ros"
+                value={formData.ros}
+                onChange={(e) => handleInputChange("ros", e.target.value)}
+                placeholder="Enter review of systems..."
+                className="min-h-[120px]"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Section 3: Objective */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Objective</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <h4 className="font-medium mb-3">Vital Signs</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="bp">BP (mmHg)</Label>
+                  <Input
+                    id="bp"
+                    value={formData.vitalSignsBP}
+                    onChange={(e) => handleInputChange("vitalSignsBP", e.target.value)}
+                    placeholder="e.g., 120/80"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="pulse">Pulse (bpm)</Label>
+                  <Input
+                    id="pulse"
+                    value={formData.vitalSignsPulse}
+                    onChange={(e) => handleInputChange("vitalSignsPulse", e.target.value)}
+                    placeholder="e.g., 72"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="temp">Temperature (°C)</Label>
+                  <Input
+                    id="temp"
+                    value={formData.vitalSignsTemp}
+                    onChange={(e) => handleInputChange("vitalSignsTemp", e.target.value)}
+                    placeholder="e.g., 37.0"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="respiratory">Respiratory Rate (breaths/min)</Label>
+                  <Input
+                    id="respiratory"
+                    value={formData.vitalSignsRespiratoryRate}
+                    onChange={(e) => handleInputChange("vitalSignsRespiratoryRate", e.target.value)}
+                    placeholder="e.g., 16"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="spo2">SpO2 (%)</Label>
+                  <Input
+                    id="spo2"
+                    value={formData.vitalSignsSpO2}
+                    onChange={(e) => handleInputChange("vitalSignsSpO2", e.target.value)}
+                    placeholder="e.g., 98"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="weight">Weight (kg)</Label>
+                  <Input
+                    id="weight"
+                    type="number"
+                    value={formData.vitalSignsWeight}
+                    onChange={(e) => handleInputChange("vitalSignsWeight", e.target.value)}
+                    placeholder="e.g., 70"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="height">Height (cm)</Label>
+                  <Input
+                    id="height"
+                    type="number"
+                    value={formData.vitalSignsHeight}
+                    onChange={(e) => handleInputChange("vitalSignsHeight", e.target.value)}
+                    placeholder="e.g., 175"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="bmi">BMI (Auto-calculated)</Label>
+                  <Input
+                    id="bmi"
+                    value={formData.vitalSignsBMI}
+                    readOnly
+                    placeholder="Auto-calculated"
+                    className="bg-muted"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="generalAppearance">General Appearance</Label>
+                  <Input
+                    id="generalAppearance"
+                    value={formData.vitalSignsGeneralAppearance}
+                    onChange={(e) => handleInputChange("vitalSignsGeneralAppearance", e.target.value)}
+                    placeholder="e.g., Well-nourished"
+                  />
+                </div>
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="physicalExamination">Physical Examination</Label>
+              <Textarea
+                id="physicalExamination"
+                value={formData.physicalExamination}
+                onChange={(e) => handleInputChange("physicalExamination", e.target.value)}
+                placeholder="Enter physical examination findings..."
+                className="min-h-[120px]"
+              />
+            </div>
+            <div>
+              <Label htmlFor="investigation">Investigation</Label>
+              <Textarea
+                id="investigation"
+                value={formData.investigation}
+                onChange={(e) => handleInputChange("investigation", e.target.value)}
+                placeholder="Enter investigation details..."
+                className="min-h-[120px]"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Section 4: Upload Documents */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Upload Documents</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Button disabled={!visitId} variant="outline">
+              {visitId ? "Upload Document" : "Create visit first to enable document upload"}
+            </Button>
+            {!visitId && (
+              <p className="text-sm text-muted-foreground mt-2">
+                Documents can be uploaded after creating the visit
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Modals */}
+      <HPIBuilder
+        open={showHPIBuilder}
+        onClose={() => setShowHPIBuilder(false)}
+        currentHPI={formData.hpi}
+        onUpdate={(newHPI) => handleInputChange("hpi", newHPI)}
+      />
+      <ROSBuilder
+        open={showROSBuilder}
+        onClose={() => setShowROSBuilder(false)}
+        currentROS={formData.ros}
+        onUpdate={(newROS) => handleInputChange("ros", newROS)}
+      />
+    </div>
+  );
+}
