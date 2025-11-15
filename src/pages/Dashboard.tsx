@@ -79,7 +79,7 @@ const Dashboard = () => {
   return (
     <div className="flex flex-col h-screen bg-background">
       {/* Top Navigation Bar */}
-      <header className="border-b bg-card">
+      <header className="sticky top-0 z-50 border-b bg-card">
         <div className="flex items-center justify-between px-6 py-4">
           {/* Logo */}
           <div className="flex items-center gap-2">
