@@ -34,6 +34,8 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface Patient {
   id: string;
@@ -164,7 +166,422 @@ const PatientDetail = () => {
   };
 
   const handleExport = (format: string) => {
-    toast.info(`Export to ${format.toUpperCase()} feature coming soon`);
+    if (!patient) return;
+
+    if (format === "md") {
+      exportToMarkdown();
+    } else if (format === "pdf") {
+      exportToPDF();
+    }
+  };
+
+  const exportToMarkdown = () => {
+    if (!patient) return;
+
+    const age = calculateAge(patient.date_of_birth);
+    const allergies = getAllergies();
+
+    let markdown = `# Patient Medical Record\n\n`;
+    markdown += `---\n\n`;
+    
+    // Header section with key info
+    markdown += `## ${patient.first_name} ${patient.last_name}\n\n`;
+    markdown += `**Date of Birth:** ${patient.date_of_birth} (${age} years old)  \n`;
+    markdown += `**Gender:** ${patient.gender}  \n`;
+    markdown += `**Contact Number:** ${patient.contact_number}  \n`;
+    markdown += `**Blood Group:** ${patient.blood_group || "Not recorded"}  \n`;
+    markdown += `**Health Card:** ${patient.health_card_number || "Not provided"}  \n`;
+    markdown += `**Email:** ${patient.email || "Not provided"}  \n`;
+    markdown += `**Address:** ${patient.address || "Not provided"}  \n\n`;
+    markdown += `**⚠️ Allergies:** ${allergies}  \n\n`;
+    markdown += `---\n\n`;
+
+    // Demographics section
+    markdown += `## Demographics\n\n`;
+    markdown += `| Field | Value |\n`;
+    markdown += `|-------|-------|\n`;
+    markdown += `| Gender | ${patient.gender} |\n`;
+    markdown += `| Blood Group | ${patient.blood_group || "Not recorded"} |\n`;
+    markdown += `| Contact Number | ${patient.contact_number} |\n`;
+    markdown += `| Email | ${patient.email || "Not provided"} |\n`;
+    markdown += `| Address | ${patient.address || "Not provided"} |\n\n`;
+
+    // Medical History
+    markdown += `## Medical History\n\n`;
+    if (patient.medical_history_ongoing) {
+      markdown += `### Ongoing Medical Conditions\n${patient.medical_history_ongoing}\n\n`;
+    }
+    if (patient.medical_history_past) {
+      markdown += `### Past Medical History\n${patient.medical_history_past}\n\n`;
+    }
+    if (patient.surgical_history) {
+      markdown += `### Surgical History\n${patient.surgical_history}\n\n`;
+    }
+    if (patient.hospitalization_history) {
+      markdown += `### Hospitalization History\n${patient.hospitalization_history}\n\n`;
+    }
+    if (patient.family_history) {
+      markdown += `### Family History\n${patient.family_history}\n\n`;
+    }
+    if (patient.mental_health_history) {
+      markdown += `### Mental Health History\n${patient.mental_health_history}\n\n`;
+    }
+
+    // Medications & Supplements
+    markdown += `## Medications & Supplements\n\n`;
+    if (patient.ongoing_medications && Array.isArray(patient.ongoing_medications) && patient.ongoing_medications.length > 0) {
+      markdown += `### Ongoing Medications\n`;
+      patient.ongoing_medications.forEach((med: string) => {
+        markdown += `- ${med}\n`;
+      });
+      markdown += `\n`;
+    }
+    if (patient.supplements && Array.isArray(patient.supplements) && patient.supplements.length > 0) {
+      markdown += `### Supplements\n`;
+      patient.supplements.forEach((sup: string) => {
+        markdown += `- ${sup}\n`;
+      });
+      markdown += `\n`;
+    }
+    if (patient.vaccinations && Array.isArray(patient.vaccinations) && patient.vaccinations.length > 0) {
+      markdown += `### Vaccinations\n`;
+      patient.vaccinations.forEach((vac: string) => {
+        markdown += `- ${vac}\n`;
+      });
+      markdown += `\n`;
+    }
+
+    // Allergies
+    markdown += `## Allergies\n\n`;
+    if (patient.allergic_history_drug && Array.isArray(patient.allergic_history_drug) && patient.allergic_history_drug.length > 0) {
+      markdown += `### Drug Allergies\n`;
+      patient.allergic_history_drug.forEach((allergy: string) => {
+        markdown += `- ${allergy}\n`;
+      });
+      markdown += `\n`;
+    }
+    if (patient.allergic_history_food && Array.isArray(patient.allergic_history_food) && patient.allergic_history_food.length > 0) {
+      markdown += `### Food Allergies\n`;
+      patient.allergic_history_food.forEach((allergy: string) => {
+        markdown += `- ${allergy}\n`;
+      });
+      markdown += `\n`;
+    }
+    if (patient.allergic_history_env && Array.isArray(patient.allergic_history_env) && patient.allergic_history_env.length > 0) {
+      markdown += `### Environmental Allergies\n`;
+      patient.allergic_history_env.forEach((allergy: string) => {
+        markdown += `- ${allergy}\n`;
+      });
+      markdown += `\n`;
+    }
+
+    // Social History
+    markdown += `## Social History\n\n`;
+    markdown += `| Category | Details |\n`;
+    markdown += `|----------|----------|\n`;
+    markdown += `| Smoking Status | ${patient.smoking_status} |\n`;
+    markdown += `| Alcohol Consumption | ${patient.alcohol_consumption} |\n`;
+    if (patient.recreational_drug_use) {
+      markdown += `| Recreational Drug Use | ${patient.recreational_drug_use} |\n`;
+    }
+    if (patient.exercise_habits) {
+      markdown += `| Exercise Habits | ${patient.exercise_habits} |\n`;
+    }
+    if (patient.diet) {
+      markdown += `| Diet | ${patient.diet} |\n`;
+    }
+    if (patient.occupation) {
+      markdown += `| Occupation | ${patient.occupation} |\n`;
+    }
+    if (patient.living_environment) {
+      markdown += `| Living Environment | ${patient.living_environment} |\n`;
+    }
+
+    markdown += `\n---\n\n`;
+    markdown += `*Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}*\n`;
+
+    // Download the file
+    const blob = new Blob([markdown], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${patient.first_name}_${patient.last_name}_medical_record.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast.success("Markdown file exported successfully");
+  };
+
+  const exportToPDF = () => {
+    if (!patient) return;
+
+    const doc = new jsPDF();
+    const age = calculateAge(patient.date_of_birth);
+    const allergies = getAllergies();
+    let yPos = 20;
+
+    // Header with logo/title
+    doc.setFontSize(24);
+    doc.setTextColor(33, 37, 41);
+    doc.text("PATIENT MEDICAL RECORD", 105, yPos, { align: "center" });
+    
+    yPos += 15;
+    doc.setLineWidth(0.5);
+    doc.line(20, yPos, 190, yPos);
+    yPos += 10;
+
+    // Patient Header Information
+    doc.setFontSize(18);
+    doc.setTextColor(33, 37, 41);
+    doc.text(`${patient.first_name} ${patient.last_name}`, 20, yPos);
+    
+    yPos += 8;
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`DOB: ${patient.date_of_birth} (${age} years) | Gender: ${patient.gender}`, 20, yPos);
+    
+    yPos += 5;
+    doc.text(`Contact: ${patient.contact_number} | Blood Group: ${patient.blood_group || "Not recorded"}`, 20, yPos);
+    
+    yPos += 5;
+    doc.text(`Health Card: ${patient.health_card_number || "Not provided"}`, 20, yPos);
+    
+    yPos += 8;
+    doc.setFontSize(9);
+    doc.setTextColor(220, 53, 69);
+    doc.text(`⚠ ALLERGIES: ${allergies}`, 20, yPos);
+    
+    yPos += 10;
+    doc.setLineWidth(0.3);
+    doc.setDrawColor(200, 200, 200);
+    doc.line(20, yPos, 190, yPos);
+    yPos += 10;
+
+    // Demographics Table
+    doc.setFontSize(14);
+    doc.setTextColor(33, 37, 41);
+    doc.text("Demographics", 20, yPos);
+    yPos += 5;
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [["Field", "Value"]],
+      body: [
+        ["Gender", patient.gender],
+        ["Blood Group", patient.blood_group || "Not recorded"],
+        ["Contact Number", patient.contact_number],
+        ["Email", patient.email || "Not provided"],
+        ["Address", patient.address || "Not provided"],
+      ],
+      theme: "grid",
+      headStyles: { fillColor: [79, 70, 229], textColor: 255, fontSize: 10 },
+      bodyStyles: { fontSize: 9 },
+      margin: { left: 20, right: 20 },
+    });
+
+    yPos = (doc as any).lastAutoTable.finalY + 10;
+
+    // Medical History Section
+    if (yPos > 250) {
+      doc.addPage();
+      yPos = 20;
+    }
+
+    doc.setFontSize(14);
+    doc.setTextColor(33, 37, 41);
+    doc.text("Medical History", 20, yPos);
+    yPos += 5;
+
+    const medicalHistoryData = [];
+    if (patient.medical_history_ongoing) {
+      medicalHistoryData.push(["Ongoing Conditions", patient.medical_history_ongoing]);
+    }
+    if (patient.medical_history_past) {
+      medicalHistoryData.push(["Past Medical History", patient.medical_history_past]);
+    }
+    if (patient.surgical_history) {
+      medicalHistoryData.push(["Surgical History", patient.surgical_history]);
+    }
+    if (patient.hospitalization_history) {
+      medicalHistoryData.push(["Hospitalization History", patient.hospitalization_history]);
+    }
+    if (patient.family_history) {
+      medicalHistoryData.push(["Family History", patient.family_history]);
+    }
+    if (patient.mental_health_history) {
+      medicalHistoryData.push(["Mental Health", patient.mental_health_history]);
+    }
+
+    if (medicalHistoryData.length > 0) {
+      autoTable(doc, {
+        startY: yPos,
+        head: [["Category", "Details"]],
+        body: medicalHistoryData,
+        theme: "striped",
+        headStyles: { fillColor: [79, 70, 229], textColor: 255, fontSize: 10 },
+        bodyStyles: { fontSize: 9 },
+        columnStyles: {
+          0: { cellWidth: 50 },
+          1: { cellWidth: 120 },
+        },
+        margin: { left: 20, right: 20 },
+      });
+
+      yPos = (doc as any).lastAutoTable.finalY + 10;
+    }
+
+    // Medications & Supplements
+    if (yPos > 250) {
+      doc.addPage();
+      yPos = 20;
+    }
+
+    doc.setFontSize(14);
+    doc.text("Medications & Supplements", 20, yPos);
+    yPos += 5;
+
+    const medicationData = [];
+    if (patient.ongoing_medications && Array.isArray(patient.ongoing_medications)) {
+      patient.ongoing_medications.forEach((med: string) => {
+        medicationData.push(["Medication", med]);
+      });
+    }
+    if (patient.supplements && Array.isArray(patient.supplements)) {
+      patient.supplements.forEach((sup: string) => {
+        medicationData.push(["Supplement", sup]);
+      });
+    }
+    if (patient.vaccinations && Array.isArray(patient.vaccinations)) {
+      patient.vaccinations.forEach((vac: string) => {
+        medicationData.push(["Vaccination", vac]);
+      });
+    }
+
+    if (medicationData.length > 0) {
+      autoTable(doc, {
+        startY: yPos,
+        head: [["Type", "Details"]],
+        body: medicationData,
+        theme: "striped",
+        headStyles: { fillColor: [79, 70, 229], textColor: 255, fontSize: 10 },
+        bodyStyles: { fontSize: 9 },
+        margin: { left: 20, right: 20 },
+      });
+
+      yPos = (doc as any).lastAutoTable.finalY + 10;
+    }
+
+    // Allergies Section
+    if (yPos > 250) {
+      doc.addPage();
+      yPos = 20;
+    }
+
+    doc.setFontSize(14);
+    doc.setTextColor(220, 53, 69);
+    doc.text("⚠ Allergies", 20, yPos);
+    yPos += 5;
+
+    const allergyData = [];
+    if (patient.allergic_history_drug && Array.isArray(patient.allergic_history_drug)) {
+      patient.allergic_history_drug.forEach((allergy: string) => {
+        allergyData.push(["Drug", allergy]);
+      });
+    }
+    if (patient.allergic_history_food && Array.isArray(patient.allergic_history_food)) {
+      patient.allergic_history_food.forEach((allergy: string) => {
+        allergyData.push(["Food", allergy]);
+      });
+    }
+    if (patient.allergic_history_env && Array.isArray(patient.allergic_history_env)) {
+      patient.allergic_history_env.forEach((allergy: string) => {
+        allergyData.push(["Environmental", allergy]);
+      });
+    }
+
+    if (allergyData.length > 0) {
+      autoTable(doc, {
+        startY: yPos,
+        head: [["Type", "Allergen"]],
+        body: allergyData,
+        theme: "grid",
+        headStyles: { fillColor: [220, 53, 69], textColor: 255, fontSize: 10 },
+        bodyStyles: { fontSize: 9 },
+        margin: { left: 20, right: 20 },
+      });
+
+      yPos = (doc as any).lastAutoTable.finalY + 10;
+    } else {
+      doc.setFontSize(9);
+      doc.setTextColor(100, 100, 100);
+      doc.text("No known allergies", 20, yPos);
+      yPos += 10;
+    }
+
+    // Social History
+    if (yPos > 250) {
+      doc.addPage();
+      yPos = 20;
+    }
+
+    doc.setFontSize(14);
+    doc.setTextColor(33, 37, 41);
+    doc.text("Social History", 20, yPos);
+    yPos += 5;
+
+    const socialHistoryData = [
+      ["Smoking Status", patient.smoking_status],
+      ["Alcohol Consumption", patient.alcohol_consumption],
+    ];
+
+    if (patient.recreational_drug_use) {
+      socialHistoryData.push(["Recreational Drug Use", patient.recreational_drug_use]);
+    }
+    if (patient.exercise_habits) {
+      socialHistoryData.push(["Exercise Habits", patient.exercise_habits]);
+    }
+    if (patient.diet) {
+      socialHistoryData.push(["Diet", patient.diet]);
+    }
+    if (patient.occupation) {
+      socialHistoryData.push(["Occupation", patient.occupation]);
+    }
+    if (patient.living_environment) {
+      socialHistoryData.push(["Living Environment", patient.living_environment]);
+    }
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [["Category", "Details"]],
+      body: socialHistoryData,
+      theme: "striped",
+      headStyles: { fillColor: [79, 70, 229], textColor: 255, fontSize: 10 },
+      bodyStyles: { fontSize: 9 },
+      margin: { left: 20, right: 20 },
+    });
+
+    yPos = (doc as any).lastAutoTable.finalY + 10;
+
+    // Footer
+    const pageCount = (doc as any).internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(150, 150, 150);
+      doc.text(
+        `Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`,
+        105,
+        285,
+        { align: "center" }
+      );
+      doc.text(`Page ${i} of ${pageCount}`, 190, 285, { align: "right" });
+    }
+
+    // Save the PDF
+    doc.save(`${patient.first_name}_${patient.last_name}_medical_record.pdf`);
+    toast.success("PDF exported successfully");
   };
 
   if (loading) {
