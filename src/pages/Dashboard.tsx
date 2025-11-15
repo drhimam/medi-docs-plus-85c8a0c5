@@ -9,9 +9,21 @@ import {
   BookOpen, 
   LogOut,
   LayoutDashboard,
-  Sparkles
+  Sparkles,
+  User,
+  Settings,
+  CreditCard
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const Patients = lazy(() => import("./dashboard/Patients"));
 const AddPatient = lazy(() => import("./dashboard/AddPatient"));
@@ -127,15 +139,52 @@ const Dashboard = () => {
             </Link>
           </nav>
 
-          {/* Logout Button */}
-          <Button
-            variant="ghost"
-            onClick={handleLogout}
-            className="gap-2"
-          >
-            <LogOut className="h-4 w-4" />
-            <span className="hidden sm:inline">Logout</span>
-          </Button>
+          {/* User Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                <Avatar className="h-10 w-10">
+                  <AvatarImage src="" alt={user?.email || ""} />
+                  <AvatarFallback className="bg-primary text-primary-foreground">
+                    {user?.user_metadata?.first_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "U"}
+                    {user?.user_metadata?.last_name?.[0]?.toUpperCase() || ""}
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56" align="end" forceMount>
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none">
+                    {user?.user_metadata?.first_name && user?.user_metadata?.last_name
+                      ? `${user.user_metadata.first_name} ${user.user_metadata.last_name}`
+                      : user?.email?.split('@')[0] || "User"}
+                  </p>
+                  <p className="text-xs leading-none text-muted-foreground">
+                    {user?.email || ""}
+                  </p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate("/dashboard/profile")}>
+                <User className="mr-2 h-4 w-4" />
+                <span>Profile</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate("/dashboard/settings")}>
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Settings</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate("/dashboard/billing")}>
+                <CreditCard className="mr-2 h-4 w-4" />
+                <span>Subscription & Billing</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Logout</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Mobile Navigation */}
@@ -192,15 +241,18 @@ const Dashboard = () => {
         }>
           <Routes>
             <Route index element={<DashboardHome />} />
-          <Route path="patients" element={<Patients />} />
-          <Route path="patients/add" element={<AddPatient />} />
-          <Route path="patients/:patientId/edit" element={<EditPatient />} />
-          <Route path="patients/:patientId" element={<PatientDetail />} />
-          <Route path="patients/:patientId/add-visit" element={<AddVisit />} />
-          <Route path="patients/:patientId/visits/:visitId" element={<VisitDetail />} />
-          <Route path="clinical-documentation/:visitId" element={<ClinicalDocumentation />} />
+            <Route path="patients" element={<Patients />} />
+            <Route path="patients/add" element={<AddPatient />} />
+            <Route path="patients/:patientId/edit" element={<EditPatient />} />
+            <Route path="patients/:patientId" element={<PatientDetail />} />
+            <Route path="patients/:patientId/add-visit" element={<AddVisit />} />
+            <Route path="patients/:patientId/visits/:visitId" element={<VisitDetail />} />
+            <Route path="clinical-documentation/:visitId" element={<ClinicalDocumentation />} />
             <Route path="ai-tools" element={<AITools />} />
             <Route path="knowledge" element={<div>Knowledge Base page coming soon...</div>} />
+            <Route path="profile" element={<div className="p-6"><h2 className="text-2xl font-bold mb-4">User Profile</h2><p className="text-muted-foreground">Profile page coming soon...</p></div>} />
+            <Route path="settings" element={<div className="p-6"><h2 className="text-2xl font-bold mb-4">Settings</h2><p className="text-muted-foreground">Settings page coming soon...</p></div>} />
+            <Route path="billing" element={<div className="p-6"><h2 className="text-2xl font-bold mb-4">Subscription & Billing</h2><p className="text-muted-foreground">Billing page coming soon...</p></div>} />
           </Routes>
         </Suspense>
       </main>
