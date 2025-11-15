@@ -193,8 +193,13 @@ export type Database = {
           investigation: string | null
           patient_id: string
           physical_examination: string | null
+          prescription: string | null
           reason_for_visit: string
           ros: string | null
+          soap_assessment: string | null
+          soap_objective: string | null
+          soap_plan: string | null
+          soap_subjective: string | null
           status: string
           updated_at: string
           user_id: string
@@ -217,8 +222,13 @@ export type Database = {
           investigation?: string | null
           patient_id: string
           physical_examination?: string | null
+          prescription?: string | null
           reason_for_visit: string
           ros?: string | null
+          soap_assessment?: string | null
+          soap_objective?: string | null
+          soap_plan?: string | null
+          soap_subjective?: string | null
           status?: string
           updated_at?: string
           user_id: string
@@ -241,8 +251,13 @@ export type Database = {
           investigation?: string | null
           patient_id?: string
           physical_examination?: string | null
+          prescription?: string | null
           reason_for_visit?: string
           ros?: string | null
+          soap_assessment?: string | null
+          soap_objective?: string | null
+          soap_plan?: string | null
+          soap_subjective?: string | null
           status?: string
           updated_at?: string
           user_id?: string
