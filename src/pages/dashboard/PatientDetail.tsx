@@ -648,7 +648,7 @@ const PatientDetail = () => {
       </Button>
 
       {/* Header Section */}
-      <Card className="sticky top-[73px] z-50 p-6 bg-card shadow-md">
+      <Card className="sticky top-16 z-50 p-6 bg-card shadow-md">
         <div className="flex justify-between items-start">
           <div className="space-y-2">
             <h1 className="text-3xl font-bold text-foreground">
