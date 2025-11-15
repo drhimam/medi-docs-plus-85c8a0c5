@@ -13,16 +13,25 @@ interface Visit {
   id: string;
   visit_date: string;
   visit_type: string;
-  chief_complaint: string;
+  reason_for_visit: string;
   status: string;
-  history_of_present_illness: string | null;
-  duration: string | null;
-  onset: string | null;
-  severity: string | null;
-  vital_signs: any;
-  general_appearance: string | null;
+  hpi: string | null;
+  ros: string | null;
+  vital_signs_bp: string | null;
+  vital_signs_pulse: string | null;
+  vital_signs_temp: string | null;
+  vital_signs_respiratory_rate: string | null;
+  vital_signs_spo2: string | null;
+  vital_signs_weight: string | null;
+  vital_signs_height: string | null;
+  vital_signs_bmi: string | null;
+  vital_signs_general_appearance: string | null;
   physical_examination: string | null;
-  review_of_systems: string | null;
+  soap_subjective: string | null;
+  soap_objective: string | null;
+  soap_assessment: string | null;
+  soap_plan: string | null;
+  prescription: string | null;
   patient_id: string;
 }
 
@@ -54,8 +63,6 @@ const VisitDetail = () => {
   const navigate = useNavigate();
   const [visit, setVisit] = useState<Visit | null>(null);
   const [patient, setPatient] = useState<Patient | null>(null);
-  const [soapNote, setSOAPNote] = useState<SOAPNote | null>(null);
-  const [prescription, setPrescription] = useState<Prescription | null>(null);
   const [loading, setLoading] = useState(true);
   const [soapData, setSOAPData] = useState({
     subjective: "",
@@ -68,8 +75,6 @@ const VisitDetail = () => {
   useEffect(() => {
     fetchVisit();
     fetchPatient();
-    fetchSOAPNote();
-    fetchPrescription();
   }, [visitId, patientId]);
 
   const fetchVisit = async () => {
@@ -82,6 +87,17 @@ const VisitDetail = () => {
 
       if (error) throw error;
       setVisit(data);
+      
+      // Load SOAP data and prescription from visit
+      if (data) {
+        setSOAPData({
+          subjective: data.soap_subjective || "",
+          objective: data.soap_objective || "",
+          assessment: data.soap_assessment || "",
+          plan: data.soap_plan || "",
+        });
+        setPrescriptionContent(data.prescription || "");
+      }
     } catch (error: any) {
       toast.error("Failed to load visit");
       console.error(error);
@@ -312,34 +328,17 @@ const VisitDetail = () => {
   const handleSavePrescription = async () => {
     setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      const { error } = await (supabase as any)
+        .from("visits")
+        .update({
+          prescription: prescriptionContent,
+        })
+        .eq("id", visitId);
 
-      if (prescription) {
-        // Update
-        const { error } = await (supabase as any)
-          .from("prescriptions")
-          .update({ content: prescriptionContent })
-          .eq("id", prescription.id);
-
-        if (error) throw error;
-      } else {
-        // Create
-        const { error } = await (supabase as any)
-          .from("prescriptions")
-          .insert([
-            {
-              visit_id: visitId,
-              user_id: user.id,
-              content: prescriptionContent,
-            },
-          ]);
-
-        if (error) throw error;
-      }
+      if (error) throw error;
 
       toast.success("Prescription saved successfully!");
-      fetchPrescription();
+      fetchVisit();
     } catch (error: any) {
       toast.error(error.message || "Failed to save prescription");
       console.error(error);
@@ -389,13 +388,13 @@ const VisitDetail = () => {
       <Card className="p-6 mb-6">
         <div className="flex items-start justify-between">
           <div>
-            <h2 className="text-2xl font-bold mb-2">{visit.chief_complaint}</h2>
+            <h2 className="text-2xl font-bold mb-2">{visit.reason_for_visit}</h2>
             <div className="flex gap-4 text-sm text-muted-foreground">
               <span>{new Date(visit.visit_date).toLocaleDateString()}</span>
               <span>•</span>
-              <span>{visit.visit_type.replace("_", " ")}</span>
+              <span>{visit.visit_type}</span>
               <span>•</span>
-              <span className={`font-medium ${visit.status === "COMPLETED" ? "text-success" : "text-warning"}`}>
+              <span className={`font-medium ${visit.status === "completed" ? "text-success" : "text-warning"}`}>
                 {visit.status}
               </span>
             </div>
