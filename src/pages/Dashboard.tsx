@@ -12,7 +12,9 @@ import {
   Sparkles,
   User,
   Settings,
-  CreditCard
+  CreditCard,
+  Menu,
+  X
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -24,6 +26,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 const Patients = lazy(() => import("./dashboard/Patients"));
 const AddPatient = lazy(() => import("./dashboard/AddPatient"));
@@ -39,6 +48,7 @@ const Dashboard = () => {
   const location = useLocation();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     checkUser();
@@ -92,14 +102,14 @@ const Dashboard = () => {
     <div className="flex flex-col h-screen bg-background">
       {/* Top Navigation Bar */}
       <header className="border-b bg-card">
-        <div className="flex items-center justify-between px-6 py-4">
+        <div className="flex items-center justify-between px-4 md:px-6 py-4">
           {/* Logo */}
           <div className="flex items-center gap-2">
-            <Activity className="h-7 w-7 text-primary" />
-            <h1 className="text-xl font-bold text-foreground">aiMedipedia</h1>
+            <Activity className="h-6 w-6 md:h-7 md:w-7 text-primary" />
+            <h1 className="text-lg md:text-xl font-bold text-foreground">aiMedipedia</h1>
           </div>
 
-          {/* Navigation Links */}
+          {/* Desktop Navigation Links */}
           <nav className="hidden md:flex items-center gap-1">
             <Link to="/dashboard">
               <Button 
@@ -139,10 +149,159 @@ const Dashboard = () => {
             </Link>
           </nav>
 
-          {/* User Menu */}
+          {/* Mobile Navigation - Hamburger Menu */}
+          <div className="flex md:hidden items-center gap-2">
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[280px] sm:w-[320px]">
+                <SheetHeader>
+                  <SheetTitle className="flex items-center gap-2">
+                    <Activity className="h-6 w-6 text-primary" />
+                    <span>aiMedipedia</span>
+                  </SheetTitle>
+                </SheetHeader>
+                <nav className="flex flex-col gap-2 mt-6">
+                  <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)}>
+                    <Button 
+                      variant={isActive("/dashboard") && location.pathname === "/dashboard" ? "default" : "ghost"}
+                      className="w-full justify-start gap-2"
+                    >
+                      <LayoutDashboard className="h-4 w-4" />
+                      Dashboard
+                    </Button>
+                  </Link>
+                  <Link to="/dashboard/patients" onClick={() => setMobileMenuOpen(false)}>
+                    <Button 
+                      variant={isActive("/dashboard/patients") ? "default" : "ghost"}
+                      className="w-full justify-start gap-2"
+                    >
+                      <Users className="h-4 w-4" />
+                      Patients
+                    </Button>
+                  </Link>
+                  <Link to="/dashboard/ai-tools" onClick={() => setMobileMenuOpen(false)}>
+                    <Button 
+                      variant={isActive("/dashboard/ai-tools") ? "default" : "ghost"}
+                      className="w-full justify-start gap-2"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      AI Tools
+                    </Button>
+                  </Link>
+                  <Link to="/dashboard/knowledge" onClick={() => setMobileMenuOpen(false)}>
+                    <Button 
+                      variant={isActive("/dashboard/knowledge") ? "default" : "ghost"}
+                      className="w-full justify-start gap-2"
+                    >
+                      <BookOpen className="h-4 w-4" />
+                      Knowledge Base
+                    </Button>
+                  </Link>
+                  
+                  <div className="border-t my-4"></div>
+                  
+                  <div className="px-2 py-2 space-y-1">
+                    <p className="text-sm font-medium">
+                      {user?.user_metadata?.first_name && user?.user_metadata?.last_name
+                        ? `${user.user_metadata.first_name} ${user.user_metadata.last_name}`
+                        : user?.email?.split('@')[0] || "User"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {user?.email || ""}
+                    </p>
+                  </div>
+                  
+                  <Link to="/dashboard/profile" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start gap-2">
+                      <User className="h-4 w-4" />
+                      Profile
+                    </Button>
+                  </Link>
+                  <Link to="/dashboard/settings" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start gap-2">
+                      <Settings className="h-4 w-4" />
+                      Settings
+                    </Button>
+                  </Link>
+                  <Link to="/dashboard/billing" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start gap-2">
+                      <CreditCard className="h-4 w-4" />
+                      Subscription & Billing
+                    </Button>
+                  </Link>
+                  
+                  <div className="border-t my-2"></div>
+                  
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start gap-2 text-destructive hover:text-destructive"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      handleLogout();
+                    }}
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Logout
+                  </Button>
+                </nav>
+              </SheetContent>
+            </Sheet>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src="" alt={user?.email || ""} />
+                    <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                      {user?.user_metadata?.first_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "U"}
+                      {user?.user_metadata?.last_name?.[0]?.toUpperCase() || ""}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">
+                      {user?.user_metadata?.first_name && user?.user_metadata?.last_name
+                        ? `${user.user_metadata.first_name} ${user.user_metadata.last_name}`
+                        : user?.email?.split('@')[0] || "User"}
+                    </p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {user?.email || ""}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => navigate("/dashboard/profile")}>
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profile</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/dashboard/settings")}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Settings</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/dashboard/billing")}>
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  <span>Subscription & Billing</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Logout</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          {/* Desktop User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+              <Button variant="ghost" className="hidden md:flex relative h-10 w-10 rounded-full">
                 <Avatar className="h-10 w-10">
                   <AvatarImage src="" alt={user?.email || ""} />
                   <AvatarFallback className="bg-primary text-primary-foreground">
@@ -186,54 +345,10 @@ const Dashboard = () => {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-
-        {/* Mobile Navigation */}
-        <div className="md:hidden border-t px-4 py-2 flex gap-2 overflow-x-auto">
-          <Link to="/dashboard">
-            <Button 
-              size="sm"
-              variant={isActive("/dashboard") && location.pathname === "/dashboard" ? "default" : "ghost"}
-              className="gap-1.5 whitespace-nowrap"
-            >
-              <LayoutDashboard className="h-4 w-4" />
-              Dashboard
-            </Button>
-          </Link>
-          <Link to="/dashboard/patients">
-            <Button 
-              size="sm"
-              variant={isActive("/dashboard/patients") ? "default" : "ghost"}
-              className="gap-1.5 whitespace-nowrap"
-            >
-              <Users className="h-4 w-4" />
-              Patients
-            </Button>
-          </Link>
-          <Link to="/dashboard/ai-tools">
-            <Button 
-              size="sm"
-              variant={isActive("/dashboard/ai-tools") ? "default" : "ghost"}
-              className="gap-1.5 whitespace-nowrap"
-            >
-              <Sparkles className="h-4 w-4" />
-              AI Tools
-            </Button>
-          </Link>
-          <Link to="/dashboard/knowledge">
-            <Button 
-              size="sm"
-              variant={isActive("/dashboard/knowledge") ? "default" : "ghost"}
-              className="gap-1.5 whitespace-nowrap"
-            >
-              <BookOpen className="h-4 w-4" />
-              Knowledge
-            </Button>
-          </Link>
-        </div>
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-auto p-6">
+      <main className="flex-1 overflow-auto p-4 md:p-6">
         <Suspense fallback={
           <div className="flex items-center justify-center py-12">
             <Activity className="h-8 w-8 animate-pulse text-primary" />
