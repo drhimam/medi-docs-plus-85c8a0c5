@@ -606,7 +606,7 @@ ${
   return (
     <div className="min-h-screen bg-background">
       {/* Header Section */}
-      <Card className="sticky top-0 z-10 p-6 border-b rounded-none shadow-sm backdrop-blur-sm bg-card/95">
+      <Card className="p-6 border-b rounded-none shadow-sm">
         <Button 
           variant="ghost" 
           onClick={() => navigate("/dashboard/patients")}
