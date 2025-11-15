@@ -6,10 +6,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Save, X, FileText, Download, Sparkles } from "lucide-react";
+import { ArrowLeft, Save, X, FileText, Download, Sparkles, Eye, Edit } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import DocumentUploadDialog from "@/components/visit/DocumentUploadDialog";
+import jsPDF from "jspdf";
 
 interface Patient {
   id: string;
@@ -68,6 +70,7 @@ export default function ClinicalDocumentation() {
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [showCloseDialog, setShowCloseDialog] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isViewMode, setIsViewMode] = useState(false);
 
   const [subjective, setSubjective] = useState("");
   const [objective, setObjective] = useState("");
@@ -339,6 +342,156 @@ export default function ClinicalDocumentation() {
     navigate(-1);
   };
 
+  const exportSOAPToMarkdown = () => {
+    const content = `# SOAP Note
+**Visit ID:** ${visitId}
+**Patient:** ${patient.first_name} ${patient.last_name}
+**Date:** ${new Date().toLocaleDateString()}
+
+## Subjective
+${subjective}
+
+## Objective
+${objective}
+
+## Assessment
+${assessment}
+
+## Plan
+${plan}
+`;
+    
+    const blob = new Blob([content], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `SOAP_${patient.last_name}_${visitId}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Success",
+      description: "SOAP note exported as Markdown",
+    });
+  };
+
+  const exportSOAPToPDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 20;
+    const maxWidth = pageWidth - 2 * margin;
+    let yPosition = 20;
+
+    doc.setFontSize(16);
+    doc.text("SOAP Note", margin, yPosition);
+    yPosition += 10;
+    
+    doc.setFontSize(10);
+    doc.text(`Visit ID: ${visitId}`, margin, yPosition);
+    yPosition += 6;
+    doc.text(`Patient: ${patient.first_name} ${patient.last_name}`, margin, yPosition);
+    yPosition += 6;
+    doc.text(`Date: ${new Date().toLocaleDateString()}`, margin, yPosition);
+    yPosition += 12;
+
+    const addSection = (title: string, content: string) => {
+      doc.setFontSize(12);
+      doc.setFont(undefined, "bold");
+      doc.text(title, margin, yPosition);
+      yPosition += 8;
+      
+      doc.setFontSize(10);
+      doc.setFont(undefined, "normal");
+      const lines = doc.splitTextToSize(content || "N/A", maxWidth);
+      lines.forEach((line: string) => {
+        if (yPosition > 270) {
+          doc.addPage();
+          yPosition = 20;
+        }
+        doc.text(line, margin, yPosition);
+        yPosition += 6;
+      });
+      yPosition += 6;
+    };
+
+    addSection("Subjective", subjective);
+    addSection("Objective", objective);
+    addSection("Assessment", assessment);
+    addSection("Plan", plan);
+
+    doc.save(`SOAP_${patient.last_name}_${visitId}.pdf`);
+    
+    toast({
+      title: "Success",
+      description: "SOAP note exported as PDF",
+    });
+  };
+
+  const exportPrescriptionToMarkdown = () => {
+    const content = `# Prescription
+**Visit ID:** ${visitId}
+**Patient:** ${patient.first_name} ${patient.last_name}
+**Date:** ${new Date().toLocaleDateString()}
+
+${prescription}
+`;
+    
+    const blob = new Blob([content], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Prescription_${patient.last_name}_${visitId}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Success",
+      description: "Prescription exported as Markdown",
+    });
+  };
+
+  const exportPrescriptionToPDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 20;
+    const maxWidth = pageWidth - 2 * margin;
+    let yPosition = 20;
+
+    doc.setFontSize(16);
+    doc.text("Prescription", margin, yPosition);
+    yPosition += 10;
+    
+    doc.setFontSize(10);
+    doc.text(`Visit ID: ${visitId}`, margin, yPosition);
+    yPosition += 6;
+    doc.text(`Patient: ${patient.first_name} ${patient.last_name}`, margin, yPosition);
+    yPosition += 6;
+    doc.text(`Date: ${new Date().toLocaleDateString()}`, margin, yPosition);
+    yPosition += 12;
+
+    doc.setFontSize(10);
+    const lines = doc.splitTextToSize(prescription || "No prescription", maxWidth);
+    lines.forEach((line: string) => {
+      if (yPosition > 270) {
+        doc.addPage();
+        yPosition = 20;
+      }
+      doc.text(line, margin, yPosition);
+      yPosition += 6;
+    });
+
+    doc.save(`Prescription_${patient.last_name}_${visitId}.pdf`);
+    
+    toast({
+      title: "Success",
+      description: "Prescription exported as PDF",
+    });
+  };
+
   if (!patient || !visit) {
     return <div className="p-8">Loading...</div>;
   }
@@ -387,6 +540,14 @@ export default function ClinicalDocumentation() {
               </div>
             </div>
             <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={() => setIsViewMode(!isViewMode)}
+                title={isViewMode ? "Switch to Edit Mode" : "Switch to View Mode"}
+              >
+                {isViewMode ? <Edit className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="icon">
@@ -394,10 +555,10 @@ export default function ClinicalDocumentation() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
-                  <DropdownMenuItem>Export SOAP Note (MD)</DropdownMenuItem>
-                  <DropdownMenuItem>Export SOAP Note (PDF)</DropdownMenuItem>
-                  <DropdownMenuItem>Export Prescription (MD)</DropdownMenuItem>
-                  <DropdownMenuItem>Export Prescription (PDF)</DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportSOAPToMarkdown}>Export SOAP Note (MD)</DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportSOAPToPDF}>Export SOAP Note (PDF)</DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportPrescriptionToMarkdown}>Export Prescription (MD)</DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportPrescriptionToPDF}>Export Prescription (PDF)</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
               <Button variant="outline" size="icon" onClick={handleSave}>
@@ -410,92 +571,131 @@ export default function ClinicalDocumentation() {
           </div>
         </div>
 
-        {/* SOAP Note and Prescription Tabs */}
+        {/* SOAP Note and Prescription */}
         <div className="bg-card border rounded-lg p-6 shadow-sm">
-          <Tabs defaultValue="soap">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="soap">SOAP Note</TabsTrigger>
-              <TabsTrigger value="prescription">Prescription</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="soap" className="space-y-6 mt-6">
+          {isViewMode ? (
+            <div className="space-y-6">
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label>Subjective</Label>
+                <h3 className="text-lg font-semibold mb-3 text-primary">Subjective</h3>
+                <div className="whitespace-pre-wrap bg-muted/50 p-4 rounded-md border">
+                  {subjective || "No subjective data"}
                 </div>
-                <Textarea
-                  value={subjective}
-                  onChange={(e) => setSubjective(e.target.value)}
-                  className="min-h-[200px] font-mono text-sm"
-                />
+              </div>
+              
+              <div>
+                <h3 className="text-lg font-semibold mb-3 text-primary">Objective</h3>
+                <div className="whitespace-pre-wrap bg-muted/50 p-4 rounded-md border">
+                  {objective || "No objective data"}
+                </div>
+              </div>
+              
+              <div>
+                <h3 className="text-lg font-semibold mb-3 text-primary">Assessment</h3>
+                <div className="whitespace-pre-wrap bg-muted/50 p-4 rounded-md border">
+                  {assessment || "No assessment data"}
+                </div>
+              </div>
+              
+              <div>
+                <h3 className="text-lg font-semibold mb-3 text-primary">Plan</h3>
+                <div className="whitespace-pre-wrap bg-muted/50 p-4 rounded-md border">
+                  {plan || "No plan data"}
+                </div>
               </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label>Objective</Label>
+              <div className="pt-4 border-t">
+                <h3 className="text-lg font-semibold mb-3 text-primary">Prescription</h3>
+                <div className="whitespace-pre-wrap bg-muted/50 p-4 rounded-md border">
+                  {prescription || "No prescription"}
                 </div>
-                <Textarea
-                  value={objective}
-                  onChange={(e) => setObjective(e.target.value)}
-                  className="min-h-[200px] font-mono text-sm"
-                />
               </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label>Assessment</Label>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleGenerateAssessment}
-                    disabled={isGenerating}
-                  >
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Generate with AI
-                  </Button>
+            </div>
+          ) : (
+            <Tabs defaultValue="soap">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="soap">SOAP Note</TabsTrigger>
+                <TabsTrigger value="prescription">Prescription</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="soap" className="space-y-6 mt-6">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label>Subjective</Label>
+                  </div>
+                  <Textarea
+                    value={subjective}
+                    onChange={(e) => setSubjective(e.target.value)}
+                    className="min-h-[200px] font-mono text-sm"
+                  />
                 </div>
-                <Textarea
-                  value={assessment}
-                  onChange={(e) => setAssessment(e.target.value)}
-                  className="min-h-[200px] font-mono text-sm"
-                  placeholder="Assessment will appear here..."
-                />
-              </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label>Plan</Label>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleGeneratePlan}
-                    disabled={isGenerating}
-                  >
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Generate with AI
-                  </Button>
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label>Objective</Label>
+                  </div>
+                  <Textarea
+                    value={objective}
+                    onChange={(e) => setObjective(e.target.value)}
+                    className="min-h-[200px] font-mono text-sm"
+                  />
                 </div>
-                <Textarea
-                  value={plan}
-                  onChange={(e) => setPlan(e.target.value)}
-                  className="min-h-[200px] font-mono text-sm"
-                  placeholder="Plan will appear here..."
-                />
-              </div>
-            </TabsContent>
 
-            <TabsContent value="prescription" className="mt-6">
-              <div>
-                <Label>Prescription</Label>
-                <Textarea
-                  value={prescription}
-                  onChange={(e) => setPrescription(e.target.value)}
-                  className="min-h-[400px] font-mono text-sm mt-2"
-                  placeholder="Enter prescription details..."
-                />
-              </div>
-            </TabsContent>
-          </Tabs>
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label>Assessment</Label>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleGenerateAssessment}
+                      disabled={isGenerating}
+                    >
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Generate with AI
+                    </Button>
+                  </div>
+                  <Textarea
+                    value={assessment}
+                    onChange={(e) => setAssessment(e.target.value)}
+                    className="min-h-[200px] font-mono text-sm"
+                    placeholder="AI will generate a clinical assessment based on subjective and objective data"
+                  />
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label>Plan</Label>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleGeneratePlan}
+                      disabled={isGenerating}
+                    >
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Generate with AI
+                    </Button>
+                  </div>
+                  <Textarea
+                    value={plan}
+                    onChange={(e) => setPlan(e.target.value)}
+                    className="min-h-[200px] font-mono text-sm"
+                    placeholder="AI will generate a comprehensive treatment plan based on S, O, and A"
+                  />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="prescription" className="space-y-6 mt-6">
+                <div>
+                  <Label>Prescription Details</Label>
+                  <Textarea
+                    value={prescription}
+                    onChange={(e) => setPrescription(e.target.value)}
+                    className="min-h-[400px] font-mono text-sm"
+                    placeholder="Enter prescription details here..."
+                  />
+                </div>
+              </TabsContent>
+            </Tabs>
+          )}
         </div>
 
         {/* Documents Section */}
