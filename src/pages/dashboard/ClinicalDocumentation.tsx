@@ -511,10 +511,10 @@ ${prescription}
   };
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-background">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="bg-card border rounded-lg p-6 shadow-sm">
+        <div className="sticky top-0 z-10 bg-card border-b p-6 shadow-sm backdrop-blur-sm bg-card/95">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-4">
               <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
@@ -572,7 +572,8 @@ ${prescription}
         </div>
 
         {/* SOAP Note and Prescription */}
-        <div className="bg-card border rounded-lg p-6 shadow-sm">
+        <div className="p-8 space-y-6">
+          <div className="bg-card border rounded-lg p-6 shadow-sm">
           {isViewMode ? (
             <div className="space-y-6">
               <div>
@@ -724,6 +725,7 @@ ${prescription}
           ) : (
             <p className="text-muted-foreground text-center py-8">No documents uploaded yet</p>
           )}
+        </div>
         </div>
       </div>
 

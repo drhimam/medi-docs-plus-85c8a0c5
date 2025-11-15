@@ -637,18 +637,17 @@ const PatientDetail = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <Button
-        variant="ghost"
-        onClick={() => navigate("/dashboard/patients")}
-        className="mb-4"
-      >
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Back to Patients
-      </Button>
-
+    <div className="min-h-screen bg-background">
       {/* Header Section */}
-      <Card className="p-6">
+      <Card className="sticky top-0 z-10 p-6 border-b rounded-none shadow-sm backdrop-blur-sm bg-card/95">
+        <Button 
+          variant="ghost" 
+          onClick={() => navigate("/dashboard/patients")}
+          className="mb-4"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Patients
+        </Button>
         <div className="flex justify-between items-start">
           <div className="space-y-2">
             <h1 className="text-3xl font-bold text-foreground">
@@ -692,6 +691,7 @@ const PatientDetail = () => {
       </Card>
 
       {/* Section 1: Patient Information - Collapsible */}
+      <div className="p-8 space-y-6">
       <div className="space-y-4">
         <h2 className="text-xl font-semibold">Patient Information</h2>
 
@@ -1025,6 +1025,7 @@ const PatientDetail = () => {
           </TableBody>
         </Table>
       </Card>
+      </div>
     </div>
   );
 };
