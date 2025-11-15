@@ -907,7 +907,7 @@ const PatientDetail = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => navigate(`/dashboard/patients/${patientId}/visits/${visit.id}`)}
+                      onClick={() => navigate(`/dashboard/clinical-documentation/${visit.id}`)}
                     >
                       <Eye className="mr-2 h-4 w-4" />
                       View
