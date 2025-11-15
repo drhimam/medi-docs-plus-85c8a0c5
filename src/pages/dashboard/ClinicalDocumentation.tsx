@@ -514,7 +514,7 @@ ${prescription}
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="sticky top-0 z-50 bg-card border rounded-lg p-6 shadow-md">
+        <div className="sticky top-[73px] z-50 bg-card border rounded-lg p-6 shadow-md">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-4">
               <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
