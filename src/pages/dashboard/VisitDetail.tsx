@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, FileText, Pill, Save, Sparkles } from "lucide-react";
+import { ArrowLeft, FileText, Pill, Save } from "lucide-react";
 import { toast } from "sonner";
 
 interface Visit {
@@ -41,21 +41,8 @@ interface Patient {
   date_of_birth: string;
   gender: string;
   medical_history_ongoing: string | null;
-  ongoing_medications: string[];
-  allergic_history_drug: string[];
-}
-
-interface SOAPNote {
-  id: string;
-  subjective: string;
-  objective: string;
-  assessment: string;
-  plan: string;
-}
-
-interface Prescription {
-  id: string;
-  content: string;
+  ongoing_medications: any;
+  allergic_history_drug: any;
 }
 
 const VisitDetail = () => {
@@ -73,30 +60,40 @@ const VisitDetail = () => {
   const [prescriptionContent, setPrescriptionContent] = useState("");
 
   useEffect(() => {
-    fetchVisit();
-    fetchPatient();
+    fetchData();
   }, [visitId, patientId]);
 
-  const fetchVisit = async () => {
+  const fetchData = async () => {
     try {
-      const { data, error } = await (supabase as any)
+      // Fetch visit
+      const { data: visitData, error: visitError } = await (supabase as any)
         .from("visits")
         .select("*")
         .eq("id", visitId)
         .single();
 
-      if (error) throw error;
-      setVisit(data);
+      if (visitError) throw visitError;
+      setVisit(visitData);
+      
+      // Fetch patient
+      const { data: patientData, error: patientError } = await (supabase as any)
+        .from("patients")
+        .select("first_name, last_name, date_of_birth, gender, medical_history_ongoing, ongoing_medications, allergic_history_drug")
+        .eq("id", patientId)
+        .single();
+
+      if (patientError) throw patientError;
+      setPatient(patientData);
       
       // Load SOAP data and prescription from visit
-      if (data) {
+      if (visitData) {
         setSOAPData({
-          subjective: data.soap_subjective || "",
-          objective: data.soap_objective || "",
-          assessment: data.soap_assessment || "",
-          plan: data.soap_plan || "",
+          subjective: visitData.soap_subjective || "",
+          objective: visitData.soap_objective || "",
+          assessment: visitData.soap_assessment || "",
+          plan: visitData.soap_plan || "",
         });
-        setPrescriptionContent(data.prescription || "");
+        setPrescriptionContent(visitData.prescription || "");
       }
     } catch (error: any) {
       toast.error("Failed to load visit");
@@ -106,219 +103,25 @@ const VisitDetail = () => {
     }
   };
 
-  const fetchPatient = async () => {
-    try {
-      const { data, error } = await (supabase as any)
-        .from("patients")
-        .select("first_name, last_name, date_of_birth, gender, medical_history_ongoing, ongoing_medications, allergic_history_drug")
-        .eq("id", patientId)
-        .single();
-
-      if (error) throw error;
-      setPatient(data);
-    } catch (error: any) {
-      console.error(error);
-    }
-  };
-
-  const fetchSOAPNote = async () => {
-    try {
-      const { data, error } = await (supabase as any)
-        .from("soap_notes")
-        .select("*")
-        .eq("visit_id", visitId)
-        .maybeSingle();
-
-      if (error) throw error;
-      if (data) {
-        setSOAPNote(data);
-        setSOAPData({
-          subjective: data.subjective,
-          objective: data.objective,
-          assessment: data.assessment,
-          plan: data.plan,
-        });
-      } else {
-        // Auto-populate Subjective and Objective from visit data
-        buildSOAPFromVisit();
-      }
-    } catch (error: any) {
-      console.error(error);
-    }
-  };
-
-  const fetchPrescription = async () => {
-    try {
-      const { data, error } = await (supabase as any)
-        .from("prescriptions")
-        .select("*")
-        .eq("visit_id", visitId)
-        .maybeSingle();
-
-      if (error) throw error;
-      if (data) {
-        setPrescription(data);
-        setPrescriptionContent(data.content);
-      }
-    } catch (error: any) {
-      console.error(error);
-    }
-  };
-
-  const buildSOAPFromVisit = () => {
-    if (!visit || !patient) return;
-
-    // Build Subjective section
-    let subjective = `PATIENT: ${patient.first_name} ${patient.last_name}, ${calculateAge(patient.date_of_birth)}yo ${patient.gender}\n\n`;
-    subjective += `CHIEF COMPLAINT: ${visit.chief_complaint}\n\n`;
-    
-    if (visit.history_of_present_illness) {
-      subjective += `HISTORY OF PRESENT ILLNESS:\n${visit.history_of_present_illness}\n\n`;
-    }
-    
-    if (visit.duration || visit.onset || visit.severity) {
-      subjective += `SYMPTOM ANALYSIS:\n`;
-      if (visit.duration) subjective += `Duration: ${visit.duration}\n`;
-      if (visit.onset) subjective += `Onset: ${visit.onset}\n`;
-      if (visit.severity) subjective += `Severity: ${visit.severity}\n`;
-      subjective += `\n`;
-    }
-    
-    if (patient.medical_history_ongoing) {
-      subjective += `PAST MEDICAL HISTORY:\n${patient.medical_history_ongoing}\n\n`;
-    }
-    
-    if (patient.ongoing_medications && patient.ongoing_medications.length > 0) {
-      subjective += `CURRENT MEDICATIONS:\n${patient.ongoing_medications.join(", ")}\n\n`;
-    }
-    
-    if (patient.allergic_history_drug && patient.allergic_history_drug.length > 0) {
-      subjective += `ALLERGIES:\n${patient.allergic_history_drug.join(", ")}\n\n`;
-    }
-    
-    if (visit.review_of_systems) {
-      subjective += `REVIEW OF SYSTEMS:\n${visit.review_of_systems}`;
-    }
-
-    // Build Objective section
-    let objective = "";
-    
-    if (visit.vital_signs) {
-      objective += `VITAL SIGNS:\n`;
-      if (visit.vital_signs.bp) objective += `Blood Pressure: ${visit.vital_signs.bp} mmHg\n`;
-      if (visit.vital_signs.pulse) objective += `Pulse: ${visit.vital_signs.pulse} bpm\n`;
-      if (visit.vital_signs.temp) objective += `Temperature: ${visit.vital_signs.temp} °F\n`;
-      if (visit.vital_signs.resp) objective += `Respiratory Rate: ${visit.vital_signs.resp} /min\n`;
-      if (visit.vital_signs.spo2) objective += `SpO2: ${visit.vital_signs.spo2}%\n`;
-      if (visit.vital_signs.weight) objective += `Weight: ${visit.vital_signs.weight} kg\n`;
-      if (visit.vital_signs.height) objective += `Height: ${visit.vital_signs.height} cm\n`;
-      objective += `\n`;
-    }
-    
-    if (visit.general_appearance) {
-      objective += `GENERAL APPEARANCE:\n${visit.general_appearance}\n\n`;
-    }
-    
-    if (visit.physical_examination) {
-      objective += `PHYSICAL EXAMINATION:\n${visit.physical_examination}`;
-    }
-
-    setSOAPData({
-      subjective,
-      objective,
-      assessment: "",
-      plan: "",
-    });
-  };
-
   const handleSaveSOAP = async () => {
     setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
-
-      if (soapNote) {
-        // Update existing
-        const { error } = await (supabase as any)
-          .from("soap_notes")
-          .update(soapData)
-          .eq("id", soapNote.id);
-
-        if (error) throw error;
-      } else {
-        // Create new
-        const { error } = await (supabase as any)
-          .from("soap_notes")
-          .insert([
-            {
-              visit_id: visitId,
-              user_id: user.id,
-              ...soapData,
-            },
-          ]);
-
-        if (error) throw error;
-      }
-
-      toast.success("SOAP note saved successfully!");
-      fetchSOAPNote();
-    } catch (error: any) {
-      toast.error(error.message || "Failed to save SOAP note");
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGenerateWithAI = async () => {
-    setLoading(true);
-    toast.info("Generating with AI... This may take a moment.");
-
-    try {
-      const response = await (supabase as any).functions.invoke("generate-soap", {
-        body: {
-          visitId,
-          patientId,
-          subjective: soapData.subjective,
-          objective: soapData.objective,
-          patientHistory: patient?.medical_history_ongoing || "",
-          currentMedications: patient?.ongoing_medications || [],
-          allergies: patient?.allergic_history_drug || [],
-        },
-      });
-
-      if (response.error) throw response.error;
-
-      const aiResult = response.data;
-      const updatedSOAPData = {
-        subjective: aiResult.enhancedSubjective || soapData.subjective,
-        objective: aiResult.enhancedObjective || soapData.objective,
-        assessment: aiResult.assessment,
-        plan: aiResult.plan,
-      };
-
-      setSOAPData(updatedSOAPData);
-
-      // Auto-save
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
-
       const { error } = await (supabase as any)
-        .from("soap_notes")
-        .upsert([
-          {
-            visit_id: visitId,
-            user_id: user.id,
-            ...updatedSOAPData,
-          },
-        ]);
+        .from("visits")
+        .update({
+          soap_subjective: soapData.subjective,
+          soap_objective: soapData.objective,
+          soap_assessment: soapData.assessment,
+          soap_plan: soapData.plan,
+        })
+        .eq("id", visitId);
 
       if (error) throw error;
 
-      toast.success("AI-generated SOAP note saved!");
-      fetchSOAPNote();
+      toast.success("SOAP note saved successfully!");
+      fetchData();
     } catch (error: any) {
-      toast.error(error.message || "Failed to generate with AI");
+      toast.error(error.message || "Failed to save SOAP note");
       console.error(error);
     } finally {
       setLoading(false);
@@ -338,7 +141,7 @@ const VisitDetail = () => {
       if (error) throw error;
 
       toast.success("Prescription saved successfully!");
-      fetchVisit();
+      fetchData();
     } catch (error: any) {
       toast.error(error.message || "Failed to save prescription");
       console.error(error);
@@ -398,6 +201,11 @@ const VisitDetail = () => {
                 {visit.status}
               </span>
             </div>
+            {patient && (
+              <p className="mt-2 text-sm">
+                Patient: {patient.first_name} {patient.last_name}, {calculateAge(patient.date_of_birth)} years old, {patient.gender}
+              </p>
+            )}
           </div>
         </div>
       </Card>
@@ -418,101 +226,73 @@ const VisitDetail = () => {
         {/* SOAP Note Tab */}
         <TabsContent value="soap" className="space-y-6">
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="subjective" className="text-lg font-semibold">
-                Subjective (Pre-filled from visit + patient data)
-              </Label>
+            {/* Subjective */}
+            <Card className="p-6">
+              <Label className="text-lg font-semibold">Subjective</Label>
               <Textarea
-                id="subjective"
                 value={soapData.subjective}
                 onChange={(e) => setSOAPData({ ...soapData, subjective: e.target.value })}
-                rows={12}
-                className="font-mono text-sm bg-soap-subjective border-soap-subjectiveBorder"
+                className="mt-2 min-h-[150px]"
+                placeholder="Enter subjective findings..."
               />
-            </div>
+            </Card>
 
-            <div className="space-y-2">
-              <Label htmlFor="objective" className="text-lg font-semibold">
-                Objective (Pre-filled from examination data)
-              </Label>
+            {/* Objective */}
+            <Card className="p-6">
+              <Label className="text-lg font-semibold">Objective</Label>
               <Textarea
-                id="objective"
                 value={soapData.objective}
                 onChange={(e) => setSOAPData({ ...soapData, objective: e.target.value })}
-                rows={10}
-                className="font-mono text-sm bg-soap-objective border-soap-objectiveBorder"
+                className="mt-2 min-h-[150px]"
+                placeholder="Enter objective findings..."
               />
-            </div>
+            </Card>
 
-            <div className="space-y-2">
-              <Label htmlFor="assessment" className="text-lg font-semibold">
-                Assessment (Enter manually or generate with AI)
-              </Label>
+            {/* Assessment */}
+            <Card className="p-6">
+              <Label className="text-lg font-semibold">Assessment</Label>
               <Textarea
-                id="assessment"
                 value={soapData.assessment}
                 onChange={(e) => setSOAPData({ ...soapData, assessment: e.target.value })}
-                rows={8}
-                className="font-mono text-sm bg-soap-assessment border-soap-assessmentBorder"
-                placeholder="Differential diagnosis and clinical reasoning..."
+                className="mt-2 min-h-[150px]"
+                placeholder="Enter assessment..."
               />
-            </div>
+            </Card>
 
-            <div className="space-y-2">
-              <Label htmlFor="plan" className="text-lg font-semibold">
-                Plan (Treatment, medications, follow-up)
-              </Label>
+            {/* Plan */}
+            <Card className="p-6">
+              <Label className="text-lg font-semibold">Plan</Label>
               <Textarea
-                id="plan"
                 value={soapData.plan}
                 onChange={(e) => setSOAPData({ ...soapData, plan: e.target.value })}
-                rows={8}
-                className="font-mono text-sm bg-soap-plan border-soap-planBorder"
-                placeholder="Treatment plan, medications, lifestyle modifications, follow-up..."
+                className="mt-2 min-h-[150px]"
+                placeholder="Enter plan..."
               />
-            </div>
+            </Card>
 
-            <div className="flex gap-3">
-              <Button onClick={handleSaveSOAP} disabled={loading}>
-                <Save className="h-4 w-4 mr-2" />
-                Save Only
-              </Button>
-              <Button onClick={handleGenerateWithAI} disabled={loading} variant="default" className="bg-accent hover:bg-accent/90">
-                <Sparkles className="h-4 w-4 mr-2" />
-                Generate with AI
-              </Button>
-            </div>
-
-            <p className="text-sm text-muted-foreground">
-              AI will enhance Subjective & Objective, then generate Assessment & Plan using patient context
-            </p>
+            <Button onClick={handleSaveSOAP} disabled={loading} className="w-full">
+              <Save className="h-4 w-4 mr-2" />
+              {loading ? "Saving..." : "Save SOAP Note"}
+            </Button>
           </div>
         </TabsContent>
 
         {/* Prescription Tab */}
         <TabsContent value="prescription" className="space-y-6">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="prescription" className="text-lg font-semibold">
-                Prescription Content
-              </Label>
-              <Textarea
-                id="prescription"
-                value={prescriptionContent}
-                onChange={(e) => setPrescriptionContent(e.target.value)}
-                rows={20}
-                className="font-mono text-sm"
-                placeholder="Enter prescription details including medications, dosages, duration, and instructions..."
-              />
-            </div>
+          <Card className="p-6">
+            <Label className="text-lg font-semibold">Prescription</Label>
+            <Textarea
+              value={prescriptionContent}
+              onChange={(e) => setPrescriptionContent(e.target.value)}
+              className="mt-2 min-h-[300px]"
+              placeholder="Enter prescription details..."
+            />
+          </Card>
 
-            <div className="flex gap-3">
-              <Button onClick={handleSavePrescription} disabled={loading}>
-                <Save className="h-4 w-4 mr-2" />
-                Save Prescription
-              </Button>
-            </div>
-          </div>
+          <Button onClick={handleSavePrescription} disabled={loading} className="w-full">
+            <Save className="h-4 w-4 mr-2" />
+            {loading ? "Saving..." : "Save Prescription"}
+          </Button>
         </TabsContent>
       </Tabs>
     </div>
