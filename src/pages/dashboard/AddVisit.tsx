@@ -12,16 +12,20 @@ import { Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import HPIBuilder from "@/components/visit/HPIBuilder";
 import ROSBuilder from "@/components/visit/ROSBuilder";
+import DocumentUploadDialog from "@/components/visit/DocumentUploadDialog";
 
 export default function AddVisit() {
   const { patientId } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const [patient, setPatient] = useState<any>(null);
   const [visitId, setVisitId] = useState<string | null>(null);
   const [showHPIBuilder, setShowHPIBuilder] = useState(false);
   const [showROSBuilder, setShowROSBuilder] = useState(false);
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+  const [documents, setDocuments] = useState<any[]>([]);
 
   const [formData, setFormData] = useState({
     reasonForVisit: "",
@@ -82,6 +86,22 @@ export default function AddVisit() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const fetchDocuments = async () => {
+    if (!visitId) return;
+    try {
+      const { data, error } = await supabase
+        .from("documents")
+        .select("*")
+        .eq("visit_id", visitId)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setDocuments(data || []);
+    } catch (error: any) {
+      console.error("Error fetching documents:", error);
+    }
+  };
+
   const handleCreateVisit = async () => {
     if (!formData.reasonForVisit || !formData.visitType) {
       toast({
@@ -92,10 +112,11 @@ export default function AddVisit() {
       return;
     }
 
-    setSaving(true);
+    setIsCreating(true);
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("No authenticated user");
+      if (!user) throw new Error("User not authenticated");
 
       const { data, error } = await supabase
         .from("visits")
@@ -130,13 +151,14 @@ export default function AddVisit() {
         description: "Visit created successfully",
       });
     } catch (error: any) {
+      console.error("Error creating visit:", error);
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to create visit",
         variant: "destructive",
       });
     } finally {
-      setSaving(false);
+      setIsCreating(false);
     }
   };
 
