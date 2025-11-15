@@ -825,7 +825,7 @@ const PatientDetail = () => {
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h2 className="text-xl font-semibold">Visit History</h2>
-          <Button onClick={() => toast.info("Add visit feature coming soon")}>
+          <Button onClick={() => navigate(`/dashboard/patients/${patientId}/add-visit`)}>
             <Plus className="mr-2 h-4 w-4" />
             Add Visit
           </Button>
