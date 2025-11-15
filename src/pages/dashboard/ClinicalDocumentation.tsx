@@ -6,18 +6,35 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Save, X, FileText, Download, Sparkles, Eye, Edit } from "lucide-react";
+import { ArrowLeft, Save, X, FileText, Download, Sparkles, Eye, Edit, Loader2, Type, Languages } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import DocumentUploadDialog from "@/components/visit/DocumentUploadDialog";
 import jsPDF from "jspdf";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+} from "@/components/ui/context-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Patient {
   id: string;
   first_name: string;
   last_name: string;
   date_of_birth: string;
+  gender: string;
   blood_group: string;
   contact_number: string;
   allergic_history_drug: any;
@@ -71,6 +88,9 @@ export default function ClinicalDocumentation() {
   const [showCloseDialog, setShowCloseDialog] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isViewMode, setIsViewMode] = useState(false);
+  const [isGeneratingPrescription, setIsGeneratingPrescription] = useState(false);
+  const [selectedText, setSelectedText] = useState("");
+  const [fontSize, setFontSize] = useState("14");
 
   const [subjective, setSubjective] = useState("");
   const [objective, setObjective] = useState("");
@@ -302,6 +322,82 @@ export default function ClinicalDocumentation() {
       });
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleGeneratePrescription = async () => {
+    if (!visit || !patient) return;
+    
+    setIsGeneratingPrescription(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-prescription', {
+        body: {
+          subjective: visit.soap_subjective || subjective,
+          objective: visit.soap_objective || objective,
+          assessment: visit.soap_assessment || assessment,
+          patientInfo: {
+            age: new Date().getFullYear() - new Date(patient.date_of_birth).getFullYear(),
+            gender: patient.gender,
+            medicalHistory: patient.medical_history_ongoing
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      setPrescription(data.prescription);
+
+      toast({
+        title: "Success",
+        description: "Prescription generated successfully",
+      });
+    } catch (error) {
+      console.error("Error generating prescription:", error);
+      toast({
+        title: "Error",
+        description: "Failed to generate prescription",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingPrescription(false);
+    }
+  };
+
+  const handleTranslateText = async (targetLanguage: string) => {
+    if (!selectedText) return;
+
+    try {
+      const { data, error } = await supabase.functions.invoke('translate-text', {
+        body: {
+          text: selectedText,
+          targetLanguage
+        }
+      });
+
+      if (error) throw error;
+
+      // Replace the selected text with the translated text
+      const textarea = document.activeElement as HTMLTextAreaElement;
+      if (textarea && textarea.tagName === 'TEXTAREA') {
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const currentValue = textarea.value;
+        const newValue = currentValue.substring(0, start) + data.translatedText + currentValue.substring(end);
+        
+        setPrescription(newValue);
+      }
+
+      toast({
+        title: "Success",
+        description: "Text translated successfully",
+      });
+    } catch (error) {
+      console.error("Error translating text:", error);
+      toast({
+        title: "Error",
+        description: "Failed to translate text",
+        variant: "destructive",
+      });
     }
   };
 
@@ -685,14 +781,101 @@ ${prescription}
               </TabsContent>
 
               <TabsContent value="prescription" className="space-y-6 mt-6">
-                <div>
-                  <Label>Prescription Details</Label>
-                  <Textarea
-                    value={prescription}
-                    onChange={(e) => setPrescription(e.target.value)}
-                    className="min-h-[400px] font-mono text-sm"
-                    placeholder="Enter prescription details here..."
-                  />
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 justify-between border-b pb-4">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        onClick={handleGeneratePrescription}
+                        disabled={isGeneratingPrescription}
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                      >
+                        {isGeneratingPrescription ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="h-4 w-4" />
+                            Generate Prescription
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Type className="h-4 w-4 text-muted-foreground" />
+                      <Select value={fontSize} onValueChange={setFontSize}>
+                        <SelectTrigger className="w-24">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="12">12px</SelectItem>
+                          <SelectItem value="14">14px</SelectItem>
+                          <SelectItem value="16">16px</SelectItem>
+                          <SelectItem value="18">18px</SelectItem>
+                          <SelectItem value="20">20px</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Prescription Details</Label>
+                    <ContextMenu>
+                      <ContextMenuTrigger>
+                        <Textarea
+                          value={prescription}
+                          onChange={(e) => setPrescription(e.target.value)}
+                          onSelect={(e) => {
+                            const target = e.target as HTMLTextAreaElement;
+                            const selected = target.value.substring(target.selectionStart, target.selectionEnd);
+                            setSelectedText(selected);
+                          }}
+                          className="min-h-[400px] font-mono"
+                          style={{ fontSize: `${fontSize}px` }}
+                          placeholder="Enter prescription details... (Right-click selected text to translate)"
+                        />
+                      </ContextMenuTrigger>
+                      <ContextMenuContent>
+                        <ContextMenuSub>
+                          <ContextMenuSubTrigger>
+                            <Languages className="h-4 w-4 mr-2" />
+                            Translate Selection
+                          </ContextMenuSubTrigger>
+                          <ContextMenuSubContent>
+                            <ContextMenuItem onClick={() => handleTranslateText("Spanish")}>
+                              Spanish
+                            </ContextMenuItem>
+                            <ContextMenuItem onClick={() => handleTranslateText("French")}>
+                              French
+                            </ContextMenuItem>
+                            <ContextMenuItem onClick={() => handleTranslateText("German")}>
+                              German
+                            </ContextMenuItem>
+                            <ContextMenuItem onClick={() => handleTranslateText("Italian")}>
+                              Italian
+                            </ContextMenuItem>
+                            <ContextMenuItem onClick={() => handleTranslateText("Portuguese")}>
+                              Portuguese
+                            </ContextMenuItem>
+                            <ContextMenuItem onClick={() => handleTranslateText("Chinese")}>
+                              Chinese
+                            </ContextMenuItem>
+                            <ContextMenuItem onClick={() => handleTranslateText("Japanese")}>
+                              Japanese
+                            </ContextMenuItem>
+                            <ContextMenuItem onClick={() => handleTranslateText("Arabic")}>
+                              Arabic
+                            </ContextMenuItem>
+                            <ContextMenuItem onClick={() => handleTranslateText("Hindi")}>
+                              Hindi
+                            </ContextMenuItem>
+                          </ContextMenuSubContent>
+                        </ContextMenuSub>
+                      </ContextMenuContent>
+                    </ContextMenu>
+                  </div>
                 </div>
               </TabsContent>
             </Tabs>
