@@ -49,6 +49,12 @@ export default function AddVisit() {
     fetchPatient();
   }, [patientId]);
 
+  useEffect(() => {
+    if (visitId) {
+      fetchDocuments();
+    }
+  }, [visitId]);
+
   // Auto-calculate BMI when weight or height changes
   useEffect(() => {
     const weight = parseFloat(formData.vitalSignsWeight);
@@ -163,11 +169,9 @@ export default function AddVisit() {
   };
 
   const handleProceedToDocumentation = () => {
-    // This will be implemented in the next prompt
-    toast({
-      title: "Coming Soon",
-      description: "Clinical documentation page will be available soon",
-    });
+    if (visitId) {
+      navigate(`/dashboard/clinical-documentation/${visitId}`);
+    }
   };
 
   if (loading) {
@@ -458,13 +462,27 @@ export default function AddVisit() {
             <CardTitle>Upload Documents</CardTitle>
           </CardHeader>
           <CardContent>
-            <Button disabled={!visitId} variant="outline">
+            <Button 
+              disabled={!visitId} 
+              variant="outline"
+              onClick={() => setIsUploadDialogOpen(true)}
+            >
               {visitId ? "Upload Document" : "Create visit first to enable document upload"}
             </Button>
             {!visitId && (
               <p className="text-sm text-muted-foreground mt-2">
                 Documents can be uploaded after creating the visit
               </p>
+            )}
+            {documents.length > 0 && (
+              <div className="mt-4 space-y-2">
+                {documents.map((doc) => (
+                  <div key={doc.id} className="flex items-center justify-between p-2 border rounded text-sm">
+                    <span>{doc.file_name}</span>
+                    <span className="text-muted-foreground">{doc.document_type}</span>
+                  </div>
+                ))}
+              </div>
             )}
           </CardContent>
         </Card>
@@ -483,6 +501,15 @@ export default function AddVisit() {
         currentROS={formData.ros}
         onUpdate={(newROS) => handleInputChange("ros", newROS)}
       />
+      {visitId && patient && (
+        <DocumentUploadDialog
+          open={isUploadDialogOpen}
+          onClose={() => setIsUploadDialogOpen(false)}
+          visitId={visitId}
+          patientId={patient.id}
+          onUploadSuccess={fetchDocuments}
+        />
+      )}
     </div>
   );
 }
