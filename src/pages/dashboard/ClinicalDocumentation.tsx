@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Save, X, FileText, Download, Sparkles, Eye, Edit, Loader2, Type, Languages } from "lucide-react";
+import { ArrowLeft, Save, X, FileText, Download, Sparkles, Eye, Edit, Loader2, Type, Languages, Bold, Italic, Underline } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -91,6 +91,7 @@ export default function ClinicalDocumentation() {
   const [isGeneratingPrescription, setIsGeneratingPrescription] = useState(false);
   const [selectedText, setSelectedText] = useState("");
   const [fontSize, setFontSize] = useState("14");
+  const prescriptionRef = useRef<HTMLTextAreaElement>(null);
 
   const [subjective, setSubjective] = useState("");
   const [objective, setObjective] = useState("");
@@ -398,6 +399,50 @@ export default function ClinicalDocumentation() {
         description: "Failed to translate text",
         variant: "destructive",
       });
+    }
+  };
+
+  const wrapSelectedText = (wrapper: string) => {
+    const textarea = prescriptionRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = prescription.substring(start, end);
+    
+    if (!selectedText) return;
+
+    let wrappedText = "";
+    if (wrapper === "**") {
+      wrappedText = `**${selectedText}**`;
+    } else if (wrapper === "*") {
+      wrappedText = `*${selectedText}*`;
+    } else if (wrapper === "__") {
+      wrappedText = `__${selectedText}__`;
+    }
+
+    const newPrescription = prescription.substring(0, start) + wrappedText + prescription.substring(end);
+    setPrescription(newPrescription);
+
+    // Restore cursor position
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + wrapper.length, end + wrapper.length);
+    }, 0);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.ctrlKey || e.metaKey) {
+      if (e.key === 'b') {
+        e.preventDefault();
+        wrapSelectedText("**");
+      } else if (e.key === 'i') {
+        e.preventDefault();
+        wrapSelectedText("*");
+      } else if (e.key === 'u') {
+        e.preventDefault();
+        wrapSelectedText("__");
+      }
     }
   };
 
@@ -805,6 +850,34 @@ ${prescription}
                       </Button>
                     </div>
                     <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => wrapSelectedText("**")}
+                        title="Bold (Ctrl+B)"
+                      >
+                        <Bold className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => wrapSelectedText("*")}
+                        title="Italic (Ctrl+I)"
+                      >
+                        <Italic className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => wrapSelectedText("__")}
+                        title="Underline (Ctrl+U)"
+                      >
+                        <Underline className="w-4 h-4" />
+                      </Button>
+                      <div className="h-6 w-px bg-border mx-1" />
                       <Type className="h-4 w-4 text-muted-foreground" />
                       <Select value={fontSize} onValueChange={setFontSize}>
                         <SelectTrigger className="w-24">
@@ -825,8 +898,10 @@ ${prescription}
                     <ContextMenu>
                       <ContextMenuTrigger>
                         <Textarea
+                          ref={prescriptionRef}
                           value={prescription}
                           onChange={(e) => setPrescription(e.target.value)}
+                          onKeyDown={handleKeyDown}
                           onSelect={(e) => {
                             const target = e.target as HTMLTextAreaElement;
                             const selected = target.value.substring(target.selectionStart, target.selectionEnd);
@@ -844,8 +919,14 @@ ${prescription}
                             Translate Selection
                           </ContextMenuSubTrigger>
                           <ContextMenuSubContent>
-                            <ContextMenuItem onClick={() => handleTranslateText("Spanish")}>
-                              Spanish
+                            <ContextMenuItem onClick={() => handleTranslateText("Arabic")}>
+                              Arabic
+                            </ContextMenuItem>
+                            <ContextMenuItem onClick={() => handleTranslateText("Bengali")}>
+                              Bengali
+                            </ContextMenuItem>
+                            <ContextMenuItem onClick={() => handleTranslateText("Chinese")}>
+                              Chinese
                             </ContextMenuItem>
                             <ContextMenuItem onClick={() => handleTranslateText("French")}>
                               French
@@ -853,23 +934,20 @@ ${prescription}
                             <ContextMenuItem onClick={() => handleTranslateText("German")}>
                               German
                             </ContextMenuItem>
+                            <ContextMenuItem onClick={() => handleTranslateText("Hindi")}>
+                              Hindi
+                            </ContextMenuItem>
                             <ContextMenuItem onClick={() => handleTranslateText("Italian")}>
                               Italian
-                            </ContextMenuItem>
-                            <ContextMenuItem onClick={() => handleTranslateText("Portuguese")}>
-                              Portuguese
-                            </ContextMenuItem>
-                            <ContextMenuItem onClick={() => handleTranslateText("Chinese")}>
-                              Chinese
                             </ContextMenuItem>
                             <ContextMenuItem onClick={() => handleTranslateText("Japanese")}>
                               Japanese
                             </ContextMenuItem>
-                            <ContextMenuItem onClick={() => handleTranslateText("Arabic")}>
-                              Arabic
+                            <ContextMenuItem onClick={() => handleTranslateText("Portuguese")}>
+                              Portuguese
                             </ContextMenuItem>
-                            <ContextMenuItem onClick={() => handleTranslateText("Hindi")}>
-                              Hindi
+                            <ContextMenuItem onClick={() => handleTranslateText("Spanish")}>
+                              Spanish
                             </ContextMenuItem>
                           </ContextMenuSubContent>
                         </ContextMenuSub>
