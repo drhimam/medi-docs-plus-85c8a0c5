@@ -311,15 +311,21 @@ export default function ClinicalDocumentation() {
               </Button>
               <div>
                 <h1 className="text-2xl font-bold">Clinical Documentation</h1>
-                <p className="text-muted-foreground">
-                  {patient.first_name} {patient.last_name} | ID: {patient.id.slice(0, 8)} | 
-                  DOB: {new Date(patient.date_of_birth).toLocaleDateString()} | 
-                  Blood Group: {patient.blood_group || "N/A"} | 
-                  Contact: {patient.contact_number}
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Allergies: {formatAllergies()}
-                </p>
+                <div className="text-sm text-muted-foreground mt-1 space-y-1">
+                  <p>
+                    <span className="font-medium">Visit ID:</span> {visit.id.slice(0, 8)} | 
+                    <span className="font-medium ml-2">Patient:</span> {patient.first_name} {patient.last_name} | 
+                    <span className="font-medium ml-2">ID:</span> {patient.id.slice(0, 8)}
+                  </p>
+                  <p>
+                    <span className="font-medium">DOB:</span> {new Date(patient.date_of_birth).toLocaleDateString()} | 
+                    <span className="font-medium ml-2">Blood Group:</span> {patient.blood_group || "N/A"} | 
+                    <span className="font-medium ml-2">Contact:</span> {patient.contact_number}
+                  </p>
+                  <p>
+                    <span className="font-medium">Allergies:</span> {formatAllergies()}
+                  </p>
+                </div>
               </div>
             </div>
             <div className="flex gap-2">
