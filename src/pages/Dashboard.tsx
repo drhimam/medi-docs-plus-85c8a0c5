@@ -19,6 +19,7 @@ const EditPatient = lazy(() => import("./dashboard/EditPatient"));
 const PatientDetail = lazy(() => import("./dashboard/PatientDetail"));
 const AddVisit = lazy(() => import("./dashboard/AddVisit"));
 const VisitDetail = lazy(() => import("./dashboard/VisitDetail"));
+const ClinicalDocumentation = lazy(() => import("./dashboard/ClinicalDocumentation"));
 const AITools = lazy(() => import("./dashboard/AITools"));
 
 const Dashboard = () => {
@@ -197,6 +198,7 @@ const Dashboard = () => {
           <Route path="patients/:patientId" element={<PatientDetail />} />
           <Route path="patients/:patientId/add-visit" element={<AddVisit />} />
           <Route path="patients/:patientId/visits/:visitId" element={<VisitDetail />} />
+          <Route path="clinical-documentation/:visitId" element={<ClinicalDocumentation />} />
             <Route path="ai-tools" element={<AITools />} />
             <Route path="knowledge" element={<div>Knowledge Base page coming soon...</div>} />
           </Routes>
