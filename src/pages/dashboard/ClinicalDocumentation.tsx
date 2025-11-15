@@ -23,6 +23,10 @@ interface Patient {
   allergic_history_env: any;
   medical_history_ongoing: string;
   medical_history_past: string;
+  surgical_history: string;
+  hospitalization_history: string;
+  family_history: string;
+  mental_health_history: string;
   ongoing_medications: any;
   supplements: any;
   smoking_status: string;
@@ -48,6 +52,11 @@ interface Visit {
   vital_signs_general_appearance: string;
   physical_examination: string;
   investigation: string;
+  soap_subjective: string;
+  soap_objective: string;
+  soap_assessment: string;
+  soap_plan: string;
+  prescription: string;
 }
 
 export default function ClinicalDocumentation() {
@@ -93,9 +102,22 @@ export default function ClinicalDocumentation() {
       if (patientError) throw patientError;
       setPatient(patientData);
 
-      // Auto-populate subjective and objective
-      populateSubjective(visitData, patientData);
-      populateObjective(visitData);
+      // Load saved SOAP notes and prescription, or auto-populate if empty
+      if (visitData.soap_subjective) {
+        setSubjective(visitData.soap_subjective);
+      } else {
+        populateSubjective(visitData, patientData);
+      }
+      
+      if (visitData.soap_objective) {
+        setObjective(visitData.soap_objective);
+      } else {
+        populateObjective(visitData);
+      }
+      
+      setAssessment(visitData.soap_assessment || "");
+      setPlan(visitData.soap_plan || "");
+      setPrescription(visitData.prescription || "");
     } catch (error: any) {
       console.error("Error fetching visit:", error);
       toast({
@@ -117,13 +139,27 @@ export default function ClinicalDocumentation() {
       text += "REVIEW OF SYSTEM (ROS):\n" + visitData.ros + "\n\n";
     }
 
-    if (patientData.medical_history_ongoing || patientData.medical_history_past) {
+    if (patientData.medical_history_ongoing || patientData.medical_history_past || 
+        patientData.surgical_history || patientData.hospitalization_history || 
+        patientData.family_history || patientData.mental_health_history) {
       text += "MEDICAL HISTORY:\n";
       if (patientData.medical_history_ongoing) {
         text += "Ongoing: " + patientData.medical_history_ongoing + "\n";
       }
       if (patientData.medical_history_past) {
         text += "Past: " + patientData.medical_history_past + "\n";
+      }
+      if (patientData.surgical_history) {
+        text += "Surgical: " + patientData.surgical_history + "\n";
+      }
+      if (patientData.hospitalization_history) {
+        text += "Hospitalization: " + patientData.hospitalization_history + "\n";
+      }
+      if (patientData.family_history) {
+        text += "Family: " + patientData.family_history + "\n";
+      }
+      if (patientData.mental_health_history) {
+        text += "Mental Health: " + patientData.mental_health_history + "\n";
       }
       text += "\n";
     }
@@ -267,10 +303,32 @@ export default function ClinicalDocumentation() {
   };
 
   const handleSave = async () => {
-    toast({
-      title: "Success",
-      description: "Clinical documentation saved",
-    });
+    try {
+      const { error } = await supabase
+        .from("visits")
+        .update({
+          soap_subjective: subjective,
+          soap_objective: objective,
+          soap_assessment: assessment,
+          soap_plan: plan,
+          prescription: prescription,
+        })
+        .eq("id", visitId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Clinical documentation saved",
+      });
+    } catch (error: any) {
+      console.error("Error saving documentation:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save clinical documentation",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleClose = () => {
