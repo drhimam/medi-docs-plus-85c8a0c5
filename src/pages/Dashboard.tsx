@@ -15,6 +15,7 @@ import { toast } from "sonner";
 
 const Patients = lazy(() => import("./dashboard/Patients"));
 const AddPatient = lazy(() => import("./dashboard/AddPatient"));
+const EditPatient = lazy(() => import("./dashboard/EditPatient"));
 const PatientDetail = lazy(() => import("./dashboard/PatientDetail"));
 const VisitDetail = lazy(() => import("./dashboard/VisitDetail"));
 const AITools = lazy(() => import("./dashboard/AITools"));
@@ -191,6 +192,7 @@ const Dashboard = () => {
             <Route index element={<DashboardHome />} />
           <Route path="patients" element={<Patients />} />
           <Route path="patients/add" element={<AddPatient />} />
+          <Route path="patients/:patientId/edit" element={<EditPatient />} />
           <Route path="patients/:patientId" element={<PatientDetail />} />
           <Route path="patients/:patientId/visits/:visitId" element={<VisitDetail />} />
             <Route path="ai-tools" element={<AITools />} />

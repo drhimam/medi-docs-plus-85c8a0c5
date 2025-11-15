@@ -222,7 +222,7 @@ const PatientDetail = () => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => toast.info("Edit feature coming soon")}>
+              <DropdownMenuItem onClick={() => navigate(`/dashboard/patients/${patientId}/edit`)}>
                 <Edit className="mr-2 h-4 w-4" />
                 Edit
               </DropdownMenuItem>
