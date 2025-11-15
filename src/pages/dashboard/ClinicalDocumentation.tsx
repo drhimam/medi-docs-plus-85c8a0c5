@@ -484,6 +484,7 @@ export default function ClinicalDocumentation() {
   };
 
   const exportSOAPToMarkdown = () => {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
     const content = `# SOAP Note
 **Visit ID:** ${visitId}
 **Patient:** ${patient.first_name} ${patient.last_name}
@@ -506,7 +507,7 @@ ${plan}
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `SOAP_${patient.last_name}_${visitId}.md`;
+    a.download = `SOAP_${patient.last_name}_${visitId}_${timestamp}.md`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -519,50 +520,46 @@ ${plan}
   };
 
   const exportSOAPToPDF = () => {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     const margin = 20;
     const maxWidth = pageWidth - 2 * margin;
     let yPosition = 20;
 
-    doc.setFontSize(16);
-    doc.text("SOAP Note", margin, yPosition);
-    yPosition += 10;
-    
-    doc.setFontSize(10);
-    doc.text(`Visit ID: ${visitId}`, margin, yPosition);
-    yPosition += 6;
-    doc.text(`Patient: ${patient.first_name} ${patient.last_name}`, margin, yPosition);
-    yPosition += 6;
-    doc.text(`Date: ${new Date().toLocaleDateString()}`, margin, yPosition);
-    yPosition += 12;
-
-    const addSection = (title: string, content: string) => {
-      doc.setFontSize(12);
-      doc.setFont(undefined, "bold");
-      doc.text(title, margin, yPosition);
-      yPosition += 8;
+    const addText = (text: string, fontSize: number = 12, isBold: boolean = false) => {
+      doc.setFontSize(fontSize);
+      if (isBold) doc.setFont("helvetica", "bold");
+      else doc.setFont("helvetica", "normal");
       
-      doc.setFontSize(10);
-      doc.setFont(undefined, "normal");
-      const lines = doc.splitTextToSize(content || "N/A", maxWidth);
+      const lines = doc.splitTextToSize(text, maxWidth);
       lines.forEach((line: string) => {
         if (yPosition > 270) {
           doc.addPage();
           yPosition = 20;
         }
         doc.text(line, margin, yPosition);
-        yPosition += 6;
+        yPosition += fontSize / 2 + 2;
       });
-      yPosition += 6;
+      yPosition += 5;
     };
 
-    addSection("Subjective", subjective);
-    addSection("Objective", objective);
-    addSection("Assessment", assessment);
-    addSection("Plan", plan);
+    addText("SOAP Note", 18, true);
+    yPosition += 5;
+    
+    addText("Subjective:", 14, true);
+    addText(subjective || "N/A");
+    
+    addText("Objective:", 14, true);
+    addText(objective || "N/A");
+    
+    addText("Assessment:", 14, true);
+    addText(assessment || "N/A");
+    
+    addText("Plan:", 14, true);
+    addText(plan || "N/A");
 
-    doc.save(`SOAP_${patient.last_name}_${visitId}.pdf`);
+    doc.save(`SOAP_${patient.last_name}_${visitId}_${timestamp}.pdf`);
     
     toast({
       title: "Success",
@@ -571,6 +568,7 @@ ${plan}
   };
 
   const exportPrescriptionToMarkdown = () => {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
     const content = `# Prescription
 **Visit ID:** ${visitId}
 **Patient:** ${patient.first_name} ${patient.last_name}
@@ -583,7 +581,7 @@ ${prescription}
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `Prescription_${patient.last_name}_${visitId}.md`;
+    a.download = `Prescription_${patient.last_name}_${visitId}_${timestamp}.md`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -596,36 +594,35 @@ ${prescription}
   };
 
   const exportPrescriptionToPDF = () => {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     const margin = 20;
     const maxWidth = pageWidth - 2 * margin;
     let yPosition = 20;
 
-    doc.setFontSize(16);
-    doc.text("Prescription", margin, yPosition);
-    yPosition += 10;
-    
-    doc.setFontSize(10);
-    doc.text(`Visit ID: ${visitId}`, margin, yPosition);
-    yPosition += 6;
-    doc.text(`Patient: ${patient.first_name} ${patient.last_name}`, margin, yPosition);
-    yPosition += 6;
-    doc.text(`Date: ${new Date().toLocaleDateString()}`, margin, yPosition);
-    yPosition += 12;
+    const addText = (text: string, fontSize: number = 12, isBold: boolean = false) => {
+      doc.setFontSize(fontSize);
+      if (isBold) doc.setFont("helvetica", "bold");
+      else doc.setFont("helvetica", "normal");
+      
+      const lines = doc.splitTextToSize(text, maxWidth);
+      lines.forEach((line: string) => {
+        if (yPosition > 270) {
+          doc.addPage();
+          yPosition = 20;
+        }
+        doc.text(line, margin, yPosition);
+        yPosition += fontSize / 2 + 2;
+      });
+      yPosition += 5;
+    };
 
-    doc.setFontSize(10);
-    const lines = doc.splitTextToSize(prescription || "No prescription", maxWidth);
-    lines.forEach((line: string) => {
-      if (yPosition > 270) {
-        doc.addPage();
-        yPosition = 20;
-      }
-      doc.text(line, margin, yPosition);
-      yPosition += 6;
-    });
+    addText("Prescription", 18, true);
+    yPosition += 5;
+    addText(prescription || "N/A");
 
-    doc.save(`Prescription_${patient.last_name}_${visitId}.pdf`);
+    doc.save(`Prescription_${patient.last_name}_${visitId}_${timestamp}.pdf`);
     
     toast({
       title: "Success",

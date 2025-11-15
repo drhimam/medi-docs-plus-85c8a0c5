@@ -209,134 +209,100 @@ const PatientDetail = () => {
   const exportToMarkdown = () => {
     if (!patient) return;
 
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
     const age = calculateAge(patient.date_of_birth);
     const allergies = getAllergies();
 
-    let markdown = `# Patient Medical Record\n\n`;
-    markdown += `---\n\n`;
-    
-    // Header section with key info
-    markdown += `## ${patient.first_name} ${patient.last_name}\n\n`;
-    markdown += `**Date of Birth:** ${patient.date_of_birth} (${age} years old)  \n`;
-    markdown += `**Gender:** ${patient.gender}  \n`;
-    markdown += `**Contact Number:** ${patient.contact_number}  \n`;
-    markdown += `**Blood Group:** ${patient.blood_group || "Not recorded"}  \n`;
-    markdown += `**Health Card:** ${patient.health_card_number || "Not provided"}  \n`;
-    markdown += `**Email:** ${patient.email || "Not provided"}  \n`;
-    markdown += `**Address:** ${patient.address || "Not provided"}  \n\n`;
-    markdown += `**⚠️ Allergies:** ${allergies}  \n\n`;
-    markdown += `---\n\n`;
+    const markdownContent = `# Patient Record: ${patient.first_name} ${patient.last_name}
 
-    // Demographics section
-    markdown += `## Demographics\n\n`;
-    markdown += `| Field | Value |\n`;
-    markdown += `|-------|-------|\n`;
-    markdown += `| Gender | ${patient.gender} |\n`;
-    markdown += `| Blood Group | ${patient.blood_group || "Not recorded"} |\n`;
-    markdown += `| Contact Number | ${patient.contact_number} |\n`;
-    markdown += `| Email | ${patient.email || "Not provided"} |\n`;
-    markdown += `| Address | ${patient.address || "Not provided"} |\n\n`;
+## Basic Information
+- **Name:** ${patient.first_name} ${patient.last_name}
+- **Date of Birth:** ${new Date(patient.date_of_birth).toLocaleDateString()}
+- **Age:** ${age} years
+- **Gender:** ${patient.gender}
+- **Health Card Number:** ${patient.health_card_number || "N/A"}
+- **Contact Number:** ${patient.contact_number}
+- **Email:** ${patient.email || "N/A"}
+- **Address:** ${patient.address || "N/A"}
 
-    // Medical History
-    markdown += `## Medical History\n\n`;
-    if (patient.medical_history_ongoing) {
-      markdown += `### Ongoing Medical Conditions\n${patient.medical_history_ongoing}\n\n`;
-    }
-    if (patient.medical_history_past) {
-      markdown += `### Past Medical History\n${patient.medical_history_past}\n\n`;
-    }
-    if (patient.surgical_history) {
-      markdown += `### Surgical History\n${patient.surgical_history}\n\n`;
-    }
-    if (patient.hospitalization_history) {
-      markdown += `### Hospitalization History\n${patient.hospitalization_history}\n\n`;
-    }
-    if (patient.family_history) {
-      markdown += `### Family History\n${patient.family_history}\n\n`;
-    }
-    if (patient.mental_health_history) {
-      markdown += `### Mental Health History\n${patient.mental_health_history}\n\n`;
-    }
+## Medical History
+### Ongoing Medical Conditions
+${patient.medical_history_ongoing || "None reported"}
 
-    // Medications & Supplements
-    markdown += `## Medications & Supplements\n\n`;
-    if (patient.ongoing_medications && Array.isArray(patient.ongoing_medications) && patient.ongoing_medications.length > 0) {
-      markdown += `### Ongoing Medications\n`;
-      patient.ongoing_medications.forEach((med: string) => {
-        markdown += `- ${med}\n`;
-      });
-      markdown += `\n`;
-    }
-    if (patient.supplements && Array.isArray(patient.supplements) && patient.supplements.length > 0) {
-      markdown += `### Supplements\n`;
-      patient.supplements.forEach((sup: string) => {
-        markdown += `- ${sup}\n`;
-      });
-      markdown += `\n`;
-    }
-    if (patient.vaccinations && Array.isArray(patient.vaccinations) && patient.vaccinations.length > 0) {
-      markdown += `### Vaccinations\n`;
-      patient.vaccinations.forEach((vac: string) => {
-        markdown += `- ${vac}\n`;
-      });
-      markdown += `\n`;
-    }
+### Past Medical History
+${patient.medical_history_past || "None reported"}
 
-    // Allergies
-    markdown += `## Allergies\n\n`;
-    if (patient.allergic_history_drug && Array.isArray(patient.allergic_history_drug) && patient.allergic_history_drug.length > 0) {
-      markdown += `### Drug Allergies\n`;
-      patient.allergic_history_drug.forEach((allergy: string) => {
-        markdown += `- ${allergy}\n`;
-      });
-      markdown += `\n`;
-    }
-    if (patient.allergic_history_food && Array.isArray(patient.allergic_history_food) && patient.allergic_history_food.length > 0) {
-      markdown += `### Food Allergies\n`;
-      patient.allergic_history_food.forEach((allergy: string) => {
-        markdown += `- ${allergy}\n`;
-      });
-      markdown += `\n`;
-    }
-    if (patient.allergic_history_env && Array.isArray(patient.allergic_history_env) && patient.allergic_history_env.length > 0) {
-      markdown += `### Environmental Allergies\n`;
-      patient.allergic_history_env.forEach((allergy: string) => {
-        markdown += `- ${allergy}\n`;
-      });
-      markdown += `\n`;
-    }
+### Family History
+${patient.family_history || "None reported"}
 
-    // Social History
-    markdown += `## Social History\n\n`;
-    markdown += `| Category | Details |\n`;
-    markdown += `|----------|----------|\n`;
-    markdown += `| Smoking Status | ${patient.smoking_status} |\n`;
-    markdown += `| Alcohol Consumption | ${patient.alcohol_consumption} |\n`;
-    if (patient.recreational_drug_use) {
-      markdown += `| Recreational Drug Use | ${patient.recreational_drug_use} |\n`;
-    }
-    if (patient.exercise_habits) {
-      markdown += `| Exercise Habits | ${patient.exercise_habits} |\n`;
-    }
-    if (patient.diet) {
-      markdown += `| Diet | ${patient.diet} |\n`;
-    }
-    if (patient.occupation) {
-      markdown += `| Occupation | ${patient.occupation} |\n`;
-    }
-    if (patient.living_environment) {
-      markdown += `| Living Environment | ${patient.living_environment} |\n`;
-    }
+### Mental Health History
+${patient.mental_health_history || "None reported"}
 
-    markdown += `\n---\n\n`;
-    markdown += `*Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}*\n`;
+### Surgical History
+${patient.surgical_history || "None reported"}
 
-    // Download the file
-    const blob = new Blob([markdown], { type: "text/markdown" });
+### Hospitalization History
+${patient.hospitalization_history || "None reported"}
+
+## Allergies
+${allergies}
+
+## Medications & Supplements
+### Ongoing Medications
+${
+  Array.isArray(patient.ongoing_medications) && patient.ongoing_medications.length > 0
+    ? patient.ongoing_medications.map((med: any) => `- ${med}`).join("\n")
+    : "None reported"
+}
+
+### Supplements
+${
+  Array.isArray(patient.supplements) && patient.supplements.length > 0
+    ? patient.supplements.map((sup: any) => `- ${sup}`).join("\n")
+    : "None reported"
+}
+
+## Lifestyle Factors
+- **Blood Group:** ${patient.blood_group || "Unknown"}
+- **Smoking Status:** ${patient.smoking_status}
+- **Alcohol Consumption:** ${patient.alcohol_consumption}
+- **Recreational Drug Use:** ${patient.recreational_drug_use || "None reported"}
+- **Diet:** ${patient.diet || "Not specified"}
+- **Exercise Habits:** ${patient.exercise_habits || "Not specified"}
+- **Living Environment:** ${patient.living_environment || "Not specified"}
+- **Occupation:** ${patient.occupation || "Not specified"}
+
+## Vaccinations
+${
+  Array.isArray(patient.vaccinations) && patient.vaccinations.length > 0
+    ? patient.vaccinations.map((vac: any) => `- ${vac}`).join("\n")
+    : "None reported"
+}
+
+## Visits History
+${
+  visits.length > 0
+    ? visits
+        .map(
+          (visit) =>
+            `### ${new Date(visit.visit_date).toLocaleDateString()} - ${visit.visit_type}
+**Reason:** ${visit.reason_for_visit}
+**Status:** ${visit.status}
+`
+        )
+        .join("\n")
+    : "No visits recorded"
+}
+
+---
+*Generated on ${new Date().toLocaleString()}*
+`;
+
+    const blob = new Blob([markdownContent], { type: "text/markdown" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${patient.first_name}_${patient.last_name}_medical_record.md`;
+    a.download = `Patient_${patient.last_name}_${patient.first_name}_${timestamp}.md`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -348,6 +314,7 @@ const PatientDetail = () => {
   const exportToPDF = () => {
     if (!patient) return;
 
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
     const doc = new jsPDF();
     const age = calculateAge(patient.date_of_birth);
     const allergies = getAllergies();
@@ -611,7 +578,7 @@ const PatientDetail = () => {
     }
 
     // Save the PDF
-    doc.save(`${patient.first_name}_${patient.last_name}_medical_record.pdf`);
+    doc.save(`Patient_${patient.first_name}_${patient.last_name}_${timestamp}.pdf`);
     toast.success("PDF exported successfully");
   };
 

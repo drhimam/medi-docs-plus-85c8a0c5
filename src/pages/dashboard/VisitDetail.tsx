@@ -165,6 +165,7 @@ const VisitDetail = () => {
   const handleExport = () => {
     if (!visit || !patient) return;
 
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     let yPosition = 20;
@@ -225,7 +226,7 @@ const VisitDetail = () => {
     const prescriptionLines = doc.splitTextToSize(prescriptionContent || "N/A", pageWidth - 40);
     doc.text(prescriptionLines, 20, yPosition);
 
-    doc.save(`clinical-doc-${patient.last_name}-${new Date(visit.visit_date).toLocaleDateString()}.pdf`);
+    doc.save(`clinical-doc-${patient.last_name}-${new Date(visit.visit_date).toLocaleDateString().replace(/\//g, '-')}-${timestamp}.pdf`);
     toast.success("Document exported successfully!");
   };
 
