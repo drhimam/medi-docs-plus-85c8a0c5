@@ -32,6 +32,9 @@ import {
   Trash2,
   FileDown,
   AlertCircle,
+  Eye,
+  ExternalLink,
+  ArrowUpDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
@@ -73,8 +76,19 @@ interface Visit {
   id: string;
   visit_date: string;
   visit_type: string;
-  chief_complaint: string;
+  reason_for_visit: string;
+  soap_assessment: string | null;
   status: string;
+}
+
+interface Document {
+  id: string;
+  document_date: string;
+  description: string;
+  upload_date: string;
+  document_type: string;
+  visit_id: string;
+  file_name: string;
 }
 
 const PatientDetail = () => {
@@ -82,11 +96,13 @@ const PatientDetail = () => {
   const navigate = useNavigate();
   const [patient, setPatient] = useState<Patient | null>(null);
   const [visits, setVisits] = useState<Visit[]>([]);
+  const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchPatient();
     fetchVisits();
+    fetchDocuments();
   }, [patientId]);
 
   const fetchPatient = async () => {
@@ -111,12 +127,27 @@ const PatientDetail = () => {
     try {
       const { data, error } = await (supabase as any)
         .from("visits")
-        .select("*")
+        .select("id, visit_date, visit_type, reason_for_visit, soap_assessment, status")
         .eq("patient_id", patientId)
         .order("visit_date", { ascending: false });
 
       if (error) throw error;
       setVisits(data || []);
+    } catch (error: any) {
+      console.error(error);
+    }
+  };
+
+  const fetchDocuments = async () => {
+    try {
+      const { data, error } = await (supabase as any)
+        .from("documents")
+        .select("id, document_date, description, upload_date, document_type, visit_id, file_name")
+        .eq("patient_id", patientId)
+        .order("document_date", { ascending: false });
+
+      if (error) throw error;
+      setDocuments(data || []);
     } catch (error: any) {
       console.error(error);
     }
@@ -821,85 +852,179 @@ const PatientDetail = () => {
         </Collapsible>
       </div>
 
-      {/* Section 2: Visits Table */}
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold">Visit History</h2>
+      {/* Section 2: Visit History */}
+      <Card className="p-6">
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h2 className="text-xl font-semibold">Visit History</h2>
+            <p className="text-sm text-muted-foreground">Patient's previous visits</p>
+          </div>
           <Button onClick={() => navigate(`/dashboard/patients/${patientId}/add-visit`)}>
             <Plus className="mr-2 h-4 w-4" />
-            Add Visit
+            New Visit
           </Button>
         </div>
 
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Chief Complaint</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visits.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                    No visits recorded yet
-                  </TableCell>
-                </TableRow>
-              ) : (
-                visits.map((visit) => (
-                  <TableRow key={visit.id}>
-                    <TableCell>{visit.visit_date}</TableCell>
-                    <TableCell>{visit.visit_type}</TableCell>
-                    <TableCell>{visit.chief_complaint}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{visit.status}</Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => navigate(`/dashboard/patients/${patientId}/visits/${visit.id}`)}
-                      >
-                        View
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </Card>
-      </div>
-
-      {/* Section 3: Uploaded Documents */}
-      <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Uploaded Documents</h2>
-
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Document Name</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Upload Date</TableHead>
-                <TableHead>Associated Visit</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>
+                <div className="flex items-center gap-1">
+                  Date <ArrowUpDown className="h-4 w-4" />
+                </div>
+              </TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Reason</TableHead>
+              <TableHead>Assessment</TableHead>
+              <TableHead>Action</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {visits.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                  No documents uploaded yet. Documents are uploaded during individual visits.
+                  No visits recorded yet
                 </TableCell>
               </TableRow>
-            </TableBody>
-          </Table>
-        </Card>
-      </div>
+            ) : (
+              visits.map((visit) => (
+                <TableRow key={visit.id}>
+                  <TableCell>
+                    {new Date(visit.visit_date).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit'
+                    })}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">{visit.visit_type}</Badge>
+                  </TableCell>
+                  <TableCell>{visit.reason_for_visit}</TableCell>
+                  <TableCell className="max-w-md truncate">
+                    {visit.soap_assessment || "Not completed"}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigate(`/dashboard/patients/${patientId}/visits/${visit.id}`)}
+                    >
+                      <Eye className="mr-2 h-4 w-4" />
+                      View
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </Card>
+
+      {/* Section 3: Patient Documents */}
+      <Card className="p-6">
+        <div className="mb-4">
+          <h2 className="text-xl font-semibold">Patient Documents</h2>
+          <p className="text-sm text-muted-foreground">All documents uploaded for this patient across all visits</p>
+        </div>
+
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>
+                <div className="flex items-center gap-1">
+                  Doc Date <ArrowUpDown className="h-4 w-4" />
+                </div>
+              </TableHead>
+              <TableHead>
+                <div className="flex items-center gap-1">
+                  Description <ArrowUpDown className="h-4 w-4" />
+                </div>
+              </TableHead>
+              <TableHead>
+                <div className="flex items-center gap-1">
+                  Upload Date <ArrowUpDown className="h-4 w-4" />
+                </div>
+              </TableHead>
+              <TableHead>
+                <div className="flex items-center gap-1">
+                  Status <ArrowUpDown className="h-4 w-4" />
+                </div>
+              </TableHead>
+              <TableHead>Visit</TableHead>
+              <TableHead>Action</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {documents.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  No documents uploaded yet
+                </TableCell>
+              </TableRow>
+            ) : (
+              documents.map((doc) => (
+                <TableRow key={doc.id}>
+                  <TableCell>
+                    {new Date(doc.document_date).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric'
+                    })}
+                  </TableCell>
+                  <TableCell>{doc.description}</TableCell>
+                  <TableCell>
+                    {new Date(doc.upload_date).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric'
+                    })}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                      <AlertCircle className="mr-1 h-3 w-3" />
+                      Need Review
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="p-0 h-auto"
+                      onClick={() => navigate(`/dashboard/patients/${patientId}/visits/${doc.visit_id}`)}
+                    >
+                      <ExternalLink className="mr-1 h-3 w-3" />
+                      View Visit
+                    </Button>
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem>
+                          <Eye className="mr-2 h-4 w-4" />
+                          View Document
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                          <FileDown className="mr-2 h-4 w-4" />
+                          Download
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive">
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </Card>
     </div>
   );
 };
