@@ -169,7 +169,19 @@ export const AIGenerated = () => {
           </CardHeader>
           <CardContent>
             <div 
-              className="prose prose-sm max-w-none prose-headings:font-bold prose-h2:text-xl prose-h2:mt-6 prose-h2:mb-3 prose-h3:text-lg prose-h3:mt-4 prose-h3:mb-2 prose-p:mb-3 prose-ul:mb-3 prose-ol:mb-3 prose-li:mb-1 prose-table:border-collapse prose-table:w-full prose-th:border prose-th:p-2 prose-th:bg-muted prose-td:border prose-td:p-2"
+              className="prose prose-base max-w-none 
+              prose-headings:font-bold prose-headings:text-foreground
+              prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h2:pb-2 prose-h2:border-b
+              prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-3
+              prose-p:mb-4 prose-p:leading-relaxed
+              prose-ul:my-4 prose-ul:space-y-2
+              prose-ol:my-4 prose-ol:space-y-2
+              prose-li:mb-2
+              prose-table:border-collapse prose-table:w-full prose-table:my-6
+              prose-th:border prose-th:p-3 prose-th:bg-muted prose-th:font-semibold
+              prose-td:border prose-td:p-3
+              [&_ol]:list-decimal [&_ol]:pl-6
+              [&_ul]:list-disc [&_ul]:pl-6"
               dangerouslySetInnerHTML={{ __html: generatedContent }}
             />
           </CardContent>
