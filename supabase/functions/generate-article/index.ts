@@ -22,37 +22,40 @@ ${context ? `Additional context: ${context}` : ''}
 ${category ? `Category: ${category}` : ''}
 
 CRITICAL FORMATTING REQUIREMENTS:
-1. Use proper HTML structure with semantic tags
-2. Use <h2> for main section headings (e.g., "Overview", "Pathophysiology", "Clinical Features")
+1. Start with <h1> for the main article title
+2. Use <h2> for main section headings (Overview, Pathophysiology, Clinical Features, etc.)
 3. Use <h3> for subsections within each main section
-4. Use <p> tags for all paragraphs (NEVER use \\n for line breaks)
-5. Use <ul> and <li> for bullet lists
-6. Use <ol> and <li> for numbered lists
-7. Use <table>, <thead>, <tbody>, <tr>, <th>, <td> for tabular data
-8. Use <strong> for emphasis and <em> for italics
-9. NO plain text line breaks (\\n) - ONLY use proper HTML tags
+4. Wrap EVERY paragraph in <p> tags with proper closing tags
+5. Add <br><br> between major sections for clear visual separation
+6. Use <ul> and <li> for bullet lists
+7. Use <ol> and <li> for numbered lists
+8. Use <table>, <thead>, <tbody>, <tr>, <th>, <td> for tabular data with proper structure
+9. Use <strong> for emphasis and <em> for italics
+10. NO plain text line breaks (\\n) - ONLY use proper HTML tags
+11. Ensure each <h2> section is followed by <br> for spacing
+12. Each paragraph <p> should have content, then close properly before the next element
 
-MANDATORY ARTICLE STRUCTURE:
-1. Introduction (2-3 paragraphs with <h2>Introduction</h2>)
-2. Definition/Overview (<h2>Definition</h2>)
-3. Epidemiology (<h2>Epidemiology</h2>)
-4. Etiology/Causes (<h2>Etiology</h2>)
-5. Pathophysiology (<h2>Pathophysiology</h2>)
-6. Clinical Features (<h2>Clinical Features</h2>)
-   - Use <h3> for subsections like Signs and Symptoms
-7. Diagnosis (<h2>Diagnosis</h2>)
-   - Include diagnostic criteria in a table if applicable
-8. Differential Diagnosis (<h2>Differential Diagnosis</h2>)
-9. Management/Treatment (<h2>Management</h2>)
-   - Use <h3> for subsections like Pharmacological and Non-pharmacological
-   - Include medication tables with dosages
-10. Complications (<h2>Complications</h2>)
-11. Prognosis (<h2>Prognosis</h2>)
-12. Key Points (<h2>Key Points</h2> with bullet list)
-13. References (<h2>References</h2>)
-    - Include 5-8 properly formatted medical references
-    - Use <ol> for numbered reference list
-    - Format: Author(s). Title. Journal. Year;Volume(Issue):Pages.
+MANDATORY ARTICLE STRUCTURE WITH SPACING:
+1. <h1>Article Title</h1><br><br>
+2. <h2>Introduction</h2><br><p>Content in paragraphs...</p><p>More paragraphs...</p><br><br>
+3. <h2>Definition</h2><br><p>Content...</p><br><br>
+4. <h2>Epidemiology</h2><br><p>Content...</p><br><br>
+5. <h2>Etiology</h2><br><p>Content...</p><br><br>
+6. <h2>Pathophysiology</h2><br><p>Content...</p><br><br>
+7. <h2>Clinical Features</h2><br><h3>Signs and Symptoms</h3><p>Content...</p><br><br>
+8. <h2>Diagnosis</h2><br><p>Content...</p><table>...</table><br><br>
+9. <h2>Differential Diagnosis</h2><br><p>Content...</p><br><br>
+10. <h2>Management</h2><br><h3>Pharmacological</h3><p>Content...</p><h3>Non-pharmacological</h3><p>Content...</p><br><br>
+11. <h2>Complications</h2><br><p>Content...</p><br><br>
+12. <h2>Prognosis</h2><br><p>Content...</p><br><br>
+13. <h2>Key Points</h2><br><ul><li>Point 1</li><li>Point 2</li></ul><br><br>
+14. <h2>References</h2><br><ol><li>Reference 1</li><li>Reference 2</li></ol>
+
+SPACING RULES:
+- Add <br><br> after each major <h2> section
+- Add <br> after each <h2> or <h3> heading before content
+- Wrap each paragraph in <p></p> tags
+- Tables should be on their own with <br> before and after
 
 TABLES: Use tables for:
 - Diagnostic criteria
@@ -68,8 +71,8 @@ EXAMPLE REFERENCE FORMAT:
 </ol>
 
 Provide the output as valid JSON with two fields:
-- "title": A clear, professional medical title
-- "content": The full article in properly formatted HTML (NO \\n characters, only HTML tags)`;
+- "title": A clear, professional medical title (do NOT include this in the content HTML)
+- "content": The full article starting with <h1>Title</h1> followed by all sections with proper spacing using <br><br> between sections`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -82,7 +85,7 @@ Provide the output as valid JSON with two fields:
         messages: [
           { 
             role: "system", 
-            content: "You are a senior medical writer and physician creating comprehensive, evidence-based medical articles. Generate well-structured articles with clear sections including Introduction, Definition, Epidemiology, Etiology, Pathophysiology, Clinical Features, Diagnosis, Differential Diagnosis, Management, Complications, Prognosis, Key Points, and References. Use PERFECT HTML formatting with proper headings (<h2>, <h3>), paragraphs (<p>), lists (<ul>, <ol>), and tables. NEVER use \\n for line breaks. Include 5-8 properly formatted medical references. Return valid JSON with 'title' and 'content' fields."
+            content: "You are a senior medical writer and physician creating comprehensive, evidence-based medical articles. Generate well-structured articles with: <h1> for title, <h2> for main sections, <h3> for subsections. Use <br><br> between major sections for clear spacing. Wrap all paragraphs in <p> tags. Use proper tables with <table>, <thead>, <tbody>, <tr>, <th>, <td>. Add <br> after headings before content. Include 5-8 properly formatted medical references in an <ol> list. Return valid JSON with 'title' and 'content' fields where content contains the full HTML including the <h1> title."
           },
           { 
             role: "user", 

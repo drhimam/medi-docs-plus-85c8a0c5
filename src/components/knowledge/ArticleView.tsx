@@ -132,12 +132,14 @@ export const ArticleView = () => {
           </Link>
           
           <div className="flex gap-2">
-            <Link to={`/dashboard/knowledge/article/${articleId}/edit`}>
-              <Button variant="outline" className="gap-2">
-                <Edit className="h-4 w-4" />
-                Edit
-              </Button>
-            </Link>
+            {article.source !== 'ai-generated' && (
+              <Link to={`/dashboard/knowledge/article/${articleId}/edit`}>
+                <Button variant="outline" className="gap-2">
+                  <Edit className="h-4 w-4" />
+                  Edit
+                </Button>
+              </Link>
+            )}
             <Button
               variant="destructive"
               onClick={() => setShowDeleteDialog(true)}
@@ -192,12 +194,13 @@ export const ArticleView = () => {
             <div 
               className="prose prose-base lg:prose-lg max-w-none 
               prose-headings:font-bold prose-headings:text-foreground
+              prose-h1:text-3xl prose-h1:mt-0 prose-h1:mb-8 prose-h1:pb-3 prose-h1:border-b-2 prose-h1:border-primary
               prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-5 prose-h2:pb-2 prose-h2:border-b
               prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-4
               prose-h4:text-lg prose-h4:mt-6 prose-h4:mb-3
-              prose-p:mb-4 prose-p:leading-relaxed prose-p:text-foreground
-              prose-ul:my-4 prose-ul:space-y-2
-              prose-ol:my-4 prose-ol:space-y-2
+              prose-p:mb-6 prose-p:leading-relaxed prose-p:text-foreground
+              prose-ul:my-6 prose-ul:space-y-2
+              prose-ol:my-6 prose-ol:space-y-2
               prose-li:mb-2 prose-li:leading-relaxed
               prose-table:border-collapse prose-table:w-full prose-table:my-6
               prose-th:border prose-th:border-border prose-th:p-3 prose-th:bg-muted prose-th:font-semibold prose-th:text-left
