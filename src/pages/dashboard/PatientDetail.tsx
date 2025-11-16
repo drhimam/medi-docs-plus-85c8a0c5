@@ -967,7 +967,7 @@ ${
                       variant="link"
                       size="sm"
                       className="p-0 h-auto"
-                      onClick={() => navigate(`/dashboard/patients/${patientId}/visits/${doc.visit_id}`)}
+                      onClick={() => navigate(`/dashboard/clinical-documentation/${doc.visit_id}`)}
                     >
                       <ExternalLink className="mr-1 h-3 w-3" />
                       View Visit
