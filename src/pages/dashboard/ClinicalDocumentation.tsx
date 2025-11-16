@@ -751,9 +751,10 @@ ${prescription}
             </div>
           ) : (
             <Tabs defaultValue="soap">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="soap">SOAP Note</TabsTrigger>
                 <TabsTrigger value="prescription">Prescription</TabsTrigger>
+                <TabsTrigger value="documents">Documents</TabsTrigger>
               </TabsList>
               
               <TabsContent value="soap" className="space-y-6 mt-6">
@@ -953,35 +954,34 @@ ${prescription}
                   </div>
                 </div>
               </TabsContent>
-            </Tabs>
-          )}
-        </div>
 
-        {/* Documents Section */}
-        <div className="bg-card border rounded-lg p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Uploaded Documents</h2>
-            <Button onClick={() => setIsUploadDialogOpen(true)}>
-              <FileText className="w-4 h-4 mr-2" />
-              Upload Document
-            </Button>
-          </div>
-          
-          {documents.length > 0 ? (
-            <div className="space-y-2">
-              {documents.map((doc) => (
-                <div key={doc.id} className="flex items-center justify-between p-3 border rounded">
-                  <div>
-                    <p className="font-medium">{doc.file_name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {doc.document_type} - {doc.description} - {new Date(doc.document_date).toLocaleDateString()}
-                    </p>
-                  </div>
+              <TabsContent value="documents" className="space-y-4 mt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold">Uploaded Documents</h2>
+                  <Button onClick={() => setIsUploadDialogOpen(true)}>
+                    <FileText className="w-4 h-4 mr-2" />
+                    Upload Document
+                  </Button>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-muted-foreground text-center py-8">No documents uploaded yet</p>
+                
+                {documents.length > 0 ? (
+                  <div className="space-y-2">
+                    {documents.map((doc) => (
+                      <div key={doc.id} className="flex items-center justify-between p-3 border rounded">
+                        <div>
+                          <p className="font-medium">{doc.file_name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {doc.document_type} - {doc.description} - {new Date(doc.document_date).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-center py-8">No documents uploaded yet</p>
+                )}
+              </TabsContent>
+            </Tabs>
           )}
         </div>
         </div>
