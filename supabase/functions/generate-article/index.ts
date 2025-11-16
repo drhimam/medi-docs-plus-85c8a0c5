@@ -107,23 +107,41 @@ Provide the output as valid JSON with two fields:
     // Try to parse as JSON, if it fails, create a simple structure
     let result;
     try {
-      const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
+      // Remove markdown code blocks if present
+      let cleanedContent = rawContent.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+      
+      const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         result = JSON.parse(jsonMatch[0]);
-        // Clean up any \n characters in the content
+        // Clean up any \n characters, JSON artifacts, and extra brackets in the content
         if (result.content) {
-          result.content = result.content.replace(/\\n/g, '');
+          result.content = result.content
+            .replace(/\\n/g, '')
+            .replace(/\n/g, '')
+            .replace(/^\{+|\}+$/g, '')  // Remove leading/trailing brackets
+            .replace(/^"content":\s*"/i, '')  // Remove JSON key prefix
+            .replace(/"$/g, '');  // Remove trailing quote
         }
       } else {
         // If no JSON found, treat the whole response as HTML content
-        const cleanContent = rawContent.replace(/\\n/g, '').replace(/\n/g, '');
+        const cleanContent = cleanedContent
+          .replace(/\\n/g, '')
+          .replace(/\n/g, '')
+          .replace(/^\{+|\}+$/g, '')
+          .replace(/^"content":\s*"/i, '')
+          .replace(/"$/g, '');
         result = {
           title: topic,
           content: cleanContent
         };
       }
     } catch {
-      const cleanContent = rawContent.replace(/\\n/g, '').replace(/\n/g, '');
+      const cleanContent = rawContent
+        .replace(/\\n/g, '')
+        .replace(/\n/g, '')
+        .replace(/^\{+|\}+$/g, '')
+        .replace(/^"content":\s*"/i, '')
+        .replace(/"$/g, '');
       result = {
         title: topic,
         content: cleanContent
