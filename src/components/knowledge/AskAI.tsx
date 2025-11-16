@@ -44,7 +44,6 @@ export const AskAI = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Fetch user's knowledge articles for context (RAG)
       const { data: articles, error: articlesError } = await supabase
         .from('knowledge_articles')
         .select('title, content, category')
@@ -77,7 +76,12 @@ export const AskAI = () => {
   };
 
   return (
-    <div className="grid gap-6 lg:grid-cols-1 max-w-4xl mx-auto">
+    <div className="space-y-6">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-foreground">Ask AI</h1>
+        <p className="text-muted-foreground mt-1">Ask medical questions powered by your knowledge base</p>
+      </div>
+
       <Card className="h-[600px] flex flex-col">
         <CardHeader>
           <CardTitle>Ask Medical Knowledge AI</CardTitle>

@@ -7,10 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Sparkles, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ArticlesList } from "./ArticlesList";
+import { useNavigate } from "react-router-dom";
 
 export const AIGenerated = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [topic, setTopic] = useState("");
   const [context, setContext] = useState("");
   const [category, setCategory] = useState("");
@@ -18,7 +19,6 @@ export const AIGenerated = () => {
   const [generatedContent, setGeneratedContent] = useState("");
   const [generatedTitle, setGeneratedTitle] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
 
   const handleGenerate = async () => {
     if (!topic.trim()) {
@@ -87,13 +87,7 @@ export const AIGenerated = () => {
         description: "Article saved successfully",
       });
 
-      // Reset form
-      setTopic("");
-      setContext("");
-      setCategory("");
-      setGeneratedTitle("");
-      setGeneratedContent("");
-      setRefreshKey(prev => prev + 1);
+      navigate("/dashboard/knowledge");
     } catch (error) {
       console.error('Error saving article:', error);
       toast({
@@ -107,81 +101,80 @@ export const AIGenerated = () => {
   };
 
   return (
-    <div className="grid gap-6 lg:grid-cols-3">
-      <div className="lg:col-span-2 space-y-6">
+    <div className="space-y-6">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-foreground">AI Generated Articles</h1>
+        <p className="text-muted-foreground mt-1">Generate medical knowledge articles using AI</p>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Generate Medical Article with AI</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="topic">Topic *</Label>
+            <Input
+              id="topic"
+              placeholder="e.g., Hypertension management, Diabetes complications"
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="context">Additional Context</Label>
+            <Textarea
+              id="context"
+              placeholder="Provide any specific details, guidelines, or focus areas..."
+              value={context}
+              onChange={(e) => setContext(e.target.value)}
+              rows={3}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="ai-category">Category</Label>
+            <Input
+              id="ai-category"
+              placeholder="e.g., Cardiology, Endocrinology"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+            />
+          </div>
+
+          <Button
+            onClick={handleGenerate}
+            disabled={isGenerating || !topic.trim()}
+            className="w-full gap-2"
+          >
+            <Sparkles className="h-4 w-4" />
+            {isGenerating ? "Generating..." : "Generate Article"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {generatedContent && (
         <Card>
-          <CardHeader>
-            <CardTitle>Generate Medical Article with AI</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="topic">Topic *</Label>
-              <Input
-                id="topic"
-                placeholder="e.g., Hypertension management, Diabetes complications"
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="context">Additional Context</Label>
-              <Textarea
-                id="context"
-                placeholder="Provide any specific details, guidelines, or focus areas..."
-                value={context}
-                onChange={(e) => setContext(e.target.value)}
-                rows={3}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="ai-category">Category</Label>
-              <Input
-                id="ai-category"
-                placeholder="e.g., Cardiology, Endocrinology"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-              />
-            </div>
-
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>{generatedTitle}</CardTitle>
             <Button
-              onClick={handleGenerate}
-              disabled={isGenerating || !topic.trim()}
-              className="w-full gap-2"
+              onClick={handleSave}
+              disabled={isSaving}
+              className="gap-2"
             >
-              <Sparkles className="h-4 w-4" />
-              {isGenerating ? "Generating..." : "Generate Article"}
+              <Save className="h-4 w-4" />
+              {isSaving ? "Saving..." : "Save"}
             </Button>
+          </CardHeader>
+          <CardContent>
+            <div 
+              className="prose prose-sm max-w-none prose-headings:font-bold prose-h2:text-xl prose-h2:mt-6 prose-h2:mb-3 prose-h3:text-lg prose-h3:mt-4 prose-h3:mb-2 prose-p:mb-3 prose-ul:mb-3 prose-ol:mb-3 prose-li:mb-1 prose-table:border-collapse prose-table:w-full prose-th:border prose-th:p-2 prose-th:bg-muted prose-td:border prose-td:p-2"
+              dangerouslySetInnerHTML={{ __html: generatedContent }}
+            />
           </CardContent>
         </Card>
-
-        {generatedContent && (
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>{generatedTitle}</CardTitle>
-              <Button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="gap-2"
-              >
-                <Save className="h-4 w-4" />
-                {isSaving ? "Saving..." : "Save"}
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div 
-                className="prose prose-sm max-w-none prose-headings:font-bold prose-h2:text-xl prose-h2:mt-6 prose-h2:mb-3 prose-h3:text-lg prose-h3:mt-4 prose-h3:mb-2 prose-p:mb-3 prose-ul:mb-3 prose-ol:mb-3 prose-li:mb-1 prose-table:border-collapse prose-table:w-full prose-th:border prose-th:p-2 prose-th:bg-muted prose-td:border prose-td:p-2"
-                dangerouslySetInnerHTML={{ __html: generatedContent }}
-              />
-            </CardContent>
-          </Card>
-        )}
-      </div>
-
-      <div className="lg:col-span-1">
-        <ArticlesList key={refreshKey} source="ai-generated" />
-      </div>
+      )}
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,10 +8,11 @@ import { Save, Wand2, X } from "lucide-react";
 import { RichTextEditor } from "./RichTextEditor";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ArticlesList } from "./ArticlesList";
+import { useNavigate } from "react-router-dom";
 
 export const ManualEntry = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [category, setCategory] = useState("");
@@ -19,7 +20,6 @@ export const ManualEntry = () => {
   const [tagInput, setTagInput] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isEnhancing, setIsEnhancing] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
 
   const handleAddTag = () => {
     if (tagInput.trim() && !tags.includes(tagInput.trim())) {
@@ -98,12 +98,7 @@ export const ManualEntry = () => {
         description: "Article saved successfully",
       });
 
-      // Reset form
-      setTitle("");
-      setContent("");
-      setCategory("");
-      setTags([]);
-      setRefreshKey(prev => prev + 1);
+      navigate("/dashboard/knowledge");
     } catch (error) {
       console.error('Error saving article:', error);
       toast({
@@ -117,94 +112,94 @@ export const ManualEntry = () => {
   };
 
   return (
-    <div className="grid gap-6 lg:grid-cols-3">
-      <div className="lg:col-span-2">
-        <Card>
-          <CardHeader className="space-y-4">
+    <div>
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-foreground">Manual Entry</h1>
+        <p className="text-muted-foreground mt-1">Create a medical knowledge article manually</p>
+      </div>
+
+      <Card>
+        <CardHeader className="space-y-4">
+          <CardTitle>Article Details</CardTitle>
+          <div className="space-y-2">
+            <Label htmlFor="title">Article Title</Label>
+            <Input
+              id="title"
+              placeholder="Enter article title..."
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="text-lg font-semibold"
+            />
+          </div>
+          
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="title">Article Title</Label>
+              <Label htmlFor="category">Category</Label>
               <Input
-                id="title"
-                placeholder="Enter article title..."
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="text-lg font-semibold"
+                id="category"
+                placeholder="e.g., Cardiology, Neurology"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
               />
             </div>
             
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
+            <div className="space-y-2">
+              <Label htmlFor="tags">Tags</Label>
+              <div className="flex gap-2">
                 <Input
-                  id="category"
-                  placeholder="e.g., Cardiology, Neurology"
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
+                  id="tags"
+                  placeholder="Add tag..."
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
                 />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="tags">Tags</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="tags"
-                    placeholder="Add tag..."
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
-                  />
-                  <Button type="button" onClick={handleAddTag} size="sm">Add</Button>
-                </div>
+                <Button type="button" onClick={handleAddTag} size="sm">Add</Button>
               </div>
             </div>
+          </div>
 
-            {tags.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {tags.map((tag) => (
-                  <Badge key={tag} variant="secondary" className="gap-1">
-                    {tag}
-                    <button onClick={() => handleRemoveTag(tag)} className="ml-1 hover:text-destructive">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </CardHeader>
-
-          <CardContent className="space-y-4">
-            <RichTextEditor 
-              content={content} 
-              onChange={setContent}
-              placeholder="Start writing your medical article..."
-            />
-            
-            <div className="flex gap-2 justify-end">
-              <Button
-                onClick={handleEnhanceWithAI}
-                disabled={isEnhancing || !content.trim()}
-                variant="outline"
-                className="gap-2"
-              >
-                <Wand2 className="h-4 w-4" />
-                {isEnhancing ? "Enhancing..." : "Enhance with AI"}
-              </Button>
-              <Button
-                onClick={handleSave}
-                disabled={isSaving || !title.trim() || !content.trim()}
-                className="gap-2"
-              >
-                <Save className="h-4 w-4" />
-                {isSaving ? "Saving..." : "Save Article"}
-              </Button>
+          {tags.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {tags.map((tag) => (
+                <Badge key={tag} variant="secondary" className="gap-1">
+                  {tag}
+                  <button onClick={() => handleRemoveTag(tag)} className="ml-1 hover:text-destructive">
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          )}
+        </CardHeader>
 
-      <div className="lg:col-span-1">
-        <ArticlesList key={refreshKey} source="manual" />
-      </div>
+        <CardContent className="space-y-4">
+          <RichTextEditor 
+            content={content} 
+            onChange={setContent}
+            placeholder="Start writing your medical article..."
+          />
+          
+          <div className="flex gap-2 justify-end">
+            <Button
+              onClick={handleEnhanceWithAI}
+              disabled={isEnhancing || !content.trim()}
+              variant="outline"
+              className="gap-2"
+            >
+              <Wand2 className="h-4 w-4" />
+              {isEnhancing ? "Enhancing..." : "Enhance with AI"}
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={isSaving || !title.trim() || !content.trim()}
+              className="gap-2"
+            >
+              <Save className="h-4 w-4" />
+              {isSaving ? "Saving..." : "Save Article"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
