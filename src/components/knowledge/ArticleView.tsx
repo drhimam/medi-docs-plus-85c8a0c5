@@ -184,7 +184,22 @@ export const ArticleView = () => {
 
           <CardContent>
             <div 
-              className="prose prose-sm lg:prose-base max-w-none prose-headings:font-bold prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-3 prose-p:mb-4 prose-ul:mb-4 prose-ol:mb-4 prose-li:mb-2 prose-table:border-collapse prose-table:w-full prose-th:border prose-th:p-3 prose-th:bg-muted prose-td:border prose-td:p-3"
+              className="prose prose-base lg:prose-lg max-w-none 
+              prose-headings:font-bold prose-headings:text-foreground
+              prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-5 prose-h2:pb-2 prose-h2:border-b
+              prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-4
+              prose-h4:text-lg prose-h4:mt-6 prose-h4:mb-3
+              prose-p:mb-4 prose-p:leading-relaxed prose-p:text-foreground
+              prose-ul:my-4 prose-ul:space-y-2
+              prose-ol:my-4 prose-ol:space-y-2
+              prose-li:mb-2 prose-li:leading-relaxed
+              prose-table:border-collapse prose-table:w-full prose-table:my-6
+              prose-th:border prose-th:border-border prose-th:p-3 prose-th:bg-muted prose-th:font-semibold prose-th:text-left
+              prose-td:border prose-td:border-border prose-td:p-3
+              prose-strong:text-foreground prose-strong:font-semibold
+              prose-em:italic
+              [&_ol]:list-decimal [&_ol]:pl-6
+              [&_ul]:list-disc [&_ul]:pl-6"
               dangerouslySetInnerHTML={{ __html: article.content }}
             />
           </CardContent>

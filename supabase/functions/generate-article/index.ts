@@ -16,38 +16,60 @@ Deno.serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const prompt = `Generate a comprehensive medical knowledge article about: ${topic}
+    const prompt = `Generate a comprehensive, well-structured medical knowledge article about: ${topic}
 
 ${context ? `Additional context: ${context}` : ''}
 ${category ? `Category: ${category}` : ''}
 
 CRITICAL FORMATTING REQUIREMENTS:
 1. Use proper HTML structure with semantic tags
-2. Use <h2> for main section headings
-3. Use <h3> for subsections
-4. Use <p> tags for paragraphs (never use \\n for line breaks)
+2. Use <h2> for main section headings (e.g., "Overview", "Pathophysiology", "Clinical Features")
+3. Use <h3> for subsections within each main section
+4. Use <p> tags for all paragraphs (NEVER use \\n for line breaks)
 5. Use <ul> and <li> for bullet lists
 6. Use <ol> and <li> for numbered lists
 7. Use <table>, <thead>, <tbody>, <tr>, <th>, <td> for tabular data
-8. Use <strong> for emphasis
-9. NO plain text line breaks (\\n) - always use proper HTML tags
+8. Use <strong> for emphasis and <em> for italics
+9. NO plain text line breaks (\\n) - ONLY use proper HTML tags
 
-ARTICLE STRUCTURE:
-- Start with an introduction paragraph
-- Include multiple sections with <h2> headings such as:
-  * Overview/Definition
-  * Etiology/Pathophysiology
-  * Clinical Presentation/Symptoms
-  * Diagnosis
-  * Treatment/Management
-  * Prognosis
-  * Key Points (as a bullet list)
-- Use tables where appropriate for comparing data, dosages, or classifications
-- Include relevant clinical information in well-organized lists
+MANDATORY ARTICLE STRUCTURE:
+1. Introduction (2-3 paragraphs with <h2>Introduction</h2>)
+2. Definition/Overview (<h2>Definition</h2>)
+3. Epidemiology (<h2>Epidemiology</h2>)
+4. Etiology/Causes (<h2>Etiology</h2>)
+5. Pathophysiology (<h2>Pathophysiology</h2>)
+6. Clinical Features (<h2>Clinical Features</h2>)
+   - Use <h3> for subsections like Signs and Symptoms
+7. Diagnosis (<h2>Diagnosis</h2>)
+   - Include diagnostic criteria in a table if applicable
+8. Differential Diagnosis (<h2>Differential Diagnosis</h2>)
+9. Management/Treatment (<h2>Management</h2>)
+   - Use <h3> for subsections like Pharmacological and Non-pharmacological
+   - Include medication tables with dosages
+10. Complications (<h2>Complications</h2>)
+11. Prognosis (<h2>Prognosis</h2>)
+12. Key Points (<h2>Key Points</h2> with bullet list)
+13. References (<h2>References</h2>)
+    - Include 5-8 properly formatted medical references
+    - Use <ol> for numbered reference list
+    - Format: Author(s). Title. Journal. Year;Volume(Issue):Pages.
+
+TABLES: Use tables for:
+- Diagnostic criteria
+- Medication dosages
+- Staging systems
+- Comparison of treatment options
+
+EXAMPLE REFERENCE FORMAT:
+<h2>References</h2>
+<ol>
+<li>Smith JA, Jones BC. Management of condition X. N Engl J Med. 2023;388(15):1402-1411.</li>
+<li>Brown CD, et al. Clinical outcomes in patients with Y. JAMA. 2022;327(8):734-745.</li>
+</ol>
 
 Provide the output as valid JSON with two fields:
-- "title": A clear, professional title for the article
-- "content": The full article content in properly formatted HTML (NO \\n characters, only HTML tags)`;
+- "title": A clear, professional medical title
+- "content": The full article in properly formatted HTML (NO \\n characters, only HTML tags)`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -60,7 +82,7 @@ Provide the output as valid JSON with two fields:
         messages: [
           { 
             role: "system", 
-            content: "You are a medical knowledge expert. Generate comprehensive, evidence-based medical articles with PERFECT HTML formatting. NEVER use \\n for line breaks. ALWAYS use proper HTML tags: <h2>, <h3>, <p>, <ul>, <ol>, <li>, <table>, etc. Return valid JSON with 'title' and 'content' fields where content is clean, semantic HTML."
+            content: "You are a senior medical writer and physician creating comprehensive, evidence-based medical articles. Generate well-structured articles with clear sections including Introduction, Definition, Epidemiology, Etiology, Pathophysiology, Clinical Features, Diagnosis, Differential Diagnosis, Management, Complications, Prognosis, Key Points, and References. Use PERFECT HTML formatting with proper headings (<h2>, <h3>), paragraphs (<p>), lists (<ul>, <ol>), and tables. NEVER use \\n for line breaks. Include 5-8 properly formatted medical references. Return valid JSON with 'title' and 'content' fields."
           },
           { 
             role: "user", 
