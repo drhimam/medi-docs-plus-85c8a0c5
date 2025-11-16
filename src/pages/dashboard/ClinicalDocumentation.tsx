@@ -6,10 +6,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Save, X, FileText, Download, Sparkles, Eye, Edit, Loader2, Type, Languages, Bold, Italic, Underline } from "lucide-react";
+import { ArrowLeft, Save, X, FileText, Download, Sparkles, Eye, Edit, Loader2, Type, Languages, Bold, Italic, Underline, MoreVertical, ArrowUpDown, ExternalLink, Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import DocumentUploadDialog from "@/components/visit/DocumentUploadDialog";
 import jsPDF from "jspdf";
 import {
@@ -85,6 +87,8 @@ export default function ClinicalDocumentation() {
   const [visit, setVisit] = useState<Visit | null>(null);
   const [documents, setDocuments] = useState<any[]>([]);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+  const [sortField, setSortField] = useState<'document_date' | 'upload_date' | 'description'>('document_date');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [showCloseDialog, setShowCloseDialog] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isViewMode, setIsViewMode] = useState(false);
@@ -273,6 +277,107 @@ export default function ClinicalDocumentation() {
       setDocuments(data || []);
     } catch (error: any) {
       console.error("Error fetching documents:", error);
+    }
+  };
+
+  const handleSort = (field: 'document_date' | 'upload_date' | 'description') => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('desc');
+    }
+  };
+
+  const sortedDocuments = [...documents].sort((a, b) => {
+    let aVal = a[sortField];
+    let bVal = b[sortField];
+    
+    if (sortField === 'document_date' || sortField === 'upload_date') {
+      aVal = new Date(aVal).getTime();
+      bVal = new Date(bVal).getTime();
+    }
+    
+    if (sortDirection === 'asc') {
+      return aVal > bVal ? 1 : -1;
+    } else {
+      return aVal < bVal ? 1 : -1;
+    }
+  });
+
+  const handleDeleteDocument = async (docId: string) => {
+    try {
+      const { error } = await supabase
+        .from("documents")
+        .delete()
+        .eq("id", docId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Document deleted successfully",
+      });
+      fetchDocuments();
+    } catch (error: any) {
+      console.error("Error deleting document:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete document",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDownloadDocument = async (doc: any) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .download(doc.file_path);
+
+      if (error) throw error;
+
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = doc.file_name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Success",
+        description: "Document downloaded successfully",
+      });
+    } catch (error: any) {
+      console.error("Error downloading document:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to download document",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleViewDocument = async (doc: any) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .createSignedUrl(doc.file_path, 3600);
+
+      if (error) throw error;
+
+      if (data?.signedUrl) {
+        window.open(data.signedUrl, '_blank');
+      }
+    } catch (error: any) {
+      console.error("Error viewing document:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to view document",
+        variant: "destructive",
+      });
     }
   };
 
@@ -956,30 +1061,102 @@ ${prescription}
               </TabsContent>
 
               <TabsContent value="documents" className="space-y-4 mt-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold">Uploaded Documents</h2>
-                  <Button onClick={() => setIsUploadDialogOpen(true)}>
-                    <FileText className="w-4 h-4 mr-2" />
-                    Upload Document
-                  </Button>
-                </div>
-                
-                {documents.length > 0 ? (
-                  <div className="space-y-2">
-                    {documents.map((doc) => (
-                      <div key={doc.id} className="flex items-center justify-between p-3 border rounded">
-                        <div>
-                          <p className="font-medium">{doc.file_name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {doc.document_type} - {doc.description} - {new Date(doc.document_date).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-2xl font-semibold">Patient Documents</h2>
+                      <p className="text-sm text-muted-foreground">All documents uploaded for this patient across all visits</p>
+                    </div>
+                    <Button onClick={() => setIsUploadDialogOpen(true)}>
+                      <FileText className="w-4 h-4 mr-2" />
+                      Upload Document
+                    </Button>
                   </div>
-                ) : (
-                  <p className="text-muted-foreground text-center py-8">No documents uploaded yet</p>
-                )}
+
+                  {documents.length > 0 ? (
+                    <div className="border rounded-lg">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="cursor-pointer" onClick={() => handleSort('document_date')}>
+                              <div className="flex items-center gap-2">
+                                Doc Date
+                                <ArrowUpDown className="h-4 w-4" />
+                              </div>
+                            </TableHead>
+                            <TableHead className="cursor-pointer" onClick={() => handleSort('description')}>
+                              <div className="flex items-center gap-2">
+                                Description
+                                <ArrowUpDown className="h-4 w-4" />
+                              </div>
+                            </TableHead>
+                            <TableHead className="cursor-pointer" onClick={() => handleSort('upload_date')}>
+                              <div className="flex items-center gap-2">
+                                Upload Date
+                                <ArrowUpDown className="h-4 w-4" />
+                              </div>
+                            </TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Visit</TableHead>
+                            <TableHead className="w-[50px]"></TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {sortedDocuments.map((doc) => (
+                            <TableRow key={doc.id}>
+                              <TableCell>{new Date(doc.document_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</TableCell>
+                              <TableCell>{doc.description}</TableCell>
+                              <TableCell>{new Date(doc.upload_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</TableCell>
+                              <TableCell>
+                                <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">
+                                  Need Review
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Button 
+                                  variant="link" 
+                                  className="p-0 h-auto text-primary"
+                                  onClick={() => navigate(`/dashboard/visits/${doc.visit_id}`)}
+                                >
+                                  <ExternalLink className="h-4 w-4 mr-1" />
+                                  View Visit
+                                </Button>
+                              </TableCell>
+                              <TableCell>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon">
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => handleViewDocument(doc)}>
+                                      <Eye className="h-4 w-4 mr-2" />
+                                      View Document
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleDownloadDocument(doc)}>
+                                      <Download className="h-4 w-4 mr-2" />
+                                      Download
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem 
+                                      onClick={() => handleDeleteDocument(doc.id)}
+                                      className="text-destructive focus:text-destructive"
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-2" />
+                                      Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground text-center py-8">No documents uploaded yet</p>
+                  )}
+                </div>
               </TabsContent>
             </Tabs>
           )}
