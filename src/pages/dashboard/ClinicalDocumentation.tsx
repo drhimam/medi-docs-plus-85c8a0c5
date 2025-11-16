@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Save, X, FileText, Download, Sparkles, Eye, Edit, Loader2, Type, Languages, Bold, Italic, Underline, MoreVertical, ArrowUpDown, ExternalLink, Trash2 } from "lucide-react";
+import TranscribeButton from "@/components/TranscribeButton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -96,6 +97,8 @@ export default function ClinicalDocumentation() {
   const [selectedText, setSelectedText] = useState("");
   const [fontSize, setFontSize] = useState("14");
   const prescriptionRef = useRef<HTMLTextAreaElement>(null);
+  const assessmentRef = useRef<HTMLTextAreaElement>(null);
+  const planRef = useRef<HTMLTextAreaElement>(null);
 
   const [subjective, setSubjective] = useState("");
   const [objective, setObjective] = useState("");
@@ -888,17 +891,36 @@ ${prescription}
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <Label>Assessment</Label>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleGenerateAssessment}
-                      disabled={isGenerating}
-                    >
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Generate with AI
-                    </Button>
+                    <div className="flex gap-2">
+                      <TranscribeButton 
+                        onTranscription={(text) => {
+                          const textarea = assessmentRef.current;
+                          if (textarea) {
+                            const start = textarea.selectionStart;
+                            const end = textarea.selectionEnd;
+                            const newValue = assessment.substring(0, start) + text + assessment.substring(end);
+                            setAssessment(newValue);
+                            setTimeout(() => {
+                              textarea.focus();
+                              textarea.selectionStart = textarea.selectionEnd = start + text.length;
+                            }, 0);
+                          }
+                        }}
+                        disabled={isViewMode}
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleGenerateAssessment}
+                        disabled={isGenerating}
+                      >
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        Generate with AI
+                      </Button>
+                    </div>
                   </div>
                   <Textarea
+                    ref={assessmentRef}
                     value={assessment}
                     onChange={(e) => setAssessment(e.target.value)}
                     className="min-h-[200px] font-mono text-sm"
@@ -909,17 +931,36 @@ ${prescription}
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <Label>Plan</Label>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleGeneratePlan}
-                      disabled={isGenerating}
-                    >
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Generate with AI
-                    </Button>
+                    <div className="flex gap-2">
+                      <TranscribeButton 
+                        onTranscription={(text) => {
+                          const textarea = planRef.current;
+                          if (textarea) {
+                            const start = textarea.selectionStart;
+                            const end = textarea.selectionEnd;
+                            const newValue = plan.substring(0, start) + text + plan.substring(end);
+                            setPlan(newValue);
+                            setTimeout(() => {
+                              textarea.focus();
+                              textarea.selectionStart = textarea.selectionEnd = start + text.length;
+                            }, 0);
+                          }
+                        }}
+                        disabled={isViewMode}
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleGeneratePlan}
+                        disabled={isGenerating}
+                      >
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        Generate with AI
+                      </Button>
+                    </div>
                   </div>
                   <Textarea
+                    ref={planRef}
                     value={plan}
                     onChange={(e) => setPlan(e.target.value)}
                     className="min-h-[200px] font-mono text-sm"
@@ -932,6 +973,22 @@ ${prescription}
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 justify-between border-b pb-4">
                     <div className="flex items-center gap-2">
+                      <TranscribeButton 
+                        onTranscription={(text) => {
+                          const textarea = prescriptionRef.current;
+                          if (textarea) {
+                            const start = textarea.selectionStart;
+                            const end = textarea.selectionEnd;
+                            const newValue = prescription.substring(0, start) + text + prescription.substring(end);
+                            setPrescription(newValue);
+                            setTimeout(() => {
+                              textarea.focus();
+                              textarea.selectionStart = textarea.selectionEnd = start + text.length;
+                            }, 0);
+                          }
+                        }}
+                        disabled={isViewMode}
+                      />
                       <Button
                         onClick={handleGeneratePrescription}
                         disabled={isGeneratingPrescription}
