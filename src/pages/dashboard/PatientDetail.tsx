@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Collapsible,
   CollapsibleContent,
@@ -657,10 +658,18 @@ ${
         </div>
       </Card>
 
-      {/* Section 1: Patient Information - Collapsible */}
-      <div className="p-8 space-y-6">
-      <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Patient Information</h2>
+      {/* Tabs Layout */}
+      <div className="p-8">
+        <Tabs defaultValue="information" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="information">Patient Information</TabsTrigger>
+            <TabsTrigger value="visits">Visit History</TabsTrigger>
+            <TabsTrigger value="documents">Patient Documents</TabsTrigger>
+          </TabsList>
+
+          {/* Tab 1: Patient Information */}
+          <TabsContent value="information" className="space-y-4 mt-6">
+            <div className="space-y-4">
 
         {/* Demographics */}
         <Collapsible>
@@ -817,20 +826,21 @@ ${
             </CollapsibleContent>
           </Card>
         </Collapsible>
-      </div>
+            </div>
+          </TabsContent>
 
-      {/* Section 2: Visit History */}
-      <Card className="p-6">
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <h2 className="text-xl font-semibold">Visit History</h2>
-            <p className="text-sm text-muted-foreground">Patient's previous visits</p>
-          </div>
-          <Button onClick={() => navigate(`/dashboard/patients/${patientId}/add-visit`)}>
-            <Plus className="mr-2 h-4 w-4" />
-            New Visit
-          </Button>
-        </div>
+          {/* Tab 2: Visit History */}
+          <TabsContent value="visits" className="space-y-4 mt-6">
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h2 className="text-xl font-semibold">Visit History</h2>
+                <p className="text-sm text-muted-foreground">Patient's previous visits</p>
+              </div>
+              <Button onClick={() => navigate(`/dashboard/patients/${patientId}/add-visit`)}>
+                <Plus className="mr-2 h-4 w-4" />
+                New Visit
+              </Button>
+            </div>
 
         <Table>
           <TableHeader>
@@ -885,14 +895,14 @@ ${
             )}
           </TableBody>
         </Table>
-      </Card>
+          </TabsContent>
 
-      {/* Section 3: Patient Documents */}
-      <Card className="p-6">
-        <div className="mb-4">
-          <h2 className="text-xl font-semibold">Patient Documents</h2>
-          <p className="text-sm text-muted-foreground">All documents uploaded for this patient across all visits</p>
-        </div>
+          {/* Tab 3: Patient Documents */}
+          <TabsContent value="documents" className="space-y-4 mt-6">
+            <div className="mb-4">
+              <h2 className="text-xl font-semibold">Patient Documents</h2>
+              <p className="text-sm text-muted-foreground">All documents uploaded for this patient across all visits</p>
+            </div>
 
         <Table>
           <TableHeader>
@@ -989,9 +999,10 @@ ${
                 </TableRow>
               ))
             )}
-          </TableBody>
-        </Table>
-      </Card>
+            </TableBody>
+          </Table>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
