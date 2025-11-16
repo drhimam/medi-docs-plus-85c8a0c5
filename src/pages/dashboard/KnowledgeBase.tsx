@@ -5,6 +5,7 @@ import { ManualEntry } from "@/components/knowledge/ManualEntry";
 import { AIGenerated } from "@/components/knowledge/AIGenerated";
 import { AskAI } from "@/components/knowledge/AskAI";
 import { ArticlesLanding } from "@/components/knowledge/ArticlesLanding";
+import { ArticleView } from "@/components/knowledge/ArticleView";
 
 const KnowledgeBase = () => {
   const location = useLocation();
@@ -26,6 +27,7 @@ const KnowledgeBase = () => {
         <Route path="/manual-entry" element={<ManualEntry />} />
         <Route path="/ai-generated" element={<AIGenerated />} />
         <Route path="/ask-ai" element={<AskAI />} />
+        <Route path="/article/:articleId" element={<ArticleView />} />
       </Routes>
     </div>
   );
