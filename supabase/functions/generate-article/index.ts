@@ -23,16 +23,33 @@ Deno.serve(async (req) => {
 ${context ? `Additional context: ${context}` : ''}
 ${category ? `Category: ${category}` : ''}
 
-The article should:
-1. Be evidence-based and medically accurate
-2. Include proper medical terminology
-3. Be well-structured with clear sections
-4. Include relevant clinical information
-5. Be formatted in clean HTML with proper headings, paragraphs, and lists
+CRITICAL FORMATTING REQUIREMENTS:
+1. Use proper HTML structure with semantic tags
+2. Use <h2> for main section headings
+3. Use <h3> for subsections
+4. Use <p> tags for paragraphs (never use \\n for line breaks)
+5. Use <ul> and <li> for bullet lists
+6. Use <ol> and <li> for numbered lists
+7. Use <table>, <thead>, <tbody>, <tr>, <th>, <td> for tabular data
+8. Use <strong> for emphasis
+9. NO plain text line breaks (\\n) - always use proper HTML tags
 
-Provide the output as JSON with two fields:
+ARTICLE STRUCTURE:
+- Start with an introduction paragraph
+- Include multiple sections with <h2> headings such as:
+  * Overview/Definition
+  * Etiology/Pathophysiology
+  * Clinical Presentation/Symptoms
+  * Diagnosis
+  * Treatment/Management
+  * Prognosis
+  * Key Points (as a bullet list)
+- Use tables where appropriate for comparing data, dosages, or classifications
+- Include relevant clinical information in well-organized lists
+
+Provide the output as valid JSON with two fields:
 - "title": A clear, professional title for the article
-- "content": The full article content in HTML format`;
+- "content": The full article content in properly formatted HTML (NO \\n characters, only HTML tags)`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -45,7 +62,7 @@ Provide the output as JSON with two fields:
         messages: [
           { 
             role: "system", 
-            content: "You are a medical knowledge expert. Generate comprehensive, evidence-based medical articles. Always respond with valid JSON containing 'title' and 'content' fields."
+            content: "You are a medical knowledge expert. Generate comprehensive, evidence-based medical articles with PERFECT HTML formatting. NEVER use \\n for line breaks. ALWAYS use proper HTML tags: <h2>, <h3>, <p>, <ul>, <ol>, <li>, <table>, etc. Return valid JSON with 'title' and 'content' fields where content is clean, semantic HTML."
           },
           { 
             role: "user", 
@@ -70,16 +87,23 @@ Provide the output as JSON with two fields:
       const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         result = JSON.parse(jsonMatch[0]);
+        // Clean up any \n characters in the content
+        if (result.content) {
+          result.content = result.content.replace(/\\n/g, '');
+        }
       } else {
+        // If no JSON found, treat the whole response as HTML content
+        const cleanContent = rawContent.replace(/\\n/g, '').replace(/\n/g, '');
         result = {
           title: topic,
-          content: rawContent
+          content: cleanContent
         };
       }
     } catch {
+      const cleanContent = rawContent.replace(/\\n/g, '').replace(/\n/g, '');
       result = {
         title: topic,
-        content: rawContent
+        content: cleanContent
       };
     }
 

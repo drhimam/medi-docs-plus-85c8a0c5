@@ -170,7 +170,7 @@ export const ArticlesList = ({ source }: ArticlesListProps) => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div 
-            className="prose prose-sm max-w-none"
+            className="prose prose-sm max-w-none prose-headings:font-bold prose-h2:text-xl prose-h2:mt-6 prose-h2:mb-3 prose-h3:text-lg prose-h3:mt-4 prose-h3:mb-2 prose-p:mb-3 prose-ul:mb-3 prose-ol:mb-3 prose-li:mb-1 prose-table:border-collapse prose-table:w-full prose-th:border prose-th:p-2 prose-th:bg-muted prose-td:border prose-td:p-2"
             dangerouslySetInnerHTML={{ __html: selectedArticle?.content || '' }}
           />
           <AlertDialogFooter>
