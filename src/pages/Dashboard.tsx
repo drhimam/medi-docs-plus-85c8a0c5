@@ -365,7 +365,7 @@ const Dashboard = () => {
             <Route path="patients/:patientId/visits/:visitId" element={<VisitDetail />} />
             <Route path="clinical-documentation/:visitId" element={<ClinicalDocumentation />} />
             <Route path="ai-tools" element={<AITools />} />
-            <Route path="knowledge" element={<KnowledgeBase />} />
+            <Route path="knowledge/*" element={<KnowledgeBase />} />
             <Route path="profile" element={<div className="p-6"><h2 className="text-2xl font-bold mb-4">User Profile</h2><p className="text-muted-foreground">Profile page coming soon...</p></div>} />
             <Route path="settings" element={<div className="p-6"><h2 className="text-2xl font-bold mb-4">Settings</h2><p className="text-muted-foreground">Settings page coming soon...</p></div>} />
             <Route path="billing" element={<div className="p-6"><h2 className="text-2xl font-bold mb-4">Subscription & Billing</h2><p className="text-muted-foreground">Billing page coming soon...</p></div>} />
