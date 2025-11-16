@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,13 +48,13 @@ interface Article {
 
 export const ArticlesLanding = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [articles, setArticles] = useState<Article[]>([]);
   const [filteredArticles, setFilteredArticles] = useState<Article[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("newest");
   const [filterSource, setFilterSource] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [deleteArticle, setDeleteArticle] = useState<Article | null>(null);
 
   const fetchArticles = async () => {
@@ -305,7 +305,7 @@ export const ArticlesLanding = () => {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => setSelectedArticle(article)}
+                      onClick={() => navigate(`/dashboard/knowledge/article/${article.id}`)}
                       className="flex-1 gap-1"
                     >
                       <Eye className="h-3 w-3" />
@@ -325,48 +325,6 @@ export const ArticlesLanding = () => {
           </div>
         )}
       </div>
-
-      {/* View Article Dialog */}
-      <AlertDialog open={!!selectedArticle} onOpenChange={() => setSelectedArticle(null)}>
-        <AlertDialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
-          <AlertDialogHeader>
-            <AlertDialogTitle>{selectedArticle?.title}</AlertDialogTitle>
-            <AlertDialogDescription>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {selectedArticle?.category && (
-                  <Badge variant="secondary">
-                    {selectedArticle.category}
-                  </Badge>
-                )}
-                <Badge variant={selectedArticle?.source === 'manual' ? 'default' : 'outline'}>
-                  {selectedArticle?.source === 'manual' ? 'Manual Entry' : 'AI Generated'}
-                </Badge>
-                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />
-                  {selectedArticle && format(new Date(selectedArticle.created_at), 'MMMM dd, yyyy')}
-                </span>
-              </div>
-              {selectedArticle && selectedArticle.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {selectedArticle.tags.map((tag) => (
-                    <Badge key={tag} variant="outline" className="text-xs gap-1">
-                      <Tag className="h-3 w-3" />
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div 
-            className="prose prose-sm max-w-none prose-headings:font-bold prose-h2:text-xl prose-h2:mt-6 prose-h2:mb-3 prose-h3:text-lg prose-h3:mt-4 prose-h3:mb-2 prose-p:mb-3 prose-ul:mb-3 prose-ol:mb-3 prose-li:mb-1 prose-table:border-collapse prose-table:w-full prose-th:border prose-th:p-2 prose-th:bg-muted prose-td:border prose-td:p-2"
-            dangerouslySetInnerHTML={{ __html: selectedArticle?.content || '' }}
-          />
-          <AlertDialogFooter>
-            <AlertDialogAction>Close</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deleteArticle} onOpenChange={() => setDeleteArticle(null)}>
