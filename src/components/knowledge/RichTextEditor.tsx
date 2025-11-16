@@ -1,11 +1,47 @@
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
+import { TextStyle } from '@tiptap/extension-text-style';
+import { Extension } from '@tiptap/core';
 import { Button } from '@/components/ui/button';
 import { 
-  Bold, Italic, List, ListOrdered, Heading2, 
+  Bold, Italic, List, ListOrdered, Heading1, Heading2, Heading3,
   Undo, Redo, Quote 
 } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+// Custom extension to handle fontSize
+const FontSize = Extension.create({
+  name: 'fontSize',
+  
+  addGlobalAttributes() {
+    return [
+      {
+        types: ['textStyle'],
+        attributes: {
+          fontSize: {
+            default: null,
+            parseHTML: element => element.style.fontSize,
+            renderHTML: attributes => {
+              if (!attributes.fontSize) {
+                return {};
+              }
+              return {
+                style: `font-size: ${attributes.fontSize}`,
+              };
+            },
+          },
+        },
+      },
+    ];
+  },
+});
 
 interface RichTextEditorProps {
   content: string;
@@ -17,6 +53,8 @@ export const RichTextEditor = ({ content, onChange, placeholder }: RichTextEdito
   const editor = useEditor({
     extensions: [
       StarterKit,
+      TextStyle,
+      FontSize,
       Placeholder.configure({
         placeholder: placeholder || 'Write something...',
       }),
@@ -31,6 +69,12 @@ export const RichTextEditor = ({ content, onChange, placeholder }: RichTextEdito
       },
     },
   });
+
+  const setFontSize = (size: string) => {
+    if (editor) {
+      editor.chain().focus().setMark('textStyle', { fontSize: size }).run();
+    }
+  };
 
   if (!editor) {
     return null;
@@ -57,6 +101,16 @@ export const RichTextEditor = ({ content, onChange, placeholder }: RichTextEdito
         >
           <Italic className="h-4 w-4" />
         </Button>
+        <div className="h-6 w-px bg-border mx-1" />
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+          className={editor.isActive('heading', { level: 1 }) ? 'bg-accent' : ''}
+        >
+          <Heading1 className="h-4 w-4" />
+        </Button>
         <Button
           type="button"
           variant="ghost"
@@ -66,6 +120,28 @@ export const RichTextEditor = ({ content, onChange, placeholder }: RichTextEdito
         >
           <Heading2 className="h-4 w-4" />
         </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+          className={editor.isActive('heading', { level: 3 }) ? 'bg-accent' : ''}
+        >
+          <Heading3 className="h-4 w-4" />
+        </Button>
+        <div className="h-6 w-px bg-border mx-1" />
+        <Select onValueChange={setFontSize}>
+          <SelectTrigger className="w-[100px] h-8">
+            <SelectValue placeholder="Size" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="12px">Small</SelectItem>
+            <SelectItem value="16px">Normal</SelectItem>
+            <SelectItem value="20px">Large</SelectItem>
+            <SelectItem value="24px">X-Large</SelectItem>
+          </SelectContent>
+        </Select>
+        <div className="h-6 w-px bg-border mx-1" />
         <Button
           type="button"
           variant="ghost"
