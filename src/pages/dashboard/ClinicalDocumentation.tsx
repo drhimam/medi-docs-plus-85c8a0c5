@@ -1065,7 +1065,7 @@ ${prescription}
                   <div className="flex items-center justify-between">
                     <div>
                       <h2 className="text-2xl font-semibold">Patient Documents</h2>
-                      <p className="text-sm text-muted-foreground">All documents uploaded for this patient across all visits</p>
+                      <p className="text-sm text-muted-foreground">Uploaded documents for this visit</p>
                     </div>
                     <Button onClick={() => setIsUploadDialogOpen(true)}>
                       <FileText className="w-4 h-4 mr-2" />
@@ -1097,7 +1097,6 @@ ${prescription}
                               </div>
                             </TableHead>
                             <TableHead>Status</TableHead>
-                            <TableHead>Visit</TableHead>
                             <TableHead className="w-[50px]"></TableHead>
                           </TableRow>
                         </TableHeader>
@@ -1111,16 +1110,6 @@ ${prescription}
                                 <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">
                                   Need Review
                                 </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <Button 
-                                  variant="link" 
-                                  className="p-0 h-auto text-primary"
-                                  onClick={() => navigate(`/dashboard/visits/${doc.visit_id}`)}
-                                >
-                                  <ExternalLink className="h-4 w-4 mr-1" />
-                                  View Visit
-                                </Button>
                               </TableCell>
                               <TableCell>
                                 <DropdownMenu>
