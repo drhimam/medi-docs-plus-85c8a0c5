@@ -132,6 +132,12 @@ export const ArticleView = () => {
           </Link>
           
           <div className="flex gap-2">
+            <Link to={`/dashboard/knowledge/article/${articleId}/edit`}>
+              <Button variant="outline" className="gap-2">
+                <Edit className="h-4 w-4" />
+                Edit
+              </Button>
+            </Link>
             <Button
               variant="destructive"
               onClick={() => setShowDeleteDialog(true)}
