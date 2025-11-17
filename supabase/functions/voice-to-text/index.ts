@@ -42,10 +42,22 @@ serve(async (req) => {
   }
 
   try {
+    // Verify authentication
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader) {
+      throw new Error("Missing authorization header");
+    }
+
     const { audio } = await req.json();
     
     if (!audio) {
       throw new Error('No audio data provided');
+    }
+
+    // Validate audio size (max 10MB base64 encoded)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (audio.length > maxSize) {
+      throw new Error('Audio file too large. Maximum size is 10MB');
     }
 
     console.log('Processing audio transcription...');

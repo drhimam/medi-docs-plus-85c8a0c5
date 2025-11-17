@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import DOMPurify from "dompurify";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -209,7 +210,7 @@ export const ArticleView = () => {
               prose-em:italic
               [&_ol]:list-decimal [&_ol]:pl-6
               [&_ul]:list-disc [&_ul]:pl-6"
-              dangerouslySetInnerHTML={{ __html: article.content }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(article.content) }}
             />
           </CardContent>
         </Card>

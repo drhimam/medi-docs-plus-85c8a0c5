@@ -8,6 +8,7 @@ import { Sparkles, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import DOMPurify from "dompurify";
 
 export const AIGenerated = () => {
   const { toast } = useToast();
@@ -183,7 +184,7 @@ export const AIGenerated = () => {
               prose-td:border prose-td:p-3
               [&_ol]:list-decimal [&_ol]:pl-6
               [&_ul]:list-disc [&_ul]:pl-6"
-              dangerouslySetInnerHTML={{ __html: generatedContent }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(generatedContent) }}
             />
           </CardContent>
         </Card>

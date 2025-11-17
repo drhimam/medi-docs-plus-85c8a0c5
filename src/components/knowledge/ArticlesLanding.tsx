@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import DOMPurify from "dompurify";
 import { 
   Select,
   SelectContent,
@@ -149,7 +150,7 @@ export const ArticlesLanding = () => {
 
   const getPreviewText = (htmlContent: string) => {
     const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = htmlContent;
+    tempDiv.innerHTML = DOMPurify.sanitize(htmlContent);
     const text = tempDiv.textContent || tempDiv.innerText || '';
     return text.substring(0, 200) + (text.length > 200 ? '...' : '');
   };
