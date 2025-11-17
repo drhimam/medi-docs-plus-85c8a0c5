@@ -136,7 +136,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send the email
     const emailResponse = await resend.emails.send({
-      from: "aiMedipedia <noreply@aimedipedia.com>",
+      from: "aiMedipedia <noreply@bd.aimedipedia.com>",
       to: [email],
       subject: "Reset Your MedDoc Password",
       html,
