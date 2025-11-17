@@ -10,6 +10,21 @@ Deno.serve(async (req) => {
 
   try {
     const { topic, context, category } = await req.json();
+    
+    // Input validation
+    if (!topic || typeof topic !== 'string') {
+      throw new Error("Topic is required and must be a string");
+    }
+    if (topic.length > 200) {
+      throw new Error("Topic must be 200 characters or less");
+    }
+    if (context && typeof context === 'string' && context.length > 2000) {
+      throw new Error("Context must be 2000 characters or less");
+    }
+    if (category && typeof category === 'string' && category.length > 100) {
+      throw new Error("Category must be 100 characters or less");
+    }
+    
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {

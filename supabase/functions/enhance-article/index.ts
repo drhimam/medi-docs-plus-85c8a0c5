@@ -10,6 +10,15 @@ Deno.serve(async (req) => {
 
   try {
     const { content } = await req.json();
+    
+    // Input validation
+    if (!content || typeof content !== 'string') {
+      throw new Error("Content is required and must be a string");
+    }
+    if (content.length > 50000) {
+      throw new Error("Content must be 50000 characters or less");
+    }
+    
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {

@@ -13,6 +13,23 @@ serve(async (req) => {
 
   try {
     const { subjective, objective, patientHistory, currentMedications, allergies } = await req.json();
+    
+    // Input validation
+    if (!subjective || typeof subjective !== 'string') {
+      throw new Error("Subjective is required and must be a string");
+    }
+    if (!objective || typeof objective !== 'string') {
+      throw new Error("Objective is required and must be a string");
+    }
+    if (subjective.length > 5000) {
+      throw new Error("Subjective must be 5000 characters or less");
+    }
+    if (objective.length > 5000) {
+      throw new Error("Objective must be 5000 characters or less");
+    }
+    if (patientHistory && typeof patientHistory === 'string' && patientHistory.length > 5000) {
+      throw new Error("Patient history must be 5000 characters or less");
+    }
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
     // Build context
