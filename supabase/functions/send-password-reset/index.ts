@@ -136,7 +136,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send the email
     const emailResponse = await resend.emails.send({
-      from: "MedDoc <onboarding@resend.dev>",
+      from: "aiMedipedia <noreply@aimedipedia.com>",
       to: [email],
       subject: "Reset Your MedDoc Password",
       html,
@@ -144,34 +144,33 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (emailResponse.error) {
       console.error("Error sending email:", emailResponse.error);
-      
+
       // Handle Resend validation errors (unverified domain)
-      if (emailResponse.error.name === "validation_error" && 
-          emailResponse.error.message?.includes("verify a domain")) {
+      if (emailResponse.error.name === "validation_error" && emailResponse.error.message?.includes("verify a domain")) {
         return new Response(
-          JSON.stringify({ 
+          JSON.stringify({
             error: "Email service configuration required. Please contact support.",
-            success: false 
+            success: false,
           }),
           {
             status: 503,
-            headers: { 
-              "Content-Type": "application/json", 
-              ...corsHeaders 
+            headers: {
+              "Content-Type": "application/json",
+              ...corsHeaders,
             },
-          }
+          },
         );
       }
-      
+
       throw emailResponse.error;
     }
 
     console.log("Password reset email sent successfully:", emailResponse);
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         success: true,
-        message: "If an account with that email exists, you'll receive a password reset link." 
+        message: "If an account with that email exists, you'll receive a password reset link.",
       }),
       {
         status: 200,
@@ -179,22 +178,22 @@ const handler = async (req: Request): Promise<Response> => {
           "Content-Type": "application/json",
           ...corsHeaders,
         },
-      }
+      },
     );
   } catch (error: any) {
     console.error("Error in send-password-reset function:", error);
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: "Unable to process password reset request. Please try again later.",
-        success: false 
+        success: false,
       }),
       {
         status: 500,
-        headers: { 
-          "Content-Type": "application/json", 
-          ...corsHeaders 
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
         },
-      }
+      },
     );
   }
 };
