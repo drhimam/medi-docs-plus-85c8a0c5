@@ -10,6 +10,21 @@ Deno.serve(async (req) => {
 
   try {
     const { text, targetLanguage } = await req.json();
+    
+    // Input validation
+    if (!text || typeof text !== 'string') {
+      throw new Error("Text is required and must be a string");
+    }
+    if (!targetLanguage || typeof targetLanguage !== 'string') {
+      throw new Error("Target language is required and must be a string");
+    }
+    if (text.length > 5000) {
+      throw new Error("Text must be 5000 characters or less");
+    }
+    if (targetLanguage.length > 50) {
+      throw new Error("Target language must be 50 characters or less");
+    }
+    
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {

@@ -10,6 +10,21 @@ Deno.serve(async (req) => {
 
   try {
     const { question, context } = await req.json();
+    
+    // Input validation
+    if (!question || typeof question !== 'string') {
+      throw new Error("Question is required and must be a string");
+    }
+    if (question.length > 200) {
+      throw new Error("Question must be 200 characters or less");
+    }
+    if (context && Array.isArray(context)) {
+      const totalContextLength = context.reduce((sum, item) => sum + (item.content?.length || 0), 0);
+      if (totalContextLength > 10000) {
+        throw new Error("Total context length must be 10000 characters or less");
+      }
+    }
+    
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
