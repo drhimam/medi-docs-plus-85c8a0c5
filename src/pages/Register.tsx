@@ -28,8 +28,29 @@ const Register = () => {
       return;
     }
 
-    if (formData.password.length < 6) {
-      toast.error("Password must be at least 6 characters");
+    // Enhanced password validation
+    if (formData.password.length < 12) {
+      toast.error("Password must be at least 12 characters");
+      return;
+    }
+    
+    if (!/[A-Z]/.test(formData.password)) {
+      toast.error("Password must contain at least one uppercase letter");
+      return;
+    }
+    
+    if (!/[a-z]/.test(formData.password)) {
+      toast.error("Password must contain at least one lowercase letter");
+      return;
+    }
+    
+    if (!/[0-9]/.test(formData.password)) {
+      toast.error("Password must contain at least one number");
+      return;
+    }
+    
+    if (!/[^A-Za-z0-9]/.test(formData.password)) {
+      toast.error("Password must contain at least one special character");
       return;
     }
 
@@ -135,6 +156,9 @@ const Register = () => {
               onChange={handleChange}
               required
             />
+            <p className="text-xs text-muted-foreground">
+              Must be 12+ characters with uppercase, lowercase, number, and special character
+            </p>
           </div>
 
           <div className="space-y-2">
