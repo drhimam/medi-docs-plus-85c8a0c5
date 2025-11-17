@@ -144,6 +144,25 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (emailResponse.error) {
       console.error("Error sending email:", emailResponse.error);
+      
+      // Handle Resend validation errors (unverified domain)
+      if (emailResponse.error.name === "validation_error" && 
+          emailResponse.error.message?.includes("verify a domain")) {
+        return new Response(
+          JSON.stringify({ 
+            error: "Email service configuration required. Please contact support.",
+            success: false 
+          }),
+          {
+            status: 503,
+            headers: { 
+              "Content-Type": "application/json", 
+              ...corsHeaders 
+            },
+          }
+        );
+      }
+      
       throw emailResponse.error;
     }
 
@@ -152,7 +171,7 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(
       JSON.stringify({ 
         success: true,
-        message: "Password reset email sent successfully" 
+        message: "If an account with that email exists, you'll receive a password reset link." 
       }),
       {
         status: 200,
@@ -166,7 +185,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.error("Error in send-password-reset function:", error);
     return new Response(
       JSON.stringify({ 
-        error: error.message || "Failed to send password reset email",
+        error: "Unable to process password reset request. Please try again later.",
         success: false 
       }),
       {
