@@ -172,6 +172,27 @@ export type Database = {
         }
         Relationships: []
       }
+      password_reset_attempts: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          ip_address: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          ip_address: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          ip_address?: string
+        }
+        Relationships: []
+      }
       patients: {
         Row: {
           address: string | null
@@ -383,7 +404,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      cleanup_old_reset_attempts: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
