@@ -2,3 +2,6 @@ project_id = "xvpenhgywuxeaenebsji"
 
 [functions.voice-to-text]
 verify_jwt = true
+
+[functions.password-reset-with-rate-limit]
+verify_jwt = false
