@@ -50,15 +50,25 @@ const Login = () => {
     setResetLoading(true);
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-        redirectTo: `${window.location.origin}/login`,
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "password-reset-with-rate-limit",
+        {
+          body: {
+            email: resetEmail,
+            redirectTo: `${window.location.origin}/login`,
+          },
+        }
+      );
 
       if (error) throw error;
 
-      toast.success("Password reset email sent! Check your inbox.");
-      setShowForgotPassword(false);
-      setResetEmail("");
+      if (data?.success) {
+        toast.success("Password reset email sent! Check your inbox.");
+        setShowForgotPassword(false);
+        setResetEmail("");
+      } else {
+        toast.error(data?.error || "Failed to send reset email");
+      }
     } catch (error: any) {
       toast.error(error.message || "Failed to send reset email");
     } finally {
