@@ -14,6 +14,89 @@ export type Database = {
   }
   public: {
     Tables: {
+      appointment_settings: {
+        Row: {
+          break_end_time: string | null
+          break_start_time: string | null
+          created_at: string
+          end_time: string
+          id: string
+          slot_duration: number
+          start_time: string
+          updated_at: string
+          user_id: string
+          working_days: Json
+        }
+        Insert: {
+          break_end_time?: string | null
+          break_start_time?: string | null
+          created_at?: string
+          end_time?: string
+          id?: string
+          slot_duration?: number
+          start_time?: string
+          updated_at?: string
+          user_id: string
+          working_days?: Json
+        }
+        Update: {
+          break_end_time?: string | null
+          break_start_time?: string | null
+          created_at?: string
+          end_time?: string
+          id?: string
+          slot_duration?: number
+          start_time?: string
+          updated_at?: string
+          user_id?: string
+          working_days?: Json
+        }
+        Relationships: []
+      }
+      appointments: {
+        Row: {
+          appointment_date: string
+          appointment_time: string
+          created_at: string
+          id: string
+          patient_id: string
+          reason: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          appointment_date: string
+          appointment_time: string
+          created_at?: string
+          id?: string
+          patient_id: string
+          reason: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          appointment_date?: string
+          appointment_time?: string
+          created_at?: string
+          id?: string
+          patient_id?: string
+          reason?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_conversations: {
         Row: {
           created_at: string

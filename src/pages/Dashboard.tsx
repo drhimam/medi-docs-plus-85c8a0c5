@@ -14,7 +14,8 @@ import {
   Settings,
   CreditCard,
   Menu,
-  X
+  X,
+  Calendar
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -42,6 +43,7 @@ const AddVisit = lazy(() => import("./dashboard/AddVisit"));
 const ClinicalDocumentation = lazy(() => import("./dashboard/ClinicalDocumentation"));
 const AITools = lazy(() => import("./dashboard/AITools"));
 const KnowledgeBase = lazy(() => import("./dashboard/KnowledgeBase"));
+const Appointments = lazy(() => import("./dashboard/Appointments"));
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -129,6 +131,15 @@ const Dashboard = () => {
                 Patients
               </Button>
             </Link>
+            <Link to="/dashboard/appointments">
+              <Button 
+                variant={isActive("/dashboard/appointments") ? "default" : "ghost"}
+                className="gap-2"
+              >
+                <Calendar className="h-4 w-4" />
+                Appointments
+              </Button>
+            </Link>
             <Link to="/dashboard/ai-tools">
               <Button 
                 variant={isActive("/dashboard/ai-tools") ? "default" : "ghost"}
@@ -181,6 +192,15 @@ const Dashboard = () => {
                     >
                       <Users className="h-4 w-4" />
                       Patients
+                    </Button>
+                  </Link>
+                  <Link to="/dashboard/appointments" onClick={() => setMobileMenuOpen(false)}>
+                    <Button 
+                      variant={isActive("/dashboard/appointments") ? "default" : "ghost"}
+                      className="w-full justify-start gap-2"
+                    >
+                      <Calendar className="h-4 w-4" />
+                      Appointments
                     </Button>
                   </Link>
                   <Link to="/dashboard/ai-tools" onClick={() => setMobileMenuOpen(false)}>
@@ -361,6 +381,7 @@ const Dashboard = () => {
             <Route path="patients/:patientId/edit" element={<EditPatient />} />
             <Route path="patients/:patientId" element={<PatientDetail />} />
             <Route path="patients/:patientId/add-visit" element={<AddVisit />} />
+            <Route path="appointments" element={<Appointments />} />
             <Route path="clinical-documentation/:visitId" element={<ClinicalDocumentation />} />
             <Route path="ai-tools" element={<AITools />} />
             <Route path="knowledge/*" element={<KnowledgeBase />} />
