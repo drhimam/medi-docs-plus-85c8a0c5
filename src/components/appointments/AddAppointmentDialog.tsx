@@ -55,14 +55,26 @@ export function AddAppointmentDialog({
         const { data: patient, error: patientError } = await supabase
           .from("patients")
           .insert({
-            ...newPatientData,
+            first_name: newPatientData.first_name,
+            last_name: newPatientData.last_name,
+            date_of_birth: newPatientData.date_of_birth,
+            gender: newPatientData.gender,
+            contact_number: newPatientData.contact_number,
+            email: newPatientData.email || null,
+            address: newPatientData.address || null,
+            health_card_number: newPatientData.health_card_number || null,
+            smoking_status: newPatientData.smoking_status || "unknown",
+            alcohol_consumption: newPatientData.alcohol_consumption || "unknown",
             user_id: user.id,
             completion_status: "incomplete",
           })
           .select()
           .single();
 
-        if (patientError) throw patientError;
+        if (patientError) {
+          console.error("Patient creation error:", patientError);
+          throw new Error(`Failed to create patient: ${patientError.message}`);
+        }
         patientId = patient.id;
       }
 
@@ -95,14 +107,17 @@ export function AddAppointmentDialog({
           status: "scheduled",
         });
 
-      if (appointmentError) throw appointmentError;
+      if (appointmentError) {
+        console.error("Appointment creation error:", appointmentError);
+        throw new Error(`Failed to create appointment: ${appointmentError.message}`);
+      }
 
       toast.success("Appointment created successfully");
       onSuccess();
       handleClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving appointment:", error);
-      toast.error("Failed to save appointment");
+      toast.error(error.message || "Failed to save appointment");
     } finally {
       setSaving(false);
     }

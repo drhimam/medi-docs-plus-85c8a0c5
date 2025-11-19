@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { Calendar, Plus, Clock, User, Phone } from "lucide-react";
+import { Calendar, Plus, Clock, User, Phone, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -12,9 +12,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AddAppointmentDialog } from "@/components/appointments/AddAppointmentDialog";
+import { Link } from "react-router-dom";
 
 interface Appointment {
   id: string;
@@ -68,6 +75,40 @@ export default function Appointments() {
     fetchAppointments();
   }, []);
 
+  const handleCancelAppointment = async (appointmentId: string) => {
+    try {
+      const { error } = await supabase
+        .from("appointments")
+        .delete()
+        .eq("id", appointmentId);
+
+      if (error) throw error;
+      
+      toast.success("Appointment cancelled");
+      fetchAppointments();
+    } catch (error) {
+      console.error("Error cancelling appointment:", error);
+      toast.error("Failed to cancel appointment");
+    }
+  };
+
+  const handleCompleteAppointment = async (appointmentId: string) => {
+    try {
+      const { error } = await supabase
+        .from("appointments")
+        .delete()
+        .eq("id", appointmentId);
+
+      if (error) throw error;
+      
+      toast.success("Appointment marked as complete");
+      fetchAppointments();
+    } catch (error) {
+      console.error("Error completing appointment:", error);
+      toast.error("Failed to mark appointment as complete");
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "destructive"> = {
       scheduled: "default",
@@ -114,12 +155,13 @@ export default function Appointments() {
               <TableHead>Time</TableHead>
               <TableHead>Reason</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {appointments.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                   No appointments scheduled. Click "Add Appointment" to create one.
                 </TableCell>
               </TableRow>
@@ -127,10 +169,15 @@ export default function Appointments() {
               appointments.map((appointment) => (
                 <TableRow key={appointment.id}>
                   <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
+                    <Link 
+                      to={`/dashboard/patients/${appointment.patient_id}`}
+                      className="flex items-center gap-2 hover:text-primary transition-colors"
+                    >
                       <User className="h-4 w-4 text-muted-foreground" />
-                      {appointment.patients.first_name} {appointment.patients.last_name}
-                    </div>
+                      <span className="underline">
+                        {appointment.patients.first_name} {appointment.patients.last_name}
+                      </span>
+                    </Link>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -152,6 +199,26 @@ export default function Appointments() {
                   </TableCell>
                   <TableCell>{appointment.reason}</TableCell>
                   <TableCell>{getStatusBadge(appointment.status)}</TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleCompleteAppointment(appointment.id)}>
+                          Mark as Complete
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => handleCancelAppointment(appointment.id)}
+                          className="text-destructive"
+                        >
+                          Cancel Appointment
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
                 </TableRow>
               ))
             )}
