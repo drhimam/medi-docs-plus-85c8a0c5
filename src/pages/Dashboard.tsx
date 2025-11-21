@@ -15,7 +15,11 @@ import {
   CreditCard,
   Menu,
   X,
-  Calendar
+  Calendar,
+  Plus,
+  Clock,
+  Phone,
+  MoreVertical
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -34,6 +38,18 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { Card } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { AddAppointmentDialog } from "@/components/appointments/AddAppointmentDialog";
+import { format } from "date-fns";
 
 const Patients = lazy(() => import("./dashboard/Patients"));
 const AddPatient = lazy(() => import("./dashboard/AddPatient"));
@@ -43,7 +59,6 @@ const AddVisit = lazy(() => import("./dashboard/AddVisit"));
 const ClinicalDocumentation = lazy(() => import("./dashboard/ClinicalDocumentation"));
 const AITools = lazy(() => import("./dashboard/AITools"));
 const KnowledgeBase = lazy(() => import("./dashboard/KnowledgeBase"));
-const Appointments = lazy(() => import("./dashboard/Appointments"));
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -131,15 +146,6 @@ const Dashboard = () => {
                 Patients
               </Button>
             </Link>
-            <Link to="/dashboard/appointments">
-              <Button 
-                variant={isActive("/dashboard/appointments") ? "default" : "ghost"}
-                className="gap-2"
-              >
-                <Calendar className="h-4 w-4" />
-                Appointments
-              </Button>
-            </Link>
             <Link to="/dashboard/ai-tools">
               <Button 
                 variant={isActive("/dashboard/ai-tools") ? "default" : "ghost"}
@@ -192,15 +198,6 @@ const Dashboard = () => {
                     >
                       <Users className="h-4 w-4" />
                       Patients
-                    </Button>
-                  </Link>
-                  <Link to="/dashboard/appointments" onClick={() => setMobileMenuOpen(false)}>
-                    <Button 
-                      variant={isActive("/dashboard/appointments") ? "default" : "ghost"}
-                      className="w-full justify-start gap-2"
-                    >
-                      <Calendar className="h-4 w-4" />
-                      Appointments
                     </Button>
                   </Link>
                   <Link to="/dashboard/ai-tools" onClick={() => setMobileMenuOpen(false)}>
@@ -381,7 +378,6 @@ const Dashboard = () => {
             <Route path="patients/:patientId/edit" element={<EditPatient />} />
             <Route path="patients/:patientId" element={<PatientDetail />} />
             <Route path="patients/:patientId/add-visit" element={<AddVisit />} />
-            <Route path="appointments" element={<Appointments />} />
             <Route path="clinical-documentation/:visitId" element={<ClinicalDocumentation />} />
             <Route path="ai-tools" element={<AITools />} />
             <Route path="knowledge/*" element={<KnowledgeBase />} />
@@ -396,6 +392,42 @@ const Dashboard = () => {
 };
 
 const DashboardHome = () => {
+  const [appointments, setAppointments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+
+  const fetchAppointments = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("appointments")
+        .select(`
+          *,
+          patients (
+            first_name,
+            last_name,
+            contact_number
+          )
+        `)
+        .eq("user_id", user.id)
+        .order("appointment_date", { ascending: true })
+        .order("appointment_time", { ascending: true });
+
+      if (error) throw error;
+      setAppointments(data || []);
+    } catch (error) {
+      console.error("Error fetching appointments:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAppointments();
+  }, []);
+
   return (
     <div>
       <h2 className="text-3xl font-bold mb-6">Dashboard</h2>
@@ -433,6 +465,136 @@ const DashboardHome = () => {
         </div>
       </div>
 
+      {/* Appointments Section */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-2xl font-semibold">Appointments</h3>
+          <Button onClick={() => setIsAddDialogOpen(true)} size="lg">
+            <Plus className="mr-2 h-4 w-4" />
+            Add Appointment
+          </Button>
+        </div>
+        
+        {loading ? (
+          <Card className="border-border p-8">
+            <div className="text-center text-muted-foreground">Loading appointments...</div>
+          </Card>
+        ) : (
+          <Card className="border-border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Patient Name</TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Time</TableHead>
+                  <TableHead>Reason</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="w-[50px]"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {appointments.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      No appointments scheduled. Click "Add Appointment" to create one.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  appointments.map((appointment: any) => (
+                    <TableRow key={appointment.id}>
+                      <TableCell className="font-medium">
+                        <Link 
+                          to={`/dashboard/patients/${appointment.patient_id}`}
+                          className="flex items-center gap-2 hover:text-primary transition-colors"
+                        >
+                          <User className="h-4 w-4 text-muted-foreground" />
+                          <span className="underline">
+                            {appointment.patients.first_name} {appointment.patients.last_name}
+                          </span>
+                        </Link>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Phone className="h-4 w-4 text-muted-foreground" />
+                          {appointment.patients.contact_number}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          {format(new Date(appointment.appointment_date), "MMM dd, yyyy")}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                          {appointment.appointment_time}
+                        </div>
+                      </TableCell>
+                      <TableCell>{appointment.reason}</TableCell>
+                      <TableCell>
+                        <Badge variant={
+                          appointment.status === "scheduled" ? "default" :
+                          appointment.status === "completed" ? "secondary" :
+                          "destructive"
+                        }>
+                          {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={async () => {
+                              try {
+                                const { error } = await supabase
+                                  .from("appointments")
+                                  .delete()
+                                  .eq("id", appointment.id);
+                                if (error) throw error;
+                                toast.success("Appointment marked as complete");
+                                fetchAppointments();
+                              } catch (error) {
+                                toast.error("Failed to mark appointment as complete");
+                              }
+                            }}>
+                              Mark as Complete
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={async () => {
+                                try {
+                                  const { error } = await supabase
+                                    .from("appointments")
+                                    .delete()
+                                    .eq("id", appointment.id);
+                                  if (error) throw error;
+                                  toast.success("Appointment cancelled");
+                                  fetchAppointments();
+                                } catch (error) {
+                                  toast.error("Failed to cancel appointment");
+                                }
+                              }}
+                              className="text-destructive"
+                            >
+                              Cancel Appointment
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </Card>
+        )}
+      </div>
+
       {/* Quick Actions */}
       <div className="bg-card border rounded-lg p-6">
         <h3 className="text-xl font-semibold mb-4">Quick Actions</h3>
@@ -451,6 +613,12 @@ const DashboardHome = () => {
           </Link>
         </div>
       </div>
+
+      <AddAppointmentDialog
+        open={isAddDialogOpen}
+        onOpenChange={setIsAddDialogOpen}
+        onSuccess={fetchAppointments}
+      />
     </div>
   );
 };
