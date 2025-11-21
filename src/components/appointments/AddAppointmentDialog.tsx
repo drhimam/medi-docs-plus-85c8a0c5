@@ -96,7 +96,7 @@ export function AddAppointmentDialog({
       }
 
       // Create appointment
-      const { error: appointmentError } = await supabase
+      const { data: newAppointment, error: appointmentError } = await supabase
         .from("appointments")
         .insert({
           user_id: user.id,
@@ -105,11 +105,24 @@ export function AddAppointmentDialog({
           appointment_time: appointmentData.time,
           reason: appointmentData.reason,
           status: "scheduled",
-        });
+        })
+        .select()
+        .single();
 
       if (appointmentError) {
         console.error("Appointment creation error:", appointmentError);
         throw new Error(`Failed to create appointment: ${appointmentError.message}`);
+      }
+
+      // Send confirmation email
+      try {
+        await supabase.functions.invoke("send-appointment-confirmation", {
+          body: { appointmentId: newAppointment.id },
+        });
+        console.log("Confirmation email sent");
+      } catch (emailError) {
+        console.error("Failed to send confirmation email:", emailError);
+        // Don't fail the appointment creation if email fails
       }
 
       toast.success("Appointment created successfully");
