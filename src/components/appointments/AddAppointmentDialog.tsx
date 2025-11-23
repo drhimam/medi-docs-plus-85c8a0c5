@@ -63,8 +63,8 @@ export function AddAppointmentDialog({
             email: newPatientData.email || null,
             address: newPatientData.address || null,
             health_card_number: newPatientData.health_card_number || null,
-            smoking_status: newPatientData.smoking_status || "unknown",
-            alcohol_consumption: newPatientData.alcohol_consumption || "unknown",
+            smoking_status: newPatientData.smoking_status || "NEVER",
+            alcohol_consumption: newPatientData.alcohol_consumption || "NEVER",
             user_id: user.id,
             completion_status: "incomplete",
           })
