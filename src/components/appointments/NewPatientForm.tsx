@@ -22,8 +22,8 @@ const newPatientSchema = z.object({
   email: z.string().email().optional().or(z.literal("")),
   address: z.string().optional(),
   health_card_number: z.string().optional(),
-  smoking_status: z.string().default("unknown"),
-  alcohol_consumption: z.string().default("unknown"),
+  smoking_status: z.string().default("NEVER"),
+  alcohol_consumption: z.string().default("NEVER"),
 });
 
 type NewPatientFormData = z.infer<typeof newPatientSchema>;
@@ -42,8 +42,8 @@ export function NewPatientForm({ onDataChange }: NewPatientFormProps) {
     resolver: zodResolver(newPatientSchema),
     mode: "onChange",
     defaultValues: {
-      smoking_status: "unknown",
-      alcohol_consumption: "unknown",
+      smoking_status: "NEVER",
+      alcohol_consumption: "NEVER",
     },
   });
 
