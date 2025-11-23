@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { format } from "date-fns";
-import { Calendar, Plus, Clock, User, Phone, MoreVertical } from "lucide-react";
+import { Calendar, Plus, Clock, User, Phone, MoreVertical, Download, FileText, FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -12,16 +12,18 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { AddAppointmentDialog } from "@/components/appointments/AddAppointmentDialog";
+import { Link } from "react-router-dom";
+import { exportAppointmentsToCsv } from "@/lib/exportToCsv";
+import { exportAppointmentsToPdf } from "@/lib/exportToPdf";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { AddAppointmentDialog } from "@/components/appointments/AddAppointmentDialog";
-import { Link } from "react-router-dom";
 
 interface Appointment {
   id: string;
@@ -96,7 +98,7 @@ export default function Appointments() {
     try {
       const { error } = await supabase
         .from("appointments")
-        .delete()
+        .update({ status: "completed" })
         .eq("id", appointmentId);
 
       if (error) throw error;
@@ -107,6 +109,28 @@ export default function Appointments() {
       console.error("Error completing appointment:", error);
       toast.error("Failed to mark appointment as complete");
     }
+  };
+
+  const statistics = useMemo(() => {
+    const total = appointments.length;
+    const completed = appointments.filter(apt => apt.status === "completed").length;
+    const upcoming = appointments.filter(apt => {
+      const aptDate = new Date(apt.appointment_date);
+      return aptDate >= new Date() && apt.status === "scheduled";
+    }).length;
+    const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+    return { total, completed, upcoming, completionRate };
+  }, [appointments]);
+
+  const handleExportCsv = () => {
+    exportAppointmentsToCsv(appointments);
+    toast.success("Appointments exported to CSV");
+  };
+
+  const handleExportPdf = () => {
+    exportAppointmentsToPdf(appointments);
+    toast.success("Appointments exported to PDF");
   };
 
   const getStatusBadge = (status: string) => {
@@ -139,10 +163,58 @@ export default function Appointments() {
             Manage your patient appointments
           </p>
         </div>
-        <Button onClick={() => setIsAddDialogOpen(true)} size="lg">
-          <Plus className="mr-2 h-4 w-4" />
-          Add Appointment
-        </Button>
+        <div className="flex gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="lg">
+                <Download className="mr-2 h-4 w-4" />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleExportCsv}>
+                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                Export as CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportPdf}>
+                <FileText className="mr-2 h-4 w-4" />
+                Export as PDF
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button onClick={() => setIsAddDialogOpen(true)} size="lg">
+            <Plus className="mr-2 h-4 w-4" />
+            Add Appointment
+          </Button>
+        </div>
+      </div>
+
+      {/* Statistics Cards */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card className="p-6 border-border">
+          <div className="flex flex-col">
+            <span className="text-sm font-medium text-muted-foreground">Total Appointments</span>
+            <span className="text-3xl font-bold text-foreground mt-2">{statistics.total}</span>
+          </div>
+        </Card>
+        <Card className="p-6 border-border">
+          <div className="flex flex-col">
+            <span className="text-sm font-medium text-muted-foreground">Completed</span>
+            <span className="text-3xl font-bold text-foreground mt-2">{statistics.completed}</span>
+          </div>
+        </Card>
+        <Card className="p-6 border-border">
+          <div className="flex flex-col">
+            <span className="text-sm font-medium text-muted-foreground">Upcoming</span>
+            <span className="text-3xl font-bold text-foreground mt-2">{statistics.upcoming}</span>
+          </div>
+        </Card>
+        <Card className="p-6 border-border">
+          <div className="flex flex-col">
+            <span className="text-sm font-medium text-muted-foreground">Completion Rate</span>
+            <span className="text-3xl font-bold text-foreground mt-2">{statistics.completionRate}%</span>
+          </div>
+        </Card>
       </div>
 
       <Card className="border-border">
