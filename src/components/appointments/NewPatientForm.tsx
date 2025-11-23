@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Label } from "@/components/ui/label";
@@ -36,7 +36,7 @@ export function NewPatientForm({ onDataChange }: NewPatientFormProps) {
   const {
     register,
     watch,
-    setValue,
+    control,
     formState: { errors, isValid },
   } = useForm<NewPatientFormData>({
     resolver: zodResolver(newPatientSchema),
@@ -87,16 +87,22 @@ export function NewPatientForm({ onDataChange }: NewPatientFormProps) {
 
         <div className="space-y-2">
           <Label htmlFor="gender">Gender *</Label>
-          <Select onValueChange={(value) => setValue("gender", value)}>
-            <SelectTrigger id="gender">
-              <SelectValue placeholder="Select gender" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Male">Male</SelectItem>
-              <SelectItem value="Female">Female</SelectItem>
-              <SelectItem value="Other">Other</SelectItem>
-            </SelectContent>
-          </Select>
+          <Controller
+            name="gender"
+            control={control}
+            render={({ field }) => (
+              <Select onValueChange={field.onChange} value={field.value}>
+                <SelectTrigger id="gender">
+                  <SelectValue placeholder="Select gender" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Male">Male</SelectItem>
+                  <SelectItem value="Female">Female</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+          />
           {errors.gender && (
             <p className="text-sm text-destructive">{errors.gender.message}</p>
           )}
