@@ -55,6 +55,7 @@ export function NewPatientForm({ onDataChange }: NewPatientFormProps) {
   });
 
   const formData = watch();
+  const selectedGender = watch("gender");
 
   useEffect(() => {
     if (isValid) {
@@ -199,18 +200,20 @@ export function NewPatientForm({ onDataChange }: NewPatientFormProps) {
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="menstrual_pregnancy_history">Menstrual and Pregnancy History (if applicable)</Label>
-            <Textarea 
-              id="menstrual_pregnancy_history" 
-              {...register("menstrual_pregnancy_history")}
-              placeholder="Detail menstrual and pregnancy history"
-              className="min-h-[80px]"
-            />
-            {errors.menstrual_pregnancy_history && (
-              <p className="text-sm text-destructive">{errors.menstrual_pregnancy_history.message}</p>
-            )}
-          </div>
+          {selectedGender === "FEMALE" && (
+            <div className="space-y-2">
+              <Label htmlFor="menstrual_pregnancy_history">Menstrual and Pregnancy History</Label>
+              <Textarea 
+                id="menstrual_pregnancy_history" 
+                {...register("menstrual_pregnancy_history")}
+                placeholder="Detail menstrual and pregnancy history"
+                className="min-h-[80px]"
+              />
+              {errors.menstrual_pregnancy_history && (
+                <p className="text-sm text-destructive">{errors.menstrual_pregnancy_history.message}</p>
+              )}
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="preventive_screening_history">Preventive Screening History</Label>
