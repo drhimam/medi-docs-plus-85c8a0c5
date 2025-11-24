@@ -65,6 +65,12 @@ export function AddAppointmentDialog({
             health_card_number: newPatientData.health_card_number || null,
             smoking_status: newPatientData.smoking_status || "NEVER",
             alcohol_consumption: newPatientData.alcohol_consumption || "NEVER",
+            birth_history: newPatientData.birth_history || null,
+            developmental_history: newPatientData.developmental_history || null,
+            childhood_illnesses: newPatientData.childhood_illnesses || null,
+            accidents_injuries: newPatientData.accidents_injuries || null,
+            menstrual_pregnancy_history: newPatientData.menstrual_pregnancy_history || null,
+            preventive_screening_history: newPatientData.preventive_screening_history || null,
             user_id: user.id,
             completion_status: "incomplete",
           })

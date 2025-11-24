@@ -278,16 +278,20 @@ export type Database = {
       }
       patients: {
         Row: {
+          accidents_injuries: string | null
           address: string | null
           alcohol_consumption: string
           allergic_history_drug: Json | null
           allergic_history_env: Json | null
           allergic_history_food: Json | null
+          birth_history: string | null
           blood_group: string | null
+          childhood_illnesses: string | null
           completion_status: string
           contact_number: string
           created_at: string
           date_of_birth: string
+          developmental_history: string | null
           diet: string | null
           email: string | null
           exercise_habits: string | null
@@ -301,9 +305,11 @@ export type Database = {
           living_environment: string | null
           medical_history_ongoing: string | null
           medical_history_past: string | null
+          menstrual_pregnancy_history: string | null
           mental_health_history: string | null
           occupation: string | null
           ongoing_medications: Json | null
+          preventive_screening_history: string | null
           recreational_drug_use: string | null
           smoking_status: string
           supplements: Json | null
@@ -313,16 +319,20 @@ export type Database = {
           vaccinations: Json | null
         }
         Insert: {
+          accidents_injuries?: string | null
           address?: string | null
           alcohol_consumption: string
           allergic_history_drug?: Json | null
           allergic_history_env?: Json | null
           allergic_history_food?: Json | null
+          birth_history?: string | null
           blood_group?: string | null
+          childhood_illnesses?: string | null
           completion_status?: string
           contact_number: string
           created_at?: string
           date_of_birth: string
+          developmental_history?: string | null
           diet?: string | null
           email?: string | null
           exercise_habits?: string | null
@@ -336,9 +346,11 @@ export type Database = {
           living_environment?: string | null
           medical_history_ongoing?: string | null
           medical_history_past?: string | null
+          menstrual_pregnancy_history?: string | null
           mental_health_history?: string | null
           occupation?: string | null
           ongoing_medications?: Json | null
+          preventive_screening_history?: string | null
           recreational_drug_use?: string | null
           smoking_status: string
           supplements?: Json | null
@@ -348,16 +360,20 @@ export type Database = {
           vaccinations?: Json | null
         }
         Update: {
+          accidents_injuries?: string | null
           address?: string | null
           alcohol_consumption?: string
           allergic_history_drug?: Json | null
           allergic_history_env?: Json | null
           allergic_history_food?: Json | null
+          birth_history?: string | null
           blood_group?: string | null
+          childhood_illnesses?: string | null
           completion_status?: string
           contact_number?: string
           created_at?: string
           date_of_birth?: string
+          developmental_history?: string | null
           diet?: string | null
           email?: string | null
           exercise_habits?: string | null
@@ -371,9 +387,11 @@ export type Database = {
           living_environment?: string | null
           medical_history_ongoing?: string | null
           medical_history_past?: string | null
+          menstrual_pregnancy_history?: string | null
           mental_health_history?: string | null
           occupation?: string | null
           ongoing_medications?: Json | null
+          preventive_screening_history?: string | null
           recreational_drug_use?: string | null
           smoking_status?: string
           supplements?: Json | null
