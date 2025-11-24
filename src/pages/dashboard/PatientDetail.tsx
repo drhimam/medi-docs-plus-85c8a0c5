@@ -71,6 +71,12 @@ interface Patient {
   diet: string | null;
   occupation: string | null;
   living_environment: string | null;
+  birth_history: string | null;
+  developmental_history: string | null;
+  childhood_illnesses: string | null;
+  accidents_injuries: string | null;
+  menstrual_pregnancy_history: string | null;
+  preventive_screening_history: string | null;
 }
 
 interface Visit {
@@ -245,6 +251,26 @@ ${patient.surgical_history || "None reported"}
 ### Hospitalization History
 ${patient.hospitalization_history || "None reported"}
 
+## Additional Medical History
+
+### Birth History
+${patient.birth_history || "None reported"}
+
+### Developmental History
+${patient.developmental_history || "None reported"}
+
+### Childhood Illnesses
+${patient.childhood_illnesses || "None reported"}
+
+### Accidents or Injuries
+${patient.accidents_injuries || "None reported"}
+${patient.gender === "FEMALE" && patient.menstrual_pregnancy_history ? `
+### Menstrual and Pregnancy History
+${patient.menstrual_pregnancy_history}
+` : ""}
+### Preventive Screening History
+${patient.preventive_screening_history || "None reported"}
+
 ## Allergies
 ${allergies}
 
@@ -411,6 +437,24 @@ ${
     }
     if (patient.mental_health_history) {
       medicalHistoryData.push(["Mental Health", patient.mental_health_history]);
+    }
+    if (patient.birth_history) {
+      medicalHistoryData.push(["Birth History", patient.birth_history]);
+    }
+    if (patient.developmental_history) {
+      medicalHistoryData.push(["Developmental History", patient.developmental_history]);
+    }
+    if (patient.childhood_illnesses) {
+      medicalHistoryData.push(["Childhood Illnesses", patient.childhood_illnesses]);
+    }
+    if (patient.accidents_injuries) {
+      medicalHistoryData.push(["Accidents/Injuries", patient.accidents_injuries]);
+    }
+    if (patient.gender === "FEMALE" && patient.menstrual_pregnancy_history) {
+      medicalHistoryData.push(["Menstrual/Pregnancy History", patient.menstrual_pregnancy_history]);
+    }
+    if (patient.preventive_screening_history) {
+      medicalHistoryData.push(["Preventive Screening", patient.preventive_screening_history]);
     }
 
     if (medicalHistoryData.length > 0) {
@@ -739,6 +783,32 @@ ${
                 <div>
                   <p className="text-sm text-muted-foreground">Mental Health History</p>
                   <p className="font-medium">{patient.mental_health_history || "None recorded"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Birth History</p>
+                  <p className="font-medium">{patient.birth_history || "None recorded"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Developmental History</p>
+                  <p className="font-medium">{patient.developmental_history || "None recorded"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Childhood Illnesses</p>
+                  <p className="font-medium">{patient.childhood_illnesses || "None recorded"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Accidents or Injuries</p>
+                  <p className="font-medium">{patient.accidents_injuries || "None recorded"}</p>
+                </div>
+                {patient.gender === "FEMALE" && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Menstrual and Pregnancy History</p>
+                    <p className="font-medium">{patient.menstrual_pregnancy_history || "None recorded"}</p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-sm text-muted-foreground">Preventive Screening History</p>
+                  <p className="font-medium">{patient.preventive_screening_history || "None recorded"}</p>
                 </div>
               </div>
             </CollapsibleContent>
