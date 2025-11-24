@@ -31,6 +31,13 @@ const patientSchema = z.object({
   family_history: z.string().optional(),
   mental_health_history: z.string().optional(),
   
+  birth_history: z.string().max(1000).optional(),
+  developmental_history: z.string().max(1000).optional(),
+  childhood_illnesses: z.string().max(1000).optional(),
+  accidents_injuries: z.string().max(1000).optional(),
+  menstrual_pregnancy_history: z.string().max(1000).optional(),
+  preventive_screening_history: z.string().max(1000).optional(),
+  
   ongoing_medications: z.string().optional(),
   supplements: z.string().optional(),
   vaccinations: z.string().optional(),
@@ -99,6 +106,12 @@ const EditPatient = () => {
           hospitalization_history: data.hospitalization_history || "",
           family_history: data.family_history || "",
           mental_health_history: data.mental_health_history || "",
+          birth_history: data.birth_history || "",
+          developmental_history: data.developmental_history || "",
+          childhood_illnesses: data.childhood_illnesses || "",
+          accidents_injuries: data.accidents_injuries || "",
+          menstrual_pregnancy_history: data.menstrual_pregnancy_history || "",
+          preventive_screening_history: data.preventive_screening_history || "",
           ongoing_medications: Array.isArray(data.ongoing_medications) 
             ? data.ongoing_medications.join(", ") 
             : "",
@@ -138,7 +151,7 @@ const EditPatient = () => {
 
   const calculateCompletionStatus = (data: PatientFormData): string => {
     let filledCount = 0;
-    const totalFields = 28;
+    const totalFields = 34;
 
     if (data.first_name) filledCount++;
     if (data.last_name) filledCount++;
@@ -168,6 +181,12 @@ const EditPatient = () => {
     if (data.diet) filledCount++;
     if (data.occupation) filledCount++;
     if (data.living_environment) filledCount++;
+    if (data.birth_history) filledCount++;
+    if (data.developmental_history) filledCount++;
+    if (data.childhood_illnesses) filledCount++;
+    if (data.accidents_injuries) filledCount++;
+    if (data.menstrual_pregnancy_history) filledCount++;
+    if (data.preventive_screening_history) filledCount++;
 
     const completionPercentage = (filledCount / totalFields) * 100;
     return completionPercentage >= 85 ? "completed" : "incomplete";
@@ -459,6 +478,62 @@ const EditPatient = () => {
                   placeholder="List mental health conditions..."
                   {...register("mental_health_history")}
                   rows={3}
+                />
+              </div>
+              <div>
+                <Label htmlFor="birth_history">Birth History</Label>
+                <Textarea
+                  id="birth_history"
+                  placeholder="Describe birth history..."
+                  {...register("birth_history")}
+                  rows={2}
+                />
+              </div>
+              <div>
+                <Label htmlFor="developmental_history">Developmental History</Label>
+                <Textarea
+                  id="developmental_history"
+                  placeholder="Describe developmental milestones..."
+                  {...register("developmental_history")}
+                  rows={2}
+                />
+              </div>
+              <div>
+                <Label htmlFor="childhood_illnesses">Childhood Illnesses</Label>
+                <Textarea
+                  id="childhood_illnesses"
+                  placeholder="List significant childhood illnesses..."
+                  {...register("childhood_illnesses")}
+                  rows={2}
+                />
+              </div>
+              <div>
+                <Label htmlFor="accidents_injuries">Accidents or Injuries</Label>
+                <Textarea
+                  id="accidents_injuries"
+                  placeholder="Describe major accidents or injuries..."
+                  {...register("accidents_injuries")}
+                  rows={2}
+                />
+              </div>
+              {gender === "FEMALE" && (
+                <div>
+                  <Label htmlFor="menstrual_pregnancy_history">Menstrual and Pregnancy History</Label>
+                  <Textarea
+                    id="menstrual_pregnancy_history"
+                    placeholder="Detail menstrual and pregnancy history..."
+                    {...register("menstrual_pregnancy_history")}
+                    rows={2}
+                  />
+                </div>
+              )}
+              <div>
+                <Label htmlFor="preventive_screening_history">Preventive Screening History</Label>
+                <Textarea
+                  id="preventive_screening_history"
+                  placeholder="e.g., mammograms, colonoscopies..."
+                  {...register("preventive_screening_history")}
+                  rows={2}
                 />
               </div>
             </CardContent>
