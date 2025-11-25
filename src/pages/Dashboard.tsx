@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { 
   Activity, 
   Users, 
-  FileText, 
   BookOpen, 
   LogOut,
   LayoutDashboard,
@@ -14,12 +13,14 @@ import {
   Settings,
   CreditCard,
   Menu,
-  X,
   Calendar,
   Plus,
   Clock,
   Phone,
-  MoreVertical
+  MoreVertical,
+  Download,
+  FileText,
+  FileSpreadsheet
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -50,6 +51,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { AddAppointmentDialog } from "@/components/appointments/AddAppointmentDialog";
 import { format } from "date-fns";
+import { exportAppointmentsToCsv } from "@/lib/exportToCsv";
+import { exportAppointmentsToPdf } from "@/lib/exportToPdf";
+import React from "react";
 
 const Patients = lazy(() => import("./dashboard/Patients"));
 const AddPatient = lazy(() => import("./dashboard/AddPatient"));
@@ -428,41 +432,78 @@ const DashboardHome = () => {
     fetchAppointments();
   }, []);
 
+  const statistics = React.useMemo(() => {
+    const total = appointments.length;
+    const completed = appointments.filter(apt => apt.status === "completed").length;
+    const upcoming = appointments.filter(apt => {
+      const aptDate = new Date(apt.appointment_date);
+      return aptDate >= new Date() && apt.status === "scheduled";
+    }).length;
+    const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+    return { total, completed, upcoming, completionRate };
+  }, [appointments]);
+
+  const handleExportCsv = () => {
+    exportAppointmentsToCsv(appointments);
+    toast.success("Appointments exported to CSV");
+  };
+
+  const handleExportPdf = () => {
+    exportAppointmentsToPdf(appointments);
+    toast.success("Appointments exported to PDF");
+  };
+
   return (
     <div>
-      <h2 className="text-3xl font-bold mb-6">Dashboard</h2>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-3xl font-bold">Dashboard</h2>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline">
+              <Download className="mr-2 h-4 w-4" />
+              Export Appointments
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={handleExportCsv}>
+              <FileSpreadsheet className="mr-2 h-4 w-4" />
+              Export as CSV
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleExportPdf}>
+              <FileText className="mr-2 h-4 w-4" />
+              Export as PDF
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
       
       {/* Stats Cards */}
-      <div className="grid gap-6 md:grid-cols-3 mb-8">
-        <div className="p-6 bg-card border rounded-lg">
-          <div className="flex items-center gap-4">
-            <Users className="h-10 w-10 text-primary" />
-            <div>
-              <p className="text-sm text-muted-foreground">Total Patients</p>
-              <p className="text-2xl font-bold">0</p>
-            </div>
+      <div className="grid gap-6 md:grid-cols-4 mb-8">
+        <Card className="p-6">
+          <div className="flex flex-col">
+            <span className="text-sm font-medium text-muted-foreground">Total Appointments</span>
+            <span className="text-3xl font-bold text-foreground mt-2">{statistics.total}</span>
           </div>
-        </div>
-        
-        <div className="p-6 bg-card border rounded-lg">
-          <div className="flex items-center gap-4">
-            <Activity className="h-10 w-10 text-accent" />
-            <div>
-              <p className="text-sm text-muted-foreground">Visits Today</p>
-              <p className="text-2xl font-bold">0</p>
-            </div>
+        </Card>
+        <Card className="p-6">
+          <div className="flex flex-col">
+            <span className="text-sm font-medium text-muted-foreground">Completed</span>
+            <span className="text-3xl font-bold text-foreground mt-2">{statistics.completed}</span>
           </div>
-        </div>
-        
-        <div className="p-6 bg-card border rounded-lg">
-          <div className="flex items-center gap-4">
-            <FileText className="h-10 w-10 text-warning" />
-            <div>
-              <p className="text-sm text-muted-foreground">Pending SOAP Notes</p>
-              <p className="text-2xl font-bold">0</p>
-            </div>
+        </Card>
+        <Card className="p-6">
+          <div className="flex flex-col">
+            <span className="text-sm font-medium text-muted-foreground">Upcoming</span>
+            <span className="text-3xl font-bold text-foreground mt-2">{statistics.upcoming}</span>
           </div>
-        </div>
+        </Card>
+        <Card className="p-6">
+          <div className="flex flex-col">
+            <span className="text-sm font-medium text-muted-foreground">Completion Rate</span>
+            <span className="text-3xl font-bold text-foreground mt-2">{statistics.completionRate}%</span>
+          </div>
+        </Card>
       </div>
 
       {/* Appointments Section */}
