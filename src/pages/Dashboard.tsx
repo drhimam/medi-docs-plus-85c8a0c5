@@ -20,7 +20,10 @@ import {
   MoreVertical,
   Download,
   FileText,
-  FileSpreadsheet
+  FileSpreadsheet,
+  CheckSquare,
+  StickyNote,
+  CalendarClock
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -53,6 +56,7 @@ import { AddAppointmentDialog } from "@/components/appointments/AddAppointmentDi
 import { format } from "date-fns";
 import { exportAppointmentsToCsv } from "@/lib/exportToCsv";
 import { exportAppointmentsToPdf } from "@/lib/exportToPdf";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import React from "react";
 
 const Patients = lazy(() => import("./dashboard/Patients"));
@@ -458,202 +462,262 @@ const DashboardHome = () => {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-3xl font-bold">Dashboard</h2>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline">
-              <Download className="mr-2 h-4 w-4" />
-              Export Appointments
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={handleExportCsv}>
-              <FileSpreadsheet className="mr-2 h-4 w-4" />
-              Export as CSV
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleExportPdf}>
-              <FileText className="mr-2 h-4 w-4" />
-              Export as PDF
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
       
-      {/* Stats Cards */}
-      <div className="grid gap-6 md:grid-cols-4 mb-8">
-        <Card className="p-6">
-          <div className="flex flex-col">
-            <span className="text-sm font-medium text-muted-foreground">Total Appointments</span>
-            <span className="text-3xl font-bold text-foreground mt-2">{statistics.total}</span>
-          </div>
-        </Card>
-        <Card className="p-6">
-          <div className="flex flex-col">
-            <span className="text-sm font-medium text-muted-foreground">Completed</span>
-            <span className="text-3xl font-bold text-foreground mt-2">{statistics.completed}</span>
-          </div>
-        </Card>
-        <Card className="p-6">
-          <div className="flex flex-col">
-            <span className="text-sm font-medium text-muted-foreground">Upcoming</span>
-            <span className="text-3xl font-bold text-foreground mt-2">{statistics.upcoming}</span>
-          </div>
-        </Card>
-        <Card className="p-6">
-          <div className="flex flex-col">
-            <span className="text-sm font-medium text-muted-foreground">Completion Rate</span>
-            <span className="text-3xl font-bold text-foreground mt-2">{statistics.completionRate}%</span>
-          </div>
-        </Card>
-      </div>
+      <Tabs defaultValue="appointments" className="w-full">
+        <TabsList className="grid w-full grid-cols-4 mb-6">
+          <TabsTrigger value="appointments" className="gap-2">
+            <Calendar className="h-4 w-4" />
+            <span className="hidden sm:inline">Appointments</span>
+          </TabsTrigger>
+          <TabsTrigger value="todo" className="gap-2">
+            <CheckSquare className="h-4 w-4" />
+            <span className="hidden sm:inline">TODO List</span>
+          </TabsTrigger>
+          <TabsTrigger value="deadlines" className="gap-2">
+            <CalendarClock className="h-4 w-4" />
+            <span className="hidden sm:inline">Deadline Tracker</span>
+          </TabsTrigger>
+          <TabsTrigger value="notes" className="gap-2">
+            <StickyNote className="h-4 w-4" />
+            <span className="hidden sm:inline">Sticky Notes</span>
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Appointments Section */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-2xl font-semibold">Appointments</h3>
-          <Button onClick={() => setIsAddDialogOpen(true)} size="lg">
-            <Plus className="mr-2 h-4 w-4" />
-            Add Appointment
-          </Button>
-        </div>
-        
-        {loading ? (
-          <Card className="border-border p-8">
-            <div className="text-center text-muted-foreground">Loading appointments...</div>
-          </Card>
-        ) : (
-          <Card className="border-border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Patient Name</TableHead>
-                  <TableHead>Contact</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Time</TableHead>
-                  <TableHead>Reason</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {appointments.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                      No appointments scheduled. Click "Add Appointment" to create one.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  appointments.map((appointment: any) => (
-                    <TableRow key={appointment.id}>
-                      <TableCell className="font-medium">
-                        <Link 
-                          to={`/dashboard/patients/${appointment.patient_id}`}
-                          className="flex items-center gap-2 hover:text-primary transition-colors"
-                        >
-                          <User className="h-4 w-4 text-muted-foreground" />
-                          <span className="underline">
-                            {appointment.patients.first_name} {appointment.patients.last_name}
-                          </span>
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Phone className="h-4 w-4 text-muted-foreground" />
-                          {appointment.patients.contact_number}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          {format(new Date(appointment.appointment_date), "MMM dd, yyyy")}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4 text-muted-foreground" />
-                          {appointment.appointment_time}
-                        </div>
-                      </TableCell>
-                      <TableCell>{appointment.reason}</TableCell>
-                      <TableCell>
-                        <Badge variant={
-                          appointment.status === "scheduled" ? "default" :
-                          appointment.status === "completed" ? "secondary" :
-                          "destructive"
-                        }>
-                          {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={async () => {
-                              try {
-                                const { error } = await supabase
-                                  .from("appointments")
-                                  .delete()
-                                  .eq("id", appointment.id);
-                                if (error) throw error;
-                                toast.success("Appointment marked as complete");
-                                fetchAppointments();
-                              } catch (error) {
-                                toast.error("Failed to mark appointment as complete");
-                              }
-                            }}>
-                              Mark as Complete
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={async () => {
-                                try {
-                                  const { error } = await supabase
-                                    .from("appointments")
-                                    .delete()
-                                    .eq("id", appointment.id);
-                                  if (error) throw error;
-                                  toast.success("Appointment cancelled");
-                                  fetchAppointments();
-                                } catch (error) {
-                                  toast.error("Failed to cancel appointment");
-                                }
-                              }}
-                              className="text-destructive"
-                            >
-                              Cancel Appointment
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
+        {/* Appointments Tab */}
+        <TabsContent value="appointments" className="space-y-6">
+          <div className="flex items-center justify-end">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  <Download className="mr-2 h-4 w-4" />
+                  Export Appointments
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleExportCsv}>
+                  <FileSpreadsheet className="mr-2 h-4 w-4" />
+                  Export as CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportPdf}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Export as PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          {/* Stats Cards */}
+          <div className="grid gap-6 md:grid-cols-4">
+            <Card className="p-6">
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-muted-foreground">Total Appointments</span>
+                <span className="text-3xl font-bold text-foreground mt-2">{statistics.total}</span>
+              </div>
+            </Card>
+            <Card className="p-6">
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-muted-foreground">Completed</span>
+                <span className="text-3xl font-bold text-foreground mt-2">{statistics.completed}</span>
+              </div>
+            </Card>
+            <Card className="p-6">
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-muted-foreground">Upcoming</span>
+                <span className="text-3xl font-bold text-foreground mt-2">{statistics.upcoming}</span>
+              </div>
+            </Card>
+            <Card className="p-6">
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-muted-foreground">Completion Rate</span>
+                <span className="text-3xl font-bold text-foreground mt-2">{statistics.completionRate}%</span>
+              </div>
+            </Card>
+          </div>
+
+          {/* Appointments Section */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-2xl font-semibold">Appointments</h3>
+              <Button onClick={() => setIsAddDialogOpen(true)} size="lg">
+                <Plus className="mr-2 h-4 w-4" />
+                Add Appointment
+              </Button>
+            </div>
+            
+            {loading ? (
+              <Card className="border-border p-8">
+                <div className="text-center text-muted-foreground">Loading appointments...</div>
+              </Card>
+            ) : (
+              <Card className="border-border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Patient Name</TableHead>
+                      <TableHead>Contact</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Time</TableHead>
+                      <TableHead>Reason</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="w-[50px]"></TableHead>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </Card>
-        )}
-      </div>
+                  </TableHeader>
+                  <TableBody>
+                    {appointments.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                          No appointments scheduled. Click "Add Appointment" to create one.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      appointments.map((appointment: any) => (
+                        <TableRow key={appointment.id}>
+                          <TableCell className="font-medium">
+                            <Link 
+                              to={`/dashboard/patients/${appointment.patient_id}`}
+                              className="flex items-center gap-2 hover:text-primary transition-colors"
+                            >
+                              <User className="h-4 w-4 text-muted-foreground" />
+                              <span className="underline">
+                                {appointment.patients.first_name} {appointment.patients.last_name}
+                              </span>
+                            </Link>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Phone className="h-4 w-4 text-muted-foreground" />
+                              {appointment.patients.contact_number}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4 text-muted-foreground" />
+                              {format(new Date(appointment.appointment_date), "MMM dd, yyyy")}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-4 w-4 text-muted-foreground" />
+                              {appointment.appointment_time}
+                            </div>
+                          </TableCell>
+                          <TableCell>{appointment.reason}</TableCell>
+                          <TableCell>
+                            <Badge variant={
+                              appointment.status === "scheduled" ? "default" :
+                              appointment.status === "completed" ? "secondary" :
+                              "destructive"
+                            }>
+                              {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={async () => {
+                                  try {
+                                    const { error } = await supabase
+                                      .from("appointments")
+                                      .delete()
+                                      .eq("id", appointment.id);
+                                    if (error) throw error;
+                                    toast.success("Appointment marked as complete");
+                                    fetchAppointments();
+                                  } catch (error) {
+                                    toast.error("Failed to mark appointment as complete");
+                                  }
+                                }}>
+                                  Mark as Complete
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={async () => {
+                                    try {
+                                      const { error } = await supabase
+                                        .from("appointments")
+                                        .delete()
+                                        .eq("id", appointment.id);
+                                      if (error) throw error;
+                                      toast.success("Appointment cancelled");
+                                      fetchAppointments();
+                                    } catch (error) {
+                                      toast.error("Failed to cancel appointment");
+                                    }
+                                  }}
+                                  className="text-destructive"
+                                >
+                                  Cancel Appointment
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </Card>
+            )}
+          </div>
 
-      {/* Quick Actions */}
-      <div className="bg-card border rounded-lg p-6">
-        <h3 className="text-xl font-semibold mb-4">Quick Actions</h3>
-        <div className="grid gap-4 md:grid-cols-2">
-          <Link to="/dashboard/patients">
-            <Button className="w-full justify-start" size="lg">
-              <Users className="h-5 w-5 mr-2" />
-              Add New Patient
-            </Button>
-          </Link>
-          <Link to="/dashboard/ai-tools">
-            <Button className="w-full justify-start" size="lg" variant="outline">
-              <Sparkles className="h-5 w-5 mr-2" />
-              AI Tools
-            </Button>
-          </Link>
-        </div>
-      </div>
+          {/* Quick Actions */}
+          <div className="bg-card border rounded-lg p-6">
+            <h3 className="text-xl font-semibold mb-4">Quick Actions</h3>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Link to="/dashboard/patients">
+                <Button className="w-full justify-start" size="lg">
+                  <Users className="h-5 w-5 mr-2" />
+                  Add New Patient
+                </Button>
+              </Link>
+              <Link to="/dashboard/ai-tools">
+                <Button className="w-full justify-start" size="lg" variant="outline">
+                  <Sparkles className="h-5 w-5 mr-2" />
+                  AI Tools
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* TODO List Tab */}
+        <TabsContent value="todo" className="space-y-6">
+          <Card className="p-8">
+            <div className="text-center">
+              <CheckSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2">TODO List</h3>
+              <p className="text-muted-foreground">Manage your tasks and to-do items here</p>
+            </div>
+          </Card>
+        </TabsContent>
+
+        {/* Deadline Tracker Tab */}
+        <TabsContent value="deadlines" className="space-y-6">
+          <Card className="p-8">
+            <div className="text-center">
+              <CalendarClock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2">Deadline Tracker</h3>
+              <p className="text-muted-foreground">Track important deadlines and due dates</p>
+            </div>
+          </Card>
+        </TabsContent>
+
+        {/* Sticky Notes Tab */}
+        <TabsContent value="notes" className="space-y-6">
+          <Card className="p-8">
+            <div className="text-center">
+              <StickyNote className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2">Sticky Notes</h3>
+              <p className="text-muted-foreground">Create quick notes and reminders</p>
+            </div>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       <AddAppointmentDialog
         open={isAddDialogOpen}
