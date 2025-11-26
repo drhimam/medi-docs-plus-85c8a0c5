@@ -153,6 +153,39 @@ export type Database = {
           },
         ]
       }
+      deadlines: {
+        Row: {
+          completed: boolean
+          created_at: string
+          deadline_date: string
+          description: string | null
+          id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          deadline_date: string
+          description?: string | null
+          id?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          deadline_date?: string
+          description?: string | null
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       documents: {
         Row: {
           created_at: string
@@ -402,6 +435,42 @@ export type Database = {
         }
         Relationships: []
       }
+      sticky_notes: {
+        Row: {
+          color: string
+          content: string
+          created_at: string
+          id: string
+          position_x: number
+          position_y: number
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          content?: string
+          created_at?: string
+          id?: string
+          position_x?: number
+          position_y?: number
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          content?: string
+          created_at?: string
+          id?: string
+          position_x?: number
+          position_y?: number
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       todos: {
         Row: {
           completed: boolean
@@ -409,6 +478,7 @@ export type Database = {
           description: string | null
           due_date: string | null
           id: string
+          position: number | null
           priority: string
           title: string
           updated_at: string
@@ -420,6 +490,7 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          position?: number | null
           priority?: string
           title: string
           updated_at?: string
@@ -431,6 +502,7 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          position?: number | null
           priority?: string
           title?: string
           updated_at?: string

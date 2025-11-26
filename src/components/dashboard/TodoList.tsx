@@ -13,8 +13,26 @@ import {
   MoreVertical,
   Edit2,
   X,
-  Check
+  Check,
+  GripVertical
 } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,7 +67,144 @@ interface Todo {
   priority: "low" | "medium" | "high";
   due_date: string | null;
   created_at: string;
+  position: number;
 }
+
+interface SortableTodoItemProps {
+  todo: Todo;
+  editingId: string | null;
+  editTitle: string;
+  setEditTitle: (title: string) => void;
+  setEditingId: (id: string | null) => void;
+  toggleComplete: (id: string, completed: boolean) => void;
+  startEditing: (todo: Todo) => void;
+  saveEdit: (id: string) => void;
+  deleteTodo: (id: string) => void;
+  getPriorityColor: (priority: string) => string;
+}
+
+const SortableTodoItem = ({
+  todo,
+  editingId,
+  editTitle,
+  setEditTitle,
+  setEditingId,
+  toggleComplete,
+  startEditing,
+  saveEdit,
+  deleteTodo,
+  getPriorityColor,
+}: SortableTodoItemProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: todo.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <Card
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "p-4 transition-all hover:shadow-md",
+        todo.completed && "opacity-60",
+        isDragging && "opacity-50 shadow-lg z-50"
+      )}
+    >
+      <div className="flex items-start gap-3">
+        <div
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing mt-1 text-muted-foreground hover:text-foreground"
+        >
+          <GripVertical className="h-5 w-5" />
+        </div>
+        <Checkbox
+          checked={todo.completed}
+          onCheckedChange={() => toggleComplete(todo.id, todo.completed)}
+          className="mt-1"
+        />
+        <div className="flex-1 min-w-0">
+          {editingId === todo.id ? (
+            <div className="flex items-center gap-2">
+              <Input
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") saveEdit(todo.id);
+                  if (e.key === "Escape") setEditingId(null);
+                }}
+                autoFocus
+              />
+              <Button size="icon" variant="ghost" onClick={() => saveEdit(todo.id)}>
+                <Check className="h-4 w-4" />
+              </Button>
+              <Button size="icon" variant="ghost" onClick={() => setEditingId(null)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <>
+              <p className={cn(
+                "font-medium",
+                todo.completed && "line-through text-muted-foreground"
+              )}>
+                {todo.title}
+              </p>
+              {todo.description && (
+                <p className="text-sm text-muted-foreground mt-1 truncate">
+                  {todo.description}
+                </p>
+              )}
+              <div className="flex items-center gap-2 mt-2">
+                <Badge variant="outline" className={getPriorityColor(todo.priority)}>
+                  <Flag className="h-3 w-3 mr-1" />
+                  {todo.priority}
+                </Badge>
+                {todo.due_date && (
+                  <Badge variant="outline" className="text-muted-foreground">
+                    <Calendar className="h-3 w-3 mr-1" />
+                    {format(new Date(todo.due_date), "MMM dd, yyyy")}
+                  </Badge>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+        {editingId !== todo.id && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => startEditing(todo)}>
+                <Edit2 className="h-4 w-4 mr-2" />
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => deleteTodo(todo.id)}
+                className="text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </div>
+    </Card>
+  );
+};
 
 export const TodoList = () => {
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -65,6 +220,13 @@ export const TodoList = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
 
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
   const fetchTodos = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -74,12 +236,13 @@ export const TodoList = () => {
         .from("todos")
         .select("*")
         .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+        .order("position", { ascending: true });
 
       if (error) throw error;
       setTodos((data || []).map(item => ({
         ...item,
-        priority: item.priority as "low" | "medium" | "high"
+        priority: item.priority as "low" | "medium" | "high",
+        position: item.position ?? 0
       })));
     } catch (error) {
       console.error("Error fetching todos:", error);
@@ -102,12 +265,15 @@ export const TodoList = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      const maxPosition = todos.length > 0 ? Math.max(...todos.map(t => t.position)) + 1 : 0;
+
       const { error } = await supabase.from("todos").insert({
         user_id: user.id,
         title: newTodo.title,
         description: newTodo.description || null,
         priority: newTodo.priority,
         due_date: newTodo.due_date || null,
+        position: maxPosition,
       });
 
       if (error) throw error;
@@ -164,6 +330,34 @@ export const TodoList = () => {
       setEditingId(null);
     } catch (error) {
       toast.error("Failed to update task");
+    }
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = todos.findIndex((t) => t.id === active.id);
+      const newIndex = todos.findIndex((t) => t.id === over.id);
+
+      const newTodos = arrayMove(todos, oldIndex, newIndex);
+      const updatedTodos = newTodos.map((todo, index) => ({
+        ...todo,
+        position: index,
+      }));
+
+      setTodos(updatedTodos);
+
+      // Update positions in database
+      try {
+        const updates = updatedTodos.map((todo) =>
+          supabase.from("todos").update({ position: todo.position }).eq("id", todo.id)
+        );
+        await Promise.all(updates);
+      } catch (error) {
+        toast.error("Failed to update order");
+        fetchTodos(); // Revert on error
+      }
     }
   };
 
@@ -310,107 +504,47 @@ export const TodoList = () => {
         </Dialog>
       </div>
 
-      {/* Todo List */}
-      <div className="space-y-2">
-        {filteredTodos.length === 0 ? (
-          <Card className="p-8">
-            <div className="text-center text-muted-foreground">
-              {filter === "all" 
-                ? "No tasks yet. Click 'Add Task' to create one."
-                : filter === "active"
-                ? "No active tasks."
-                : "No completed tasks."}
-            </div>
-          </Card>
-        ) : (
-          filteredTodos.map((todo) => (
-            <Card
-              key={todo.id}
-              className={cn(
-                "p-4 transition-all hover:shadow-md",
-                todo.completed && "opacity-60"
-              )}
-            >
-              <div className="flex items-start gap-3">
-                <Checkbox
-                  checked={todo.completed}
-                  onCheckedChange={() => toggleComplete(todo.id, todo.completed)}
-                  className="mt-1"
-                />
-                <div className="flex-1 min-w-0">
-                  {editingId === todo.id ? (
-                    <div className="flex items-center gap-2">
-                      <Input
-                        value={editTitle}
-                        onChange={(e) => setEditTitle(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") saveEdit(todo.id);
-                          if (e.key === "Escape") setEditingId(null);
-                        }}
-                        autoFocus
-                      />
-                      <Button size="icon" variant="ghost" onClick={() => saveEdit(todo.id)}>
-                        <Check className="h-4 w-4" />
-                      </Button>
-                      <Button size="icon" variant="ghost" onClick={() => setEditingId(null)}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <>
-                      <p className={cn(
-                        "font-medium",
-                        todo.completed && "line-through text-muted-foreground"
-                      )}>
-                        {todo.title}
-                      </p>
-                      {todo.description && (
-                        <p className="text-sm text-muted-foreground mt-1 truncate">
-                          {todo.description}
-                        </p>
-                      )}
-                      <div className="flex items-center gap-2 mt-2">
-                        <Badge variant="outline" className={getPriorityColor(todo.priority)}>
-                          <Flag className="h-3 w-3 mr-1" />
-                          {todo.priority}
-                        </Badge>
-                        {todo.due_date && (
-                          <Badge variant="outline" className="text-muted-foreground">
-                            <Calendar className="h-3 w-3 mr-1" />
-                            {format(new Date(todo.due_date), "MMM dd, yyyy")}
-                          </Badge>
-                        )}
-                      </div>
-                    </>
-                  )}
+      {/* Todo List with Drag and Drop */}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext
+          items={filteredTodos.map((t) => t.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          <div className="space-y-2">
+            {filteredTodos.length === 0 ? (
+              <Card className="p-8">
+                <div className="text-center text-muted-foreground">
+                  {filter === "all" 
+                    ? "No tasks yet. Click 'Add Task' to create one."
+                    : filter === "active"
+                    ? "No active tasks."
+                    : "No completed tasks."}
                 </div>
-                {editingId !== todo.id && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => startEditing(todo)}>
-                        <Edit2 className="h-4 w-4 mr-2" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => deleteTodo(todo.id)}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-              </div>
-            </Card>
-          ))
-        )}
-      </div>
+              </Card>
+            ) : (
+              filteredTodos.map((todo) => (
+                <SortableTodoItem
+                  key={todo.id}
+                  todo={todo}
+                  editingId={editingId}
+                  editTitle={editTitle}
+                  setEditTitle={setEditTitle}
+                  setEditingId={setEditingId}
+                  toggleComplete={toggleComplete}
+                  startEditing={startEditing}
+                  saveEdit={saveEdit}
+                  deleteTodo={deleteTodo}
+                  getPriorityColor={getPriorityColor}
+                />
+              ))
+            )}
+          </div>
+        </SortableContext>
+      </DndContext>
     </div>
   );
 };
