@@ -58,6 +58,8 @@ import { exportAppointmentsToCsv } from "@/lib/exportToCsv";
 import { exportAppointmentsToPdf } from "@/lib/exportToPdf";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TodoList } from "@/components/dashboard/TodoList";
+import { DeadlineTracker } from "@/components/dashboard/DeadlineTracker";
+import { StickyNotes } from "@/components/dashboard/StickyNotes";
 import React from "react";
 
 const Patients = lazy(() => import("./dashboard/Patients"));
@@ -693,24 +695,12 @@ const DashboardHome = () => {
 
         {/* Deadline Tracker Tab */}
         <TabsContent value="deadlines" className="space-y-6">
-          <Card className="p-8">
-            <div className="text-center">
-              <CalendarClock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">Deadline Tracker</h3>
-              <p className="text-muted-foreground">Track important deadlines and due dates</p>
-            </div>
-          </Card>
+          <DeadlineTracker />
         </TabsContent>
 
         {/* Sticky Notes Tab */}
         <TabsContent value="notes" className="space-y-6">
-          <Card className="p-8">
-            <div className="text-center">
-              <StickyNote className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">Sticky Notes</h3>
-              <p className="text-muted-foreground">Create quick notes and reminders</p>
-            </div>
-          </Card>
+          <StickyNotes />
         </TabsContent>
       </Tabs>
 
