@@ -57,6 +57,7 @@ import { format } from "date-fns";
 import { exportAppointmentsToCsv } from "@/lib/exportToCsv";
 import { exportAppointmentsToPdf } from "@/lib/exportToPdf";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TodoList } from "@/components/dashboard/TodoList";
 import React from "react";
 
 const Patients = lazy(() => import("./dashboard/Patients"));
@@ -687,13 +688,7 @@ const DashboardHome = () => {
 
         {/* TODO List Tab */}
         <TabsContent value="todo" className="space-y-6">
-          <Card className="p-8">
-            <div className="text-center">
-              <CheckSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">TODO List</h3>
-              <p className="text-muted-foreground">Manage your tasks and to-do items here</p>
-            </div>
-          </Card>
+          <TodoList />
         </TabsContent>
 
         {/* Deadline Tracker Tab */}
