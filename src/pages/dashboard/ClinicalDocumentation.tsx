@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Save, X, FileText, Download, Sparkles, Eye, Edit, Loader2, Type, Languages, Bold, Italic, Underline, MoreVertical, ArrowUpDown, ExternalLink, Trash2 } from "lucide-react";
+import { ArrowLeft, Save, X, FileText, Download, Sparkles, Eye, Edit, Loader2, Type, Languages, Bold, Italic, Underline, MoreVertical, ArrowUpDown, ExternalLink, Trash2, Settings } from "lucide-react";
 import TranscribeButton from "@/components/TranscribeButton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -14,7 +14,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import DocumentUploadDialog from "@/components/visit/DocumentUploadDialog";
+import PrescriptionSettingsDialog from "@/components/prescription/PrescriptionSettingsDialog";
 import jsPDF from "jspdf";
+import { exportPrescriptionToPDF as exportPrescriptionWithSettings } from "@/lib/prescriptionExport";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -96,6 +98,7 @@ export default function ClinicalDocumentation() {
   const [isGeneratingPrescription, setIsGeneratingPrescription] = useState(false);
   const [selectedText, setSelectedText] = useState("");
   const [fontSize, setFontSize] = useState("14");
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const prescriptionRef = useRef<HTMLTextAreaElement>(null);
   const assessmentRef = useRef<HTMLTextAreaElement>(null);
   const planRef = useRef<HTMLTextAreaElement>(null);
@@ -701,41 +704,49 @@ ${prescription}
     });
   };
 
-  const exportPrescriptionToPDF = () => {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const margin = 20;
-    const maxWidth = pageWidth - 2 * margin;
-    let yPosition = 20;
+  const exportPrescriptionToPDF = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
 
-    const addText = (text: string, fontSize: number = 12, isBold: boolean = false) => {
-      doc.setFontSize(fontSize);
-      if (isBold) doc.setFont("helvetica", "bold");
-      else doc.setFont("helvetica", "normal");
+      const { data: settings } = await supabase
+        .from("prescription_settings")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      const patientName = `${patient.first_name} ${patient.last_name}`;
       
-      const lines = doc.splitTextToSize(text, maxWidth);
-      lines.forEach((line: string) => {
-        if (yPosition > 270) {
-          doc.addPage();
-          yPosition = 20;
-        }
-        doc.text(line, margin, yPosition);
-        yPosition += fontSize / 2 + 2;
+      // Convert settings to proper format if exists
+      const formattedSettings = settings ? {
+        paper_size: settings.paper_size,
+        body_font: settings.body_font,
+        body_font_size: settings.body_font_size,
+        footer_font_size: settings.footer_font_size,
+        header_font: settings.header_font,
+        body_text_color: settings.body_text_color,
+        footer_text_color: settings.footer_text_color,
+        use_own_letterhead: settings.use_own_letterhead,
+        header_left_lines: (settings.header_left_lines as any) || [],
+        header_right_lines: (settings.header_right_lines as any) || [],
+        header_background_color: settings.header_background_color,
+        header_line_spacing: settings.header_line_spacing,
+        barcode_enabled: settings.barcode_enabled,
+      } : undefined;
+      
+      exportPrescriptionWithSettings(prescription, patient.id, patientName, formattedSettings);
+      
+      toast({
+        title: "Success",
+        description: "Prescription exported as PDF",
       });
-      yPosition += 5;
-    };
-
-    addText("Prescription", 18, true);
-    yPosition += 5;
-    addText(prescription || "N/A");
-
-    doc.save(`Prescription_${patient.last_name}_${visitId}_${timestamp}.pdf`);
-    
-    toast({
-      title: "Success",
-      description: "Prescription exported as PDF",
-    });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
   if (!patient || !visit) {
@@ -805,6 +816,10 @@ ${prescription}
                   <DropdownMenuItem onClick={exportSOAPToPDF}>Export SOAP Note (PDF)</DropdownMenuItem>
                   <DropdownMenuItem onClick={exportPrescriptionToMarkdown}>Export Prescription (MD)</DropdownMenuItem>
                   <DropdownMenuItem onClick={exportPrescriptionToPDF}>Export Prescription (PDF)</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setIsSettingsOpen(true)}>
+                    <Settings className="w-4 h-4 mr-2" />
+                    Prescription Settings
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
               <Button variant="outline" size="icon" onClick={handleSave}>
@@ -1216,6 +1231,11 @@ ${prescription}
         visitId={visitId!}
         patientId={patient.id}
         onUploadSuccess={fetchDocuments}
+      />
+
+      <PrescriptionSettingsDialog
+        open={isSettingsOpen}
+        onOpenChange={setIsSettingsOpen}
       />
 
       <AlertDialog open={showCloseDialog} onOpenChange={setShowCloseDialog}>

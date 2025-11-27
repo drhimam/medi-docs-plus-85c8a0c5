@@ -435,6 +435,66 @@ export type Database = {
         }
         Relationships: []
       }
+      prescription_settings: {
+        Row: {
+          barcode_enabled: boolean
+          body_font: string
+          body_font_size: number
+          body_text_color: string
+          created_at: string
+          footer_font_size: number
+          footer_text_color: string
+          header_background_color: string
+          header_font: string
+          header_left_lines: Json
+          header_line_spacing: number
+          header_right_lines: Json
+          id: string
+          paper_size: string
+          updated_at: string
+          use_own_letterhead: boolean
+          user_id: string
+        }
+        Insert: {
+          barcode_enabled?: boolean
+          body_font?: string
+          body_font_size?: number
+          body_text_color?: string
+          created_at?: string
+          footer_font_size?: number
+          footer_text_color?: string
+          header_background_color?: string
+          header_font?: string
+          header_left_lines?: Json
+          header_line_spacing?: number
+          header_right_lines?: Json
+          id?: string
+          paper_size?: string
+          updated_at?: string
+          use_own_letterhead?: boolean
+          user_id: string
+        }
+        Update: {
+          barcode_enabled?: boolean
+          body_font?: string
+          body_font_size?: number
+          body_text_color?: string
+          created_at?: string
+          footer_font_size?: number
+          footer_text_color?: string
+          header_background_color?: string
+          header_font?: string
+          header_left_lines?: Json
+          header_line_spacing?: number
+          header_right_lines?: Json
+          id?: string
+          paper_size?: string
+          updated_at?: string
+          use_own_letterhead?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
       sticky_notes: {
         Row: {
           color: string
