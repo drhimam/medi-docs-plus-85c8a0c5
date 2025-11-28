@@ -29,6 +29,9 @@ export const exportPrescriptionToPDF = (
   prescription: string,
   patientId: string,
   patientName: string,
+  patientAge?: string,
+  patientContact?: string,
+  patientAddress?: string,
   settings?: PrescriptionSettings
 ) => {
   const doc = new jsPDF({
@@ -49,23 +52,6 @@ export const exportPrescriptionToPDF = (
       doc.rect(0, 0, pageWidth, 60, "F");
     }
 
-    // Add barcode if enabled
-    if (settings.barcode_enabled && patientId) {
-      try {
-        const canvas = document.createElement("canvas");
-        JsBarcode(canvas, patientId, {
-          format: "CODE128",
-          width: 1.5,
-          height: 30,
-          displayValue: true,
-          fontSize: 10,
-        });
-        const barcodeImage = canvas.toDataURL("image/png");
-        doc.addImage(barcodeImage, "PNG", pageWidth - 60, 10, 50, 16);
-      } catch (error) {
-        console.error("Error generating barcode:", error);
-      }
-    }
 
     // Add header text
     const leftX = margin;
@@ -145,8 +131,41 @@ export const exportPrescriptionToPDF = (
   yPosition += 7;
   doc.text(`Patient ID: ${patientId}`, margin, yPosition);
   yPosition += 7;
+  if (patientAge) {
+    doc.text(`Age: ${patientAge}`, margin, yPosition);
+    yPosition += 7;
+  }
+  if (patientContact) {
+    doc.text(`Contact: ${patientContact}`, margin, yPosition);
+    yPosition += 7;
+  }
+  if (patientAddress) {
+    doc.text(`Address: ${patientAddress}`, margin, yPosition);
+    yPosition += 7;
+  }
   doc.text(`Date: ${new Date().toLocaleDateString()}`, margin, yPosition);
-  yPosition += 15;
+  yPosition += 10;
+
+  // Add barcode if enabled
+  if (settings?.barcode_enabled && patientId) {
+    try {
+      const canvas = document.createElement("canvas");
+      JsBarcode(canvas, patientId, {
+        format: "CODE128",
+        width: 1.5,
+        height: 30,
+        displayValue: true,
+        fontSize: 10,
+      });
+      const barcodeImage = canvas.toDataURL("image/png");
+      doc.addImage(barcodeImage, "PNG", margin, yPosition, 50, 16);
+      yPosition += 20;
+    } catch (error) {
+      console.error("Error generating barcode:", error);
+    }
+  }
+
+  yPosition += 5;
 
   // Add prescription text
   addText(prescription || "No prescription details");

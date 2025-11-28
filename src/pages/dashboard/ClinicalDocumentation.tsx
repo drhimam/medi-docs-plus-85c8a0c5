@@ -42,6 +42,7 @@ interface Patient {
   gender: string;
   blood_group: string;
   contact_number: string;
+  address?: string;
   allergic_history_drug: any;
   allergic_history_food: any;
   allergic_history_env: any;
@@ -717,6 +718,20 @@ ${prescription}
 
       const patientName = `${patient.first_name} ${patient.last_name}`;
       
+      // Calculate patient age
+      const calculateAge = (dob: string) => {
+        const birthDate = new Date(dob);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+          age--;
+        }
+        return age.toString();
+      };
+      
+      const patientAge = patient.date_of_birth ? calculateAge(patient.date_of_birth) : undefined;
+      
       // Convert settings to proper format if exists
       const formattedSettings = settings ? {
         paper_size: settings.paper_size,
@@ -735,7 +750,15 @@ ${prescription}
         footer_line_enabled: settings.footer_line_enabled ?? true,
       } : undefined;
       
-      exportPrescriptionWithSettings(prescription, patient.id, patientName, formattedSettings);
+      exportPrescriptionWithSettings(
+        prescription, 
+        patient.id, 
+        patientName,
+        patientAge,
+        patient.contact_number,
+        patient.address || undefined,
+        formattedSettings
+      );
       
       toast({
         title: "Success",
