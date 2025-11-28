@@ -22,6 +22,7 @@ interface PrescriptionSettings {
   header_background_color: string;
   header_line_spacing: number;
   barcode_enabled: boolean;
+  footer_line_enabled: boolean;
 }
 
 export const exportPrescriptionToPDF = (
@@ -152,6 +153,13 @@ export const exportPrescriptionToPDF = (
 
   // Add footer
   yPosition = pageHeight - 25;
+  
+  // Add footer line if enabled
+  if (settings?.footer_line_enabled !== false) {
+    doc.setDrawColor(200, 200, 200);
+    doc.line(margin, yPosition - 5, pageWidth - margin, yPosition - 5);
+  }
+  
   doc.setFontSize(settings?.footer_font_size || 10);
   if (settings?.footer_text_color) {
     const rgb = hexToRgb(settings.footer_text_color);

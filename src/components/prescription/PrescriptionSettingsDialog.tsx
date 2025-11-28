@@ -41,6 +41,7 @@ export default function PrescriptionSettingsDialog({ open, onOpenChange }: Presc
   const [headerBackgroundColor, setHeaderBackgroundColor] = useState("#ffffff");
   const [headerLineSpacing, setHeaderLineSpacing] = useState("6");
   const [barcodeEnabled, setBarcodeEnabled] = useState(true);
+  const [footerLineEnabled, setFooterLineEnabled] = useState(true);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -74,6 +75,7 @@ export default function PrescriptionSettingsDialog({ open, onOpenChange }: Presc
         setHeaderBackgroundColor(data.header_background_color);
         setHeaderLineSpacing(data.header_line_spacing.toString());
         setBarcodeEnabled(data.barcode_enabled);
+        setFooterLineEnabled(data.footer_line_enabled ?? true);
         
         if (data.header_left_lines) {
           setHeaderLeftLines(JSON.parse(JSON.stringify(data.header_left_lines)));
@@ -108,6 +110,7 @@ export default function PrescriptionSettingsDialog({ open, onOpenChange }: Presc
         header_background_color: headerBackgroundColor,
         header_line_spacing: parseInt(headerLineSpacing),
         barcode_enabled: barcodeEnabled,
+        footer_line_enabled: footerLineEnabled,
       };
 
       const { error } = await supabase
@@ -146,9 +149,10 @@ export default function PrescriptionSettingsDialog({ open, onOpenChange }: Presc
         </DialogHeader>
 
         <Tabs defaultValue="export" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="export">Export Settings</TabsTrigger>
             <TabsTrigger value="header">Header Settings</TabsTrigger>
+            <TabsTrigger value="preview">Preview</TabsTrigger>
           </TabsList>
 
           <TabsContent value="export" className="space-y-4">
@@ -221,9 +225,11 @@ export default function PrescriptionSettingsDialog({ open, onOpenChange }: Presc
               <div className="space-y-2">
                 <Label>Body Text Color</Label>
                 <div className="flex gap-2 items-center">
-                  <div
-                    className="w-10 h-10 rounded border"
-                    style={{ backgroundColor: bodyTextColor }}
+                  <Input
+                    type="color"
+                    value={bodyTextColor}
+                    onChange={(e) => setBodyTextColor(e.target.value)}
+                    className="w-20 h-10"
                   />
                   <Input
                     type="text"
@@ -237,9 +243,11 @@ export default function PrescriptionSettingsDialog({ open, onOpenChange }: Presc
               <div className="space-y-2">
                 <Label>Footer Text Color</Label>
                 <div className="flex gap-2 items-center">
-                  <div
-                    className="w-10 h-10 rounded border"
-                    style={{ backgroundColor: footerTextColor }}
+                  <Input
+                    type="color"
+                    value={footerTextColor}
+                    onChange={(e) => setFooterTextColor(e.target.value)}
+                    className="w-20 h-10"
                   />
                   <Input
                     type="text"
@@ -275,9 +283,11 @@ export default function PrescriptionSettingsDialog({ open, onOpenChange }: Presc
                 <div className="space-y-2">
                   <Label>Header Background Color</Label>
                   <div className="flex gap-2 items-center">
-                    <div
-                      className="w-10 h-10 rounded border"
-                      style={{ backgroundColor: headerBackgroundColor }}
+                    <Input
+                      type="color"
+                      value={headerBackgroundColor}
+                      onChange={(e) => setHeaderBackgroundColor(e.target.value)}
+                      className="w-20 h-10"
                     />
                     <Input
                       type="text"
@@ -286,6 +296,11 @@ export default function PrescriptionSettingsDialog({ open, onOpenChange }: Presc
                       placeholder="#ffffff"
                     />
                   </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <Label>Show Footer Line</Label>
+                  <Switch checked={footerLineEnabled} onCheckedChange={setFooterLineEnabled} />
                 </div>
 
                 <div className="space-y-2">
@@ -382,6 +397,103 @@ export default function PrescriptionSettingsDialog({ open, onOpenChange }: Presc
                 </div>
               </>
             )}
+          </TabsContent>
+
+          <TabsContent value="preview" className="space-y-4">
+            <div className="border rounded-lg p-4 bg-background">
+              <div className="text-sm text-muted-foreground mb-4">Preview of prescription layout:</div>
+              
+              {/* Header Preview */}
+              {!useOwnLetterhead && (
+                <div 
+                  className="p-4 mb-4 rounded"
+                  style={{ backgroundColor: headerBackgroundColor }}
+                >
+                  <div className="grid grid-cols-2 gap-4">
+                    <div style={{ fontFamily: headerFont }}>
+                      {headerLeftLines.map((line, index) => (
+                        line.text && (
+                          <div
+                            key={`preview-left-${index}`}
+                            style={{
+                              fontSize: `${line.fontSize}px`,
+                              fontWeight: line.bold ? 'bold' : 'normal',
+                              textDecoration: line.underline ? 'underline' : 'none',
+                              marginBottom: `${headerLineSpacing}px`,
+                            }}
+                          >
+                            {line.text}
+                          </div>
+                        )
+                      ))}
+                    </div>
+                    <div style={{ fontFamily: headerFont, textAlign: 'right' }}>
+                      {headerRightLines.map((line, index) => (
+                        line.text && (
+                          <div
+                            key={`preview-right-${index}`}
+                            style={{
+                              fontSize: `${line.fontSize}px`,
+                              fontWeight: line.bold ? 'bold' : 'normal',
+                              textDecoration: line.underline ? 'underline' : 'none',
+                              marginBottom: `${headerLineSpacing}px`,
+                            }}
+                          >
+                            {line.text}
+                          </div>
+                        )
+                      ))}
+                    </div>
+                  </div>
+                  {barcodeEnabled && (
+                    <div className="mt-4 flex justify-center">
+                      <div className="text-xs text-muted-foreground border px-4 py-2 rounded">
+                        [Patient ID Barcode]
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Body Preview */}
+              <div 
+                className="p-4 min-h-[200px] rounded border"
+                style={{ 
+                  fontFamily: bodyFont,
+                  fontSize: `${bodyFontSize}px`,
+                  color: bodyTextColor,
+                }}
+              >
+                <div className="mb-2">
+                  <strong>Patient Name:</strong> Sample Patient
+                </div>
+                <div className="mb-4">
+                  <strong>Date:</strong> {new Date().toLocaleDateString()}
+                </div>
+                <div>
+                  <strong>Prescription:</strong>
+                  <div className="mt-2">
+                    This is a sample prescription text to show how your body content will appear with the selected font, size, and color.
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer Preview */}
+              <div className="mt-4">
+                {footerLineEnabled && (
+                  <div className="border-t border-border mb-2"></div>
+                )}
+                <div 
+                  className="text-center"
+                  style={{ 
+                    fontSize: `${footerFontSize}px`,
+                    color: footerTextColor,
+                  }}
+                >
+                  Generated on {new Date().toLocaleString()} | Patient ID: SAMPLE-001
+                </div>
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
 

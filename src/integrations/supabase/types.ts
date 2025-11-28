@@ -443,6 +443,7 @@ export type Database = {
           body_text_color: string
           created_at: string
           footer_font_size: number
+          footer_line_enabled: boolean
           footer_text_color: string
           header_background_color: string
           header_font: string
@@ -462,6 +463,7 @@ export type Database = {
           body_text_color?: string
           created_at?: string
           footer_font_size?: number
+          footer_line_enabled?: boolean
           footer_text_color?: string
           header_background_color?: string
           header_font?: string
@@ -481,6 +483,7 @@ export type Database = {
           body_text_color?: string
           created_at?: string
           footer_font_size?: number
+          footer_line_enabled?: boolean
           footer_text_color?: string
           header_background_color?: string
           header_font?: string
