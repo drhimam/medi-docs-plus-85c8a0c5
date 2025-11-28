@@ -55,13 +55,13 @@ export const exportPrescriptionToPDF = (
         const canvas = document.createElement("canvas");
         JsBarcode(canvas, patientId, {
           format: "CODE128",
-          width: 2,
-          height: 40,
+          width: 1.5,
+          height: 30,
           displayValue: true,
-          fontSize: 12,
+          fontSize: 10,
         });
         const barcodeImage = canvas.toDataURL("image/png");
-        doc.addImage(barcodeImage, "PNG", pageWidth - 80, 10, 60, 20);
+        doc.addImage(barcodeImage, "PNG", pageWidth - 60, 10, 50, 16);
       } catch (error) {
         console.error("Error generating barcode:", error);
       }
