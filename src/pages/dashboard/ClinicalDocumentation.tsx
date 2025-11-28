@@ -732,6 +732,7 @@ ${prescription}
         header_background_color: settings.header_background_color,
         header_line_spacing: settings.header_line_spacing,
         barcode_enabled: settings.barcode_enabled,
+        footer_line_enabled: settings.footer_line_enabled ?? true,
       } : undefined;
       
       exportPrescriptionWithSettings(prescription, patient.id, patientName, formattedSettings);
