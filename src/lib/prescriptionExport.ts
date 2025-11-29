@@ -23,16 +23,21 @@ interface PrescriptionSettings {
   header_line_spacing: number;
   barcode_enabled: boolean;
   footer_line_enabled: boolean;
+  logo_path?: string;
+  logo_position?: string;
+  logo_width?: number;
+  logo_height?: number;
 }
 
-export const exportPrescriptionToPDF = (
+export const exportPrescriptionToPDF = async (
   prescription: string,
   patientId: string,
   patientName: string,
   patientAge?: string,
   patientContact?: string,
   patientAddress?: string,
-  settings?: PrescriptionSettings
+  settings?: PrescriptionSettings,
+  logoDataUrl?: string
 ) => {
   const doc = new jsPDF({
     format: settings?.paper_size === "a4" ? "a4" : "letter",
@@ -52,6 +57,24 @@ export const exportPrescriptionToPDF = (
       doc.rect(0, 0, pageWidth, 60, "F");
     }
 
+    // Add logo if provided
+    if (logoDataUrl && settings.logo_path) {
+      const logoWidth = settings.logo_width || 60;
+      const logoHeight = settings.logo_height || 40;
+      let logoX = margin;
+      
+      if (settings.logo_position === 'top-center') {
+        logoX = (pageWidth - logoWidth) / 2;
+      } else if (settings.logo_position === 'top-right') {
+        logoX = pageWidth - margin - logoWidth;
+      }
+      
+      try {
+        doc.addImage(logoDataUrl, 'PNG', logoX, 10, logoWidth, logoHeight);
+      } catch (error) {
+        console.error("Error adding logo:", error);
+      }
+    }
 
     // Add header text
     const leftX = margin;

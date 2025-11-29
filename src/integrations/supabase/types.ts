@@ -451,6 +451,10 @@ export type Database = {
           header_line_spacing: number
           header_right_lines: Json
           id: string
+          logo_height: number | null
+          logo_path: string | null
+          logo_position: string | null
+          logo_width: number | null
           paper_size: string
           updated_at: string
           use_own_letterhead: boolean
@@ -471,6 +475,10 @@ export type Database = {
           header_line_spacing?: number
           header_right_lines?: Json
           id?: string
+          logo_height?: number | null
+          logo_path?: string | null
+          logo_position?: string | null
+          logo_width?: number | null
           paper_size?: string
           updated_at?: string
           use_own_letterhead?: boolean
@@ -491,6 +499,10 @@ export type Database = {
           header_line_spacing?: number
           header_right_lines?: Json
           id?: string
+          logo_height?: number | null
+          logo_path?: string | null
+          logo_position?: string | null
+          logo_width?: number | null
           paper_size?: string
           updated_at?: string
           use_own_letterhead?: boolean

@@ -748,16 +748,41 @@ ${prescription}
         header_line_spacing: settings.header_line_spacing,
         barcode_enabled: settings.barcode_enabled,
         footer_line_enabled: settings.footer_line_enabled ?? true,
+        logo_path: settings.logo_path,
+        logo_position: settings.logo_position,
+        logo_width: settings.logo_width,
+        logo_height: settings.logo_height,
       } : undefined;
       
-      exportPrescriptionWithSettings(
+      // Get logo data URL if exists
+      let logoDataUrl;
+      if (settings?.logo_path) {
+        const { data: { publicUrl } } = supabase.storage
+          .from('prescription-logos')
+          .getPublicUrl(settings.logo_path);
+        
+        try {
+          const response = await fetch(publicUrl);
+          const blob = await response.blob();
+          logoDataUrl = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(blob);
+          });
+        } catch (error) {
+          console.error("Error loading logo:", error);
+        }
+      }
+      
+      await exportPrescriptionWithSettings(
         prescription, 
         patient.id, 
         patientName,
         patientAge,
         patient.contact_number,
         patient.address || undefined,
-        formattedSettings
+        formattedSettings,
+        logoDataUrl
       );
       
       toast({
