@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
-import { Bold, Underline } from "lucide-react";
+import { Bold, Underline, Upload, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -42,6 +42,12 @@ export default function PrescriptionSettingsDialog({ open, onOpenChange }: Presc
   const [headerLineSpacing, setHeaderLineSpacing] = useState("6");
   const [barcodeEnabled, setBarcodeEnabled] = useState(true);
   const [footerLineEnabled, setFooterLineEnabled] = useState(true);
+  const [logoPath, setLogoPath] = useState<string>("");
+  const [logoPosition, setLogoPosition] = useState("top-left");
+  const [logoWidth, setLogoWidth] = useState("60");
+  const [logoHeight, setLogoHeight] = useState("40");
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -76,6 +82,17 @@ export default function PrescriptionSettingsDialog({ open, onOpenChange }: Presc
         setHeaderLineSpacing(data.header_line_spacing.toString());
         setBarcodeEnabled(data.barcode_enabled);
         setFooterLineEnabled(data.footer_line_enabled ?? true);
+        setLogoPath(data.logo_path || "");
+        setLogoPosition(data.logo_position || "top-left");
+        setLogoWidth(data.logo_width?.toString() || "60");
+        setLogoHeight(data.logo_height?.toString() || "40");
+        
+        if (data.logo_path) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('prescription-logos')
+            .getPublicUrl(data.logo_path);
+          setLogoPreview(publicUrl);
+        }
         
         if (data.header_left_lines) {
           setHeaderLeftLines(JSON.parse(JSON.stringify(data.header_left_lines)));
@@ -95,6 +112,28 @@ export default function PrescriptionSettingsDialog({ open, onOpenChange }: Presc
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      let uploadedLogoPath = logoPath;
+
+      // Upload logo if new file selected
+      if (logoFile) {
+        const fileExt = logoFile.name.split('.').pop();
+        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+        
+        // Delete old logo if exists
+        if (logoPath) {
+          await supabase.storage
+            .from('prescription-logos')
+            .remove([logoPath]);
+        }
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('prescription-logos')
+          .upload(fileName, logoFile);
+
+        if (uploadError) throw uploadError;
+        uploadedLogoPath = uploadData.path;
+      }
+
       const settings = {
         user_id: user.id,
         paper_size: paperSize,
@@ -111,6 +150,10 @@ export default function PrescriptionSettingsDialog({ open, onOpenChange }: Presc
         header_line_spacing: parseInt(headerLineSpacing),
         barcode_enabled: barcodeEnabled,
         footer_line_enabled: footerLineEnabled,
+        logo_path: uploadedLogoPath || null,
+        logo_position: logoPosition,
+        logo_width: parseInt(logoWidth),
+        logo_height: parseInt(logoHeight),
       };
 
       const { error } = await supabase
@@ -141,6 +184,41 @@ export default function PrescriptionSettingsDialog({ open, onOpenChange }: Presc
     side === "left" ? setHeaderLeftLines(lines) : setHeaderRightLines(lines);
   };
 
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast({
+          title: "Error",
+          description: "Logo file size must be less than 2MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      setLogoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveLogo = async () => {
+    if (logoPath) {
+      try {
+        await supabase.storage
+          .from('prescription-logos')
+          .remove([logoPath]);
+      } catch (error) {
+        console.error("Error removing logo:", error);
+      }
+    }
+    setLogoPath("");
+    setLogoFile(null);
+    setLogoPreview("");
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -149,9 +227,10 @@ export default function PrescriptionSettingsDialog({ open, onOpenChange }: Presc
         </DialogHeader>
 
         <Tabs defaultValue="export" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="export">Export Settings</TabsTrigger>
             <TabsTrigger value="header">Header Settings</TabsTrigger>
+            <TabsTrigger value="logo">Logo Settings</TabsTrigger>
             <TabsTrigger value="preview">Preview</TabsTrigger>
           </TabsList>
 
@@ -397,6 +476,90 @@ export default function PrescriptionSettingsDialog({ open, onOpenChange }: Presc
                 </div>
               </>
             )}
+          </TabsContent>
+
+          <TabsContent value="logo" className="space-y-4">
+            <Card className="p-4 space-y-4">
+              <div className="space-y-2">
+                <Label>Upload Logo</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    className="flex-1"
+                  />
+                  {(logoPreview || logoPath) && (
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      onClick={handleRemoveLogo}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Recommended: PNG or JPG, max 2MB. Logo will appear in prescription header.
+                </p>
+              </div>
+
+              {logoPreview && (
+                <div className="space-y-2">
+                  <Label>Logo Preview</Label>
+                  <div className="border rounded p-4 bg-muted/50 flex justify-center">
+                    <img
+                      src={logoPreview}
+                      alt="Logo preview"
+                      style={{ 
+                        width: `${logoWidth}px`, 
+                        height: `${logoHeight}px`,
+                        objectFit: 'contain'
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label>Logo Position</Label>
+                <Select value={logoPosition} onValueChange={setLogoPosition}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="top-left">Top Left</SelectItem>
+                    <SelectItem value="top-center">Top Center</SelectItem>
+                    <SelectItem value="top-right">Top Right</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Logo Width (px)</Label>
+                  <Input
+                    type="number"
+                    value={logoWidth}
+                    onChange={(e) => setLogoWidth(e.target.value)}
+                    min="20"
+                    max="200"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Logo Height (px)</Label>
+                  <Input
+                    type="number"
+                    value={logoHeight}
+                    onChange={(e) => setLogoHeight(e.target.value)}
+                    min="20"
+                    max="200"
+                  />
+                </div>
+              </div>
+            </Card>
           </TabsContent>
 
           <TabsContent value="preview" className="space-y-4">
