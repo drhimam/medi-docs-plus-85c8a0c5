@@ -27,6 +27,10 @@ interface PrescriptionSettings {
   logo_position?: string;
   logo_width?: number;
   logo_height?: number;
+  signature_path?: string;
+  signature_position?: string;
+  signature_width?: number;
+  signature_height?: number;
 }
 
 export const exportPrescriptionToPDF = async (
@@ -37,7 +41,8 @@ export const exportPrescriptionToPDF = async (
   patientContact?: string,
   patientAddress?: string,
   settings?: PrescriptionSettings,
-  logoDataUrl?: string
+  logoDataUrl?: string,
+  signatureDataUrl?: string
 ) => {
   const doc = new jsPDF({
     format: settings?.paper_size === "a4" ? "a4" : "letter",
@@ -209,6 +214,26 @@ export const exportPrescriptionToPDF = async (
   }
   doc.setFont("helvetica", "italic");
   doc.text("This prescription is computer generated and valid.", margin, yPosition);
+
+  // Add digital signature if provided
+  if (signatureDataUrl && settings?.signature_path) {
+    const sigWidth = settings.signature_width || 80;
+    const sigHeight = settings.signature_height || 40;
+    let sigX = margin;
+    const sigY = pageHeight - 55;
+    
+    if (settings.signature_position === 'bottom-center') {
+      sigX = (pageWidth - sigWidth) / 2;
+    } else if (settings.signature_position === 'bottom-right') {
+      sigX = pageWidth - margin - sigWidth;
+    }
+    
+    try {
+      doc.addImage(signatureDataUrl, 'PNG', sigX, sigY, sigWidth, sigHeight);
+    } catch (error) {
+      console.error("Error adding signature:", error);
+    }
+  }
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, -5);
   doc.save(`Prescription_${patientName.replace(/\s+/g, "_")}_${timestamp}.pdf`);

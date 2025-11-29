@@ -48,6 +48,12 @@ export default function PrescriptionSettingsDialog({ open, onOpenChange }: Presc
   const [logoHeight, setLogoHeight] = useState("40");
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string>("");
+  const [signaturePath, setSignaturePath] = useState<string>("");
+  const [signaturePosition, setSignaturePosition] = useState("bottom-right");
+  const [signatureWidth, setSignatureWidth] = useState("80");
+  const [signatureHeight, setSignatureHeight] = useState("40");
+  const [signatureFile, setSignatureFile] = useState<File | null>(null);
+  const [signaturePreview, setSignaturePreview] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -86,12 +92,23 @@ export default function PrescriptionSettingsDialog({ open, onOpenChange }: Presc
         setLogoPosition(data.logo_position || "top-left");
         setLogoWidth(data.logo_width?.toString() || "60");
         setLogoHeight(data.logo_height?.toString() || "40");
+        setSignaturePath(data.signature_path || "");
+        setSignaturePosition(data.signature_position || "bottom-right");
+        setSignatureWidth(data.signature_width?.toString() || "80");
+        setSignatureHeight(data.signature_height?.toString() || "40");
         
         if (data.logo_path) {
           const { data: { publicUrl } } = supabase.storage
             .from('prescription-logos')
             .getPublicUrl(data.logo_path);
           setLogoPreview(publicUrl);
+        }
+        
+        if (data.signature_path) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('prescription-signatures')
+            .getPublicUrl(data.signature_path);
+          setSignaturePreview(publicUrl);
         }
         
         if (data.header_left_lines) {
@@ -113,6 +130,7 @@ export default function PrescriptionSettingsDialog({ open, onOpenChange }: Presc
       if (!user) throw new Error("Not authenticated");
 
       let uploadedLogoPath = logoPath;
+      let uploadedSignaturePath = signaturePath;
 
       // Upload logo if new file selected
       if (logoFile) {
@@ -132,6 +150,26 @@ export default function PrescriptionSettingsDialog({ open, onOpenChange }: Presc
 
         if (uploadError) throw uploadError;
         uploadedLogoPath = uploadData.path;
+      }
+
+      // Upload signature if new file selected
+      if (signatureFile) {
+        const fileExt = signatureFile.name.split('.').pop();
+        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+        
+        // Delete old signature if exists
+        if (signaturePath) {
+          await supabase.storage
+            .from('prescription-signatures')
+            .remove([signaturePath]);
+        }
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('prescription-signatures')
+          .upload(fileName, signatureFile);
+
+        if (uploadError) throw uploadError;
+        uploadedSignaturePath = uploadData.path;
       }
 
       const settings = {
@@ -154,6 +192,10 @@ export default function PrescriptionSettingsDialog({ open, onOpenChange }: Presc
         logo_position: logoPosition,
         logo_width: parseInt(logoWidth),
         logo_height: parseInt(logoHeight),
+        signature_path: uploadedSignaturePath || null,
+        signature_position: signaturePosition,
+        signature_width: parseInt(signatureWidth),
+        signature_height: parseInt(signatureHeight),
       };
 
       const { error } = await supabase
@@ -219,6 +261,41 @@ export default function PrescriptionSettingsDialog({ open, onOpenChange }: Presc
     setLogoPreview("");
   };
 
+  const handleSignatureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast({
+          title: "Error",
+          description: "Signature file size must be less than 2MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      setSignatureFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSignaturePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveSignature = async () => {
+    if (signaturePath) {
+      try {
+        await supabase.storage
+          .from('prescription-signatures')
+          .remove([signaturePath]);
+      } catch (error) {
+        console.error("Error removing signature:", error);
+      }
+    }
+    setSignaturePath("");
+    setSignatureFile(null);
+    setSignaturePreview("");
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -227,10 +304,11 @@ export default function PrescriptionSettingsDialog({ open, onOpenChange }: Presc
         </DialogHeader>
 
         <Tabs defaultValue="export" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="export">Export Settings</TabsTrigger>
             <TabsTrigger value="header">Header Settings</TabsTrigger>
-            <TabsTrigger value="logo">Logo Settings</TabsTrigger>
+            <TabsTrigger value="logo">Logo</TabsTrigger>
+            <TabsTrigger value="signature">Signature</TabsTrigger>
             <TabsTrigger value="preview">Preview</TabsTrigger>
           </TabsList>
 
@@ -556,6 +634,90 @@ export default function PrescriptionSettingsDialog({ open, onOpenChange }: Presc
                     onChange={(e) => setLogoHeight(e.target.value)}
                     min="20"
                     max="200"
+                  />
+                </div>
+              </div>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="signature" className="space-y-4">
+            <Card className="p-4 space-y-4">
+              <div className="space-y-2">
+                <Label>Upload Digital Signature</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleSignatureUpload}
+                    className="flex-1"
+                  />
+                  {(signaturePreview || signaturePath) && (
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      onClick={handleRemoveSignature}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Recommended: PNG with transparent background, max 2MB. Signature will appear at the bottom of prescription.
+                </p>
+              </div>
+
+              {signaturePreview && (
+                <div className="space-y-2">
+                  <Label>Signature Preview</Label>
+                  <div className="border rounded p-4 bg-muted/50 flex justify-center">
+                    <img
+                      src={signaturePreview}
+                      alt="Signature preview"
+                      style={{ 
+                        width: `${signatureWidth}px`, 
+                        height: `${signatureHeight}px`,
+                        objectFit: 'contain'
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label>Signature Position</Label>
+                <Select value={signaturePosition} onValueChange={setSignaturePosition}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bottom-left">Bottom Left</SelectItem>
+                    <SelectItem value="bottom-center">Bottom Center</SelectItem>
+                    <SelectItem value="bottom-right">Bottom Right</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Signature Width (px)</Label>
+                  <Input
+                    type="number"
+                    value={signatureWidth}
+                    onChange={(e) => setSignatureWidth(e.target.value)}
+                    min="40"
+                    max="200"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Signature Height (px)</Label>
+                  <Input
+                    type="number"
+                    value={signatureHeight}
+                    onChange={(e) => setSignatureHeight(e.target.value)}
+                    min="20"
+                    max="150"
                   />
                 </div>
               </div>

@@ -456,6 +456,10 @@ export type Database = {
           logo_position: string | null
           logo_width: number | null
           paper_size: string
+          signature_height: number | null
+          signature_path: string | null
+          signature_position: string | null
+          signature_width: number | null
           updated_at: string
           use_own_letterhead: boolean
           user_id: string
@@ -480,6 +484,10 @@ export type Database = {
           logo_position?: string | null
           logo_width?: number | null
           paper_size?: string
+          signature_height?: number | null
+          signature_path?: string | null
+          signature_position?: string | null
+          signature_width?: number | null
           updated_at?: string
           use_own_letterhead?: boolean
           user_id: string
@@ -504,6 +512,10 @@ export type Database = {
           logo_position?: string | null
           logo_width?: number | null
           paper_size?: string
+          signature_height?: number | null
+          signature_path?: string | null
+          signature_position?: string | null
+          signature_width?: number | null
           updated_at?: string
           use_own_letterhead?: boolean
           user_id?: string
