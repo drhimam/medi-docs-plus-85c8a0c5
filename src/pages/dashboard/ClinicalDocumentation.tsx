@@ -752,6 +752,10 @@ ${prescription}
         logo_position: settings.logo_position,
         logo_width: settings.logo_width,
         logo_height: settings.logo_height,
+        signature_path: settings.signature_path,
+        signature_position: settings.signature_position,
+        signature_width: settings.signature_width,
+        signature_height: settings.signature_height,
       } : undefined;
       
       // Get logo data URL if exists
@@ -773,6 +777,26 @@ ${prescription}
           console.error("Error loading logo:", error);
         }
       }
+
+      // Get signature data URL if exists
+      let signatureDataUrl;
+      if (settings?.signature_path) {
+        const { data: { publicUrl } } = supabase.storage
+          .from('prescription-signatures')
+          .getPublicUrl(settings.signature_path);
+        
+        try {
+          const response = await fetch(publicUrl);
+          const blob = await response.blob();
+          signatureDataUrl = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(blob);
+          });
+        } catch (error) {
+          console.error("Error loading signature:", error);
+        }
+      }
       
       await exportPrescriptionWithSettings(
         prescription, 
@@ -782,7 +806,8 @@ ${prescription}
         patient.contact_number,
         patient.address || undefined,
         formattedSettings,
-        logoDataUrl
+        logoDataUrl,
+        signatureDataUrl
       );
       
       toast({
