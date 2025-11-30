@@ -147,32 +147,34 @@ export const exportPrescriptionToPDF = async (
     });
   };
 
-  // Add patient information
+  // Add patient information - compact layout
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  doc.text("Prescription", margin, yPosition);
-  yPosition += 10;
-
-  doc.setFont("helvetica", "normal");
   doc.setFontSize(11);
-  doc.text(`Patient: ${patientName}`, margin, yPosition);
-  yPosition += 7;
-  doc.text(`Patient ID: ${patientId}`, margin, yPosition);
-  yPosition += 7;
+  
+  // Line 1: Patient name and Age
+  let line1 = `Patient: ${patientName}`;
   if (patientAge) {
-    doc.text(`Age: ${patientAge}`, margin, yPosition);
-    yPosition += 7;
+    line1 += `  |  Age: ${patientAge}`;
   }
+  line1 += `  |  Date: ${new Date().toLocaleDateString()}`;
+  doc.text(line1, margin, yPosition);
+  yPosition += 6;
+
+  // Line 2: Contact and Gender (if available)
+  doc.setFont("helvetica", "normal");
   if (patientContact) {
-    doc.text(`Contact: ${patientContact}`, margin, yPosition);
-    yPosition += 7;
+    let line2 = `Contact: ${patientContact}`;
+    doc.text(line2, margin, yPosition);
+    yPosition += 6;
   }
+
+  // Line 3: Address
   if (patientAddress) {
     doc.text(`Address: ${patientAddress}`, margin, yPosition);
-    yPosition += 7;
+    yPosition += 6;
   }
-  doc.text(`Date: ${new Date().toLocaleDateString()}`, margin, yPosition);
-  yPosition += 10;
+  
+  yPosition += 4;
 
   // Add barcode if enabled
   if (settings?.barcode_enabled && patientId) {
