@@ -2,11 +2,12 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import { TextStyle } from '@tiptap/extension-text-style';
+import { Underline } from '@tiptap/extension-underline';
 import { Extension } from '@tiptap/core';
 import { Button } from '@/components/ui/button';
 import { 
   Bold, Italic, List, ListOrdered, Heading1, Heading2, Heading3,
-  Undo, Redo, Quote 
+  Undo, Redo, Quote, Underline as UnderlineIcon
 } from 'lucide-react';
 import {
   Select,
@@ -55,6 +56,7 @@ export const RichTextEditor = ({ content, onChange, placeholder }: RichTextEdito
       StarterKit,
       TextStyle,
       FontSize,
+      Underline,
       Placeholder.configure({
         placeholder: placeholder || 'Write something...',
       }),
@@ -100,6 +102,15 @@ export const RichTextEditor = ({ content, onChange, placeholder }: RichTextEdito
           className={editor.isActive('italic') ? 'bg-accent' : ''}
         >
           <Italic className="h-4 w-4" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => editor.chain().focus().toggleUnderline().run()}
+          className={editor.isActive('underline') ? 'bg-accent' : ''}
+        >
+          <UnderlineIcon className="h-4 w-4" />
         </Button>
         <div className="h-6 w-px bg-border mx-1" />
         <Button
