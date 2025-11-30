@@ -33,6 +33,20 @@ interface PrescriptionSettings {
   signature_height?: number;
 }
 
+// Function to strip markdown formatting
+const stripMarkdown = (text: string): string => {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, '$1') // Remove bold **text**
+    .replace(/\*(.+?)\*/g, '$1')     // Remove italic *text*
+    .replace(/__(.+?)__/g, '$1')     // Remove bold __text__
+    .replace(/_(.+?)_/g, '$1')       // Remove italic _text_
+    .replace(/~~(.+?)~~/g, '$1')     // Remove strikethrough ~~text~~
+    .replace(/`(.+?)`/g, '$1')       // Remove inline code `text`
+    .replace(/#{1,6}\s/g, '')        // Remove heading markers
+    .replace(/\[(.+?)\]\(.+?\)/g, '$1') // Remove links [text](url)
+    .replace(/!\[(.+?)\]\(.+?\)/g, '$1'); // Remove images ![alt](url)
+};
+
 export const exportPrescriptionToPDF = async (
   prescription: string,
   patientId: string,
@@ -54,8 +68,11 @@ export const exportPrescriptionToPDF = async (
   const maxWidth = pageWidth - 2 * margin;
   let yPosition = 20;
 
-  // Add header if not using own letterhead
-  if (!settings?.use_own_letterhead && settings) {
+  // Function to draw header
+  const drawHeader = () => {
+    yPosition = 20;
+    
+    if (!settings?.use_own_letterhead && settings) {
     // Draw header background
     if (settings.header_background_color && settings.header_background_color !== "#ffffff") {
       doc.setFillColor(settings.header_background_color);
@@ -117,11 +134,15 @@ export const exportPrescriptionToPDF = async (
       }
     });
 
-    // Draw separator line
-    doc.setDrawColor(200, 200, 200);
-    doc.line(margin, 65, pageWidth - margin, 65);
-    yPosition = 75;
-  }
+      // Draw separator line
+      doc.setDrawColor(200, 200, 200);
+      doc.line(margin, 65, pageWidth - margin, 65);
+      yPosition = 75;
+    }
+  };
+
+  // Draw initial header
+  drawHeader();
 
   // Add prescription content
   const addText = (text: string, fontSize?: number, color?: string) => {
@@ -140,7 +161,7 @@ export const exportPrescriptionToPDF = async (
     lines.forEach((line: string) => {
       if (yPosition > pageHeight - 40) {
         doc.addPage();
-        yPosition = 20;
+        drawHeader(); // Draw header on new page
       }
       doc.text(line, margin, yPosition);
       yPosition += (fontSize || settings?.body_font_size || 12) / 2 + 3;
@@ -197,8 +218,9 @@ export const exportPrescriptionToPDF = async (
 
   yPosition += 5;
 
-  // Add prescription text
-  addText(prescription || "No prescription details");
+  // Add prescription text (strip markdown formatting)
+  const cleanPrescription = stripMarkdown(prescription || "No prescription details");
+  addText(cleanPrescription);
 
   // Add footer
   yPosition = pageHeight - 25;
