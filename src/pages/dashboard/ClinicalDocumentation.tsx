@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Save, X, FileText, Download, Sparkles, Eye, Edit, Loader2, Type, Languages, Bold, Italic, Underline, MoreVertical, ArrowUpDown, ExternalLink, Trash2, Settings } from "lucide-react";
+import { ArrowLeft, Save, X, FileText, Download, Sparkles, Eye, Edit, Loader2, MoreVertical, ArrowUpDown, ExternalLink, Trash2, Settings } from "lucide-react";
 import TranscribeButton from "@/components/TranscribeButton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -15,24 +15,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import DocumentUploadDialog from "@/components/visit/DocumentUploadDialog";
 import PrescriptionSettingsDialog from "@/components/prescription/PrescriptionSettingsDialog";
+import { PrescriptionPreviewDialog } from "@/components/prescription/PrescriptionPreviewDialog";
+import { RichTextEditor } from "@/components/knowledge/RichTextEditor";
 import jsPDF from "jspdf";
 import { exportPrescriptionToPDF as exportPrescriptionWithSettings } from "@/lib/prescriptionExport";
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuTrigger,
-  ContextMenuSub,
-  ContextMenuSubContent,
-  ContextMenuSubTrigger,
-} from "@/components/ui/context-menu";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 interface Patient {
   id: string;
@@ -97,10 +83,9 @@ export default function ClinicalDocumentation() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isViewMode, setIsViewMode] = useState(false);
   const [isGeneratingPrescription, setIsGeneratingPrescription] = useState(false);
-  const [selectedText, setSelectedText] = useState("");
-  const [fontSize, setFontSize] = useState("14");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const prescriptionRef = useRef<HTMLTextAreaElement>(null);
+  const [showPrescriptionPreview, setShowPrescriptionPreview] = useState(false);
+  const [generatedPrescription, setGeneratedPrescription] = useState("");
   const assessmentRef = useRef<HTMLTextAreaElement>(null);
   const planRef = useRef<HTMLTextAreaElement>(null);
 
@@ -458,7 +443,8 @@ export default function ClinicalDocumentation() {
 
       if (error) throw error;
 
-      setPrescription(data.prescription);
+      setGeneratedPrescription(data.prescription);
+      setShowPrescriptionPreview(true);
 
       toast({
         title: "Success",
@@ -476,87 +462,19 @@ export default function ClinicalDocumentation() {
     }
   };
 
-  const handleTranslateText = async (targetLanguage: string) => {
-    if (!selectedText) return;
-
-    try {
-      const { data, error } = await supabase.functions.invoke('translate-text', {
-        body: {
-          text: selectedText,
-          targetLanguage
-        }
-      });
-
-      if (error) throw error;
-
-      // Replace the selected text with the translated text
-      const textarea = document.activeElement as HTMLTextAreaElement;
-      if (textarea && textarea.tagName === 'TEXTAREA') {
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        const currentValue = textarea.value;
-        const newValue = currentValue.substring(0, start) + data.translatedText + currentValue.substring(end);
-        
-        setPrescription(newValue);
-      }
-
-      toast({
-        title: "Success",
-        description: "Text translated successfully",
-      });
-    } catch (error) {
-      console.error("Error translating text:", error);
-      toast({
-        title: "Error",
-        description: "Failed to translate text",
-        variant: "destructive",
-      });
+  const handleInsertPrescription = (location: "cursor" | "end") => {
+    if (location === "end") {
+      const separator = prescription ? "\n\n" : "";
+      setPrescription(prescription + separator + generatedPrescription);
+    } else {
+      // For cursor position, since we're using RichTextEditor, just append for now
+      // RichTextEditor doesn't expose cursor position easily
+      const separator = prescription ? "\n\n" : "";
+      setPrescription(prescription + separator + generatedPrescription);
     }
+    setGeneratedPrescription("");
   };
 
-  const wrapSelectedText = (wrapper: string) => {
-    const textarea = prescriptionRef.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = prescription.substring(start, end);
-    
-    if (!selectedText) return;
-
-    let wrappedText = "";
-    if (wrapper === "**") {
-      wrappedText = `**${selectedText}**`;
-    } else if (wrapper === "*") {
-      wrappedText = `*${selectedText}*`;
-    } else if (wrapper === "__") {
-      wrappedText = `__${selectedText}__`;
-    }
-
-    const newPrescription = prescription.substring(0, start) + wrappedText + prescription.substring(end);
-    setPrescription(newPrescription);
-
-    // Restore cursor position
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(start + wrapper.length, end + wrapper.length);
-    }, 0);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.ctrlKey || e.metaKey) {
-      if (e.key === 'b') {
-        e.preventDefault();
-        wrapSelectedText("**");
-      } else if (e.key === 'i') {
-        e.preventDefault();
-        wrapSelectedText("*");
-      } else if (e.key === 'u') {
-        e.preventDefault();
-        wrapSelectedText("__");
-      }
-    }
-  };
 
   const handleSave = async () => {
     try {
@@ -681,12 +599,16 @@ ${plan}
 
   const exportPrescriptionToMarkdown = () => {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+    
+    // Strip HTML tags for markdown export
+    const cleanPrescription = prescription.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ');
+    
     const content = `# Prescription
 **Visit ID:** ${visitId}
 **Patient:** ${patient.first_name} ${patient.last_name}
 **Date:** ${new Date().toLocaleDateString()}
 
-${prescription}
+${cleanPrescription}
 `;
     
     const blob = new Blob([content], { type: "text/markdown" });
@@ -698,6 +620,12 @@ ${prescription}
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Success",
+      description: "Prescription exported as Markdown",
+    });
+  };
     
     toast({
       title: "Success",
@@ -758,6 +686,9 @@ ${prescription}
         signature_height: settings.signature_height,
       } : undefined;
       
+      // Strip HTML tags from prescription for PDF export
+      const cleanPrescription = prescription.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ');
+      
       // Get logo data URL if exists
       let logoDataUrl;
       if (settings?.logo_path) {
@@ -799,7 +730,7 @@ ${prescription}
       }
       
       await exportPrescriptionWithSettings(
-        prescription, 
+        cleanPrescription, 
         patient.id, 
         patientName,
         patientAge,
@@ -1060,148 +991,43 @@ ${prescription}
 
               <TabsContent value="prescription" className="space-y-6 mt-6">
                 <div className="space-y-4">
-                  <div className="flex items-center gap-2 justify-between border-b pb-4">
-                    <div className="flex items-center gap-2">
-                      <TranscribeButton 
-                        onTranscription={(text) => {
-                          const textarea = prescriptionRef.current;
-                          if (textarea) {
-                            const start = textarea.selectionStart;
-                            const end = textarea.selectionEnd;
-                            const newValue = prescription.substring(0, start) + text + prescription.substring(end);
-                            setPrescription(newValue);
-                            setTimeout(() => {
-                              textarea.focus();
-                              textarea.selectionStart = textarea.selectionEnd = start + text.length;
-                            }, 0);
-                          }
-                        }}
-                        disabled={isViewMode}
-                      />
-                      <Button
-                        onClick={handleGeneratePrescription}
-                        disabled={isGeneratingPrescription}
-                        variant="outline"
-                        size="sm"
-                        className="gap-2"
-                      >
-                        {isGeneratingPrescription ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Generating...
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="h-4 w-4" />
-                            Generate Prescription
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => wrapSelectedText("**")}
-                        title="Bold (Ctrl+B)"
-                      >
-                        <Bold className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => wrapSelectedText("*")}
-                        title="Italic (Ctrl+I)"
-                      >
-                        <Italic className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => wrapSelectedText("__")}
-                        title="Underline (Ctrl+U)"
-                      >
-                        <Underline className="w-4 h-4" />
-                      </Button>
-                      <div className="h-6 w-px bg-border mx-1" />
-                      <Type className="h-4 w-4 text-muted-foreground" />
-                      <Select value={fontSize} onValueChange={setFontSize}>
-                        <SelectTrigger className="w-24">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="12">12px</SelectItem>
-                          <SelectItem value="14">14px</SelectItem>
-                          <SelectItem value="16">16px</SelectItem>
-                          <SelectItem value="18">18px</SelectItem>
-                          <SelectItem value="20">20px</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  <div className="flex items-center gap-2 border-b pb-4">
+                    <Button
+                      onClick={handleGeneratePrescription}
+                      disabled={isGeneratingPrescription || isViewMode}
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                    >
+                      {isGeneratingPrescription ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-4 w-4" />
+                          Generate Prescription
+                        </>
+                      )}
+                    </Button>
                   </div>
                   <div>
                     <Label>Prescription Details</Label>
-                    <ContextMenu>
-                      <ContextMenuTrigger>
-                        <Textarea
-                          ref={prescriptionRef}
-                          value={prescription}
-                          onChange={(e) => setPrescription(e.target.value)}
-                          onKeyDown={handleKeyDown}
-                          onSelect={(e) => {
-                            const target = e.target as HTMLTextAreaElement;
-                            const selected = target.value.substring(target.selectionStart, target.selectionEnd);
-                            setSelectedText(selected);
-                          }}
-                          className="min-h-[400px] font-mono"
-                          style={{ fontSize: `${fontSize}px` }}
-                          placeholder="Enter prescription details... (Right-click selected text to translate)"
+                    <div className="mt-2">
+                      {isViewMode ? (
+                        <div 
+                          className="prose prose-sm max-w-none border rounded-md p-4 min-h-[400px]"
+                          dangerouslySetInnerHTML={{ __html: prescription }}
                         />
-                      </ContextMenuTrigger>
-                      <ContextMenuContent>
-                        <ContextMenuSub>
-                          <ContextMenuSubTrigger>
-                            <Languages className="h-4 w-4 mr-2" />
-                            Translate Selection
-                          </ContextMenuSubTrigger>
-                          <ContextMenuSubContent>
-                            <ContextMenuItem onClick={() => handleTranslateText("Arabic")}>
-                              Arabic
-                            </ContextMenuItem>
-                            <ContextMenuItem onClick={() => handleTranslateText("Bengali")}>
-                              Bengali
-                            </ContextMenuItem>
-                            <ContextMenuItem onClick={() => handleTranslateText("Chinese")}>
-                              Chinese
-                            </ContextMenuItem>
-                            <ContextMenuItem onClick={() => handleTranslateText("French")}>
-                              French
-                            </ContextMenuItem>
-                            <ContextMenuItem onClick={() => handleTranslateText("German")}>
-                              German
-                            </ContextMenuItem>
-                            <ContextMenuItem onClick={() => handleTranslateText("Hindi")}>
-                              Hindi
-                            </ContextMenuItem>
-                            <ContextMenuItem onClick={() => handleTranslateText("Italian")}>
-                              Italian
-                            </ContextMenuItem>
-                            <ContextMenuItem onClick={() => handleTranslateText("Japanese")}>
-                              Japanese
-                            </ContextMenuItem>
-                            <ContextMenuItem onClick={() => handleTranslateText("Portuguese")}>
-                              Portuguese
-                            </ContextMenuItem>
-                            <ContextMenuItem onClick={() => handleTranslateText("Spanish")}>
-                              Spanish
-                            </ContextMenuItem>
-                          </ContextMenuSubContent>
-                        </ContextMenuSub>
-                      </ContextMenuContent>
-                    </ContextMenu>
+                      ) : (
+                        <RichTextEditor
+                          content={prescription}
+                          onChange={setPrescription}
+                          placeholder="Enter prescription details using the formatting toolbar above..."
+                        />
+                      )}
+                    </div>
                   </div>
                 </div>
               </TabsContent>
@@ -1326,6 +1152,13 @@ ${prescription}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <PrescriptionPreviewDialog
+        open={showPrescriptionPreview}
+        onOpenChange={setShowPrescriptionPreview}
+        generatedContent={generatedPrescription}
+        onInsert={handleInsertPrescription}
+      />
     </div>
   );
 }
