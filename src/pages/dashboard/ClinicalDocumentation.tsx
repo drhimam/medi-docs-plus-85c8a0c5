@@ -17,6 +17,7 @@ import DocumentUploadDialog from "@/components/visit/DocumentUploadDialog";
 import PrescriptionSettingsDialog from "@/components/prescription/PrescriptionSettingsDialog";
 import { PrescriptionPreviewDialog } from "@/components/prescription/PrescriptionPreviewDialog";
 import { RichTextEditor, RichTextEditorHandle } from "@/components/knowledge/RichTextEditor";
+import { TranslateButton } from "@/components/TranslateButton";
 import jsPDF from "jspdf";
 import { exportPrescriptionToPDF as exportPrescriptionWithSettings } from "@/lib/prescriptionExport";
 
@@ -607,8 +608,12 @@ ${plan}
   const exportPrescriptionToMarkdown = () => {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
     
-    // Strip HTML tags for markdown export
-    const cleanPrescription = prescription.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ');
+    // Convert HTML breaks to newlines, then strip remaining HTML tags
+    const cleanPrescription = prescription
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p>/gi, '\n')
+      .replace(/<[^>]*>/g, '')
+      .replace(/&nbsp;/g, ' ');
     
     const content = `# Prescription
 **Visit ID:** ${visitId}
@@ -687,8 +692,12 @@ ${cleanPrescription}
         signature_height: settings.signature_height,
       } : undefined;
       
-      // Strip HTML tags from prescription for PDF export
-      const cleanPrescription = prescription.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ');
+      // Convert HTML breaks to newlines, then strip remaining HTML tags
+      const cleanPrescription = prescription
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<\/p>/gi, '\n')
+        .replace(/<[^>]*>/g, '')
+        .replace(/&nbsp;/g, ' ');
       
       // Get logo data URL if exists
       let logoDataUrl;
@@ -1014,7 +1023,31 @@ ${cleanPrescription}
                     </Button>
                   </div>
                   <div>
-                    <Label>Prescription Details</Label>
+                    <div className="flex items-center justify-between mb-2">
+                      <Label>Prescription Details</Label>
+                      {!isViewMode && (
+                        <div className="flex gap-2">
+                          <TranscribeButton
+                            onTranscription={(text) => {
+                              const editor = prescriptionEditorRef.current?.getEditor();
+                              if (editor) {
+                                const formattedText = text.replace(/\n/g, '<br />');
+                                editor.chain().focus().insertContent(formattedText).run();
+                              }
+                            }}
+                            disabled={isViewMode}
+                          />
+                          <TranslateButton
+                            textToTranslate={prescription.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ')}
+                            onTranslation={(translatedText) => {
+                              const formattedText = translatedText.replace(/\n/g, '<br />');
+                              setPrescription(formattedText);
+                            }}
+                            disabled={isViewMode}
+                          />
+                        </div>
+                      )}
+                    </div>
                     <div className="mt-2">
                       {isViewMode ? (
                         <div 
