@@ -626,12 +626,6 @@ ${cleanPrescription}
       description: "Prescription exported as Markdown",
     });
   };
-    
-    toast({
-      title: "Success",
-      description: "Prescription exported as Markdown",
-    });
-  };
 
   const exportPrescriptionToPDF = async () => {
     try {
