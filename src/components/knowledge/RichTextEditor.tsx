@@ -1,4 +1,4 @@
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useEditor, EditorContent, Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import { TextStyle } from '@tiptap/extension-text-style';
@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { forwardRef, useImperativeHandle } from 'react';
 
 // Custom extension to handle fontSize
 const FontSize = Extension.create({
@@ -50,7 +51,12 @@ interface RichTextEditorProps {
   placeholder?: string;
 }
 
-export const RichTextEditor = ({ content, onChange, placeholder }: RichTextEditorProps) => {
+export interface RichTextEditorHandle {
+  getEditor: () => Editor | null;
+}
+
+export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
+  ({ content, onChange, placeholder }, ref) => {
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -71,6 +77,10 @@ export const RichTextEditor = ({ content, onChange, placeholder }: RichTextEdito
       },
     },
   });
+
+  useImperativeHandle(ref, () => ({
+    getEditor: () => editor,
+  }));
 
   const setFontSize = (size: string) => {
     if (editor) {
@@ -203,4 +213,6 @@ export const RichTextEditor = ({ content, onChange, placeholder }: RichTextEdito
       <EditorContent editor={editor} />
     </div>
   );
-};
+});
+
+RichTextEditor.displayName = 'RichTextEditor';
