@@ -4,6 +4,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Copy } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
 interface PrescriptionPreviewDialogProps {
   open: boolean;
@@ -19,20 +21,49 @@ export const PrescriptionPreviewDialog = ({
   onInsert,
 }: PrescriptionPreviewDialogProps) => {
   const [insertLocation, setInsertLocation] = useState<"cursor" | "end">("end");
+  const { toast } = useToast();
 
   const handleInsert = () => {
     onInsert(insertLocation);
     onOpenChange(false);
   };
 
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(generatedContent);
+      toast({
+        title: "Copied to clipboard",
+        description: "Prescription content has been copied",
+      });
+    } catch (error) {
+      toast({
+        title: "Copy failed",
+        description: "Failed to copy to clipboard",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[80vh]">
         <DialogHeader>
-          <DialogTitle>AI Generated Prescription</DialogTitle>
-          <DialogDescription>
-            Review the generated prescription and choose where to insert it
-          </DialogDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <DialogTitle>AI Generated Prescription</DialogTitle>
+              <DialogDescription>
+                Review the generated prescription and choose where to insert it
+              </DialogDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleCopy}
+              title="Copy to clipboard"
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
+          </div>
         </DialogHeader>
         
         <ScrollArea className="max-h-[400px] border rounded-md p-4 bg-muted/50">
