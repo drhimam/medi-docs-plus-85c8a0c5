@@ -18,8 +18,8 @@ Deno.serve(async (req) => {
     if (!targetLanguage || typeof targetLanguage !== 'string') {
       throw new Error("Target language is required and must be a string");
     }
-    if (text.length > 5000) {
-      throw new Error("Text must be 5000 characters or less");
+    if (text.length > 20000) {
+      throw new Error("Text must be 20000 characters or less");
     }
     if (targetLanguage.length > 50) {
       throw new Error("Target language must be 50 characters or less");

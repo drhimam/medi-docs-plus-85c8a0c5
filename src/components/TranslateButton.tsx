@@ -39,6 +39,7 @@ export const TranslateButton = ({ onTranslation, disabled, textToTranslate }: Tr
     { code: "ko", name: "Korean" },
     { code: "ar", name: "Arabic" },
     { code: "hi", name: "Hindi" },
+    { code: "bn", name: "Bengali" },
   ];
 
   const handleTranslate = async () => {

@@ -7,7 +7,7 @@ import { Extension } from '@tiptap/core';
 import { Button } from '@/components/ui/button';
 import { 
   Bold, Italic, List, ListOrdered, Heading1, Heading2, Heading3,
-  Undo, Redo, Quote, Underline as UnderlineIcon
+  Undo, Redo, Quote, Underline as UnderlineIcon, FileText
 } from 'lucide-react';
 import {
   Select,
@@ -45,6 +45,19 @@ const FontSize = Extension.create({
   },
 });
 
+// Custom extension for page break
+const PageBreak = Extension.create({
+  name: 'pageBreak',
+
+  addCommands() {
+    return {
+      insertPageBreak: () => ({ commands }: any) => {
+        return commands.insertContent('<div class="page-break" style="page-break-after: always; border-top: 2px dashed #ccc; margin: 20px 0; padding: 10px 0; text-align: center; color: #999;">───── Page Break ─────</div>');
+      },
+    } as any;
+  },
+});
+
 interface RichTextEditorProps {
   content: string;
   onChange: (content: string) => void;
@@ -63,6 +76,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
       TextStyle,
       FontSize,
       Underline,
+      PageBreak,
       Placeholder.configure({
         placeholder: placeholder || 'Write something...',
       }),
@@ -200,16 +214,28 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         >
           <Undo className="h-4 w-4" />
         </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => editor.chain().focus().redo().run()}
-          disabled={!editor.can().redo()}
-        >
-          <Redo className="h-4 w-4" />
-        </Button>
-      </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => editor.chain().focus().redo().run()}
+            disabled={!editor.can().redo()}
+          >
+            <Redo className="h-4 w-4" />
+          </Button>
+
+          <div className="w-px h-6 bg-border mx-1" />
+
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => (editor as any).chain().focus().insertPageBreak().run()}
+            title="Insert Page Break"
+          >
+            <FileText className="h-4 w-4" />
+          </Button>
+        </div>
       <EditorContent editor={editor} />
     </div>
   );
