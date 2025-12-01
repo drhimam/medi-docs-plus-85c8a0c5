@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import DocumentUploadDialog from "@/components/visit/DocumentUploadDialog";
 import PrescriptionSettingsDialog from "@/components/prescription/PrescriptionSettingsDialog";
 import { PrescriptionPreviewDialog } from "@/components/prescription/PrescriptionPreviewDialog";
-import { RichTextEditor } from "@/components/knowledge/RichTextEditor";
+import { RichTextEditor, RichTextEditorHandle } from "@/components/knowledge/RichTextEditor";
 import jsPDF from "jspdf";
 import { exportPrescriptionToPDF as exportPrescriptionWithSettings } from "@/lib/prescriptionExport";
 
@@ -88,6 +88,7 @@ export default function ClinicalDocumentation() {
   const [generatedPrescription, setGeneratedPrescription] = useState("");
   const assessmentRef = useRef<HTMLTextAreaElement>(null);
   const planRef = useRef<HTMLTextAreaElement>(null);
+  const prescriptionEditorRef = useRef<RichTextEditorHandle>(null);
 
   const [subjective, setSubjective] = useState("");
   const [objective, setObjective] = useState("");
@@ -463,15 +464,21 @@ export default function ClinicalDocumentation() {
   };
 
   const handleInsertPrescription = (location: "cursor" | "end") => {
-    if (location === "end") {
-      const separator = prescription ? "\n\n" : "";
-      setPrescription(prescription + separator + generatedPrescription);
+    const editor = prescriptionEditorRef.current?.getEditor();
+    if (!editor || !generatedPrescription) return;
+
+    // Convert line breaks to HTML for proper formatting
+    const formattedContent = generatedPrescription.replace(/\n/g, '<br />');
+    
+    if (location === "cursor") {
+      // Insert at current cursor position
+      editor.chain().focus().insertContent(formattedContent).run();
     } else {
-      // For cursor position, since we're using RichTextEditor, just append for now
-      // RichTextEditor doesn't expose cursor position easily
-      const separator = prescription ? "\n\n" : "";
-      setPrescription(prescription + separator + generatedPrescription);
+      // Append to end
+      editor.chain().focus().insertContent('<br /><br />' + formattedContent).run();
     }
+    
+    setShowPrescriptionPreview(false);
     setGeneratedPrescription("");
   };
 
@@ -1016,6 +1023,7 @@ ${cleanPrescription}
                         />
                       ) : (
                         <RichTextEditor
+                          ref={prescriptionEditorRef}
                           content={prescription}
                           onChange={setPrescription}
                           placeholder="Enter prescription details using the formatting toolbar above..."
