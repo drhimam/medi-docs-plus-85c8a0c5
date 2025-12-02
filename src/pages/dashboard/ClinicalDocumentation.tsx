@@ -1086,23 +1086,23 @@ ${cleanPrescription}
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <Label>Prescription Details</Label>
-                      {!isViewMode && (
-                        <div className="flex gap-2">
-                          <div data-transcribe-button>
-                            <TranscribeButton
-                              onTranscription={handleTranscribeComplete}
-                              disabled={isViewMode}
-                            />
-                          </div>
-                          <div data-translate-button>
-                            <TranslateButton
-                              textToTranslate={prescription.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ')}
-                              onTranslation={(translatedText) => handleTranslateComplete(translatedText, 'Selected Language')}
-                              disabled={isViewMode}
-                            />
-                          </div>
-                        </div>
-                      )}
+                    </div>
+                    
+                    {/* Hidden buttons for context menu triggers */}
+                    <div className="hidden">
+                      <div data-transcribe-button>
+                        <TranscribeButton
+                          onTranscription={handleTranscribeComplete}
+                          disabled={isViewMode}
+                        />
+                      </div>
+                      <div data-translate-button>
+                        <TranslateButton
+                          textToTranslate={prescription.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ')}
+                          onTranslation={(translatedText, languageName) => handleTranslateComplete(translatedText, languageName)}
+                          disabled={isViewMode}
+                        />
+                      </div>
                     </div>
                     <div className="mt-2">
                       {isViewMode ? (
@@ -1118,6 +1118,9 @@ ${cleanPrescription}
                               content={prescription}
                               onChange={setPrescription}
                               placeholder="Enter prescription details using the formatting toolbar above..."
+                              onTranscribe={handleContextMenuTranscribe}
+                              onTranslate={handleContextMenuTranslate}
+                              showTranscribeTranslate={true}
                             />
                           </ContextMenuTrigger>
                           <ContextMenuContent>
