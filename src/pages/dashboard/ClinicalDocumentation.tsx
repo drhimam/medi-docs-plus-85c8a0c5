@@ -18,6 +18,9 @@ import PrescriptionSettingsDialog from "@/components/prescription/PrescriptionSe
 import { PrescriptionPreviewDialog } from "@/components/prescription/PrescriptionPreviewDialog";
 import { RichTextEditor, RichTextEditorHandle } from "@/components/knowledge/RichTextEditor";
 import { TranslateButton } from "@/components/TranslateButton";
+import { TranscribeOutputDialog } from "@/components/transcribe/TranscribeOutputDialog";
+import { TranslateOutputDialog } from "@/components/translate/TranslateOutputDialog";
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu";
 import jsPDF from "jspdf";
 import { exportPrescriptionToPDF as exportPrescriptionWithSettings } from "@/lib/prescriptionExport";
 
@@ -87,6 +90,11 @@ export default function ClinicalDocumentation() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showPrescriptionPreview, setShowPrescriptionPreview] = useState(false);
   const [generatedPrescription, setGeneratedPrescription] = useState("");
+  const [showTranscribeOutput, setShowTranscribeOutput] = useState(false);
+  const [transcribedText, setTranscribedText] = useState("");
+  const [showTranslateOutput, setShowTranslateOutput] = useState(false);
+  const [translatedText, setTranslatedText] = useState("");
+  const [translatedLanguage, setTranslatedLanguage] = useState("");
   const assessmentRef = useRef<HTMLTextAreaElement>(null);
   const planRef = useRef<HTMLTextAreaElement>(null);
   const prescriptionEditorRef = useRef<RichTextEditorHandle>(null);
@@ -483,6 +491,57 @@ export default function ClinicalDocumentation() {
     setGeneratedPrescription("");
   };
 
+  const handleTranscribeComplete = (text: string) => {
+    setTranscribedText(text);
+    setShowTranscribeOutput(true);
+  };
+
+  const handleInsertTranscription = (location: "cursor" | "end") => {
+    const editor = prescriptionEditorRef.current?.getEditor();
+    if (!editor || !transcribedText) return;
+
+    const formattedContent = transcribedText.replace(/\n/g, '<br />');
+    
+    if (location === "cursor") {
+      editor.chain().focus().insertContent(formattedContent).run();
+    } else {
+      editor.chain().focus().insertContent('<br /><br />' + formattedContent).run();
+    }
+    
+    setShowTranscribeOutput(false);
+  };
+
+  const handleTranslateComplete = (text: string, language: string) => {
+    setTranslatedText(text);
+    setTranslatedLanguage(language);
+    setShowTranslateOutput(true);
+  };
+
+  const handleInsertTranslation = (location: "cursor" | "end") => {
+    const editor = prescriptionEditorRef.current?.getEditor();
+    if (!editor || !translatedText) return;
+
+    const formattedContent = translatedText.replace(/\n/g, '<br />');
+    
+    if (location === "cursor") {
+      editor.chain().focus().insertContent(formattedContent).run();
+    } else {
+      editor.chain().focus().insertContent('<br /><br />' + formattedContent).run();
+    }
+    
+    setShowTranslateOutput(false);
+  };
+
+  const handleContextMenuTranscribe = () => {
+    const button = document.querySelector('[data-transcribe-button]') as HTMLButtonElement;
+    if (button) button.click();
+  };
+
+  const handleContextMenuTranslate = () => {
+    const button = document.querySelector('[data-translate-button]') as HTMLButtonElement;
+    if (button) button.click();
+  };
+
 
   const handleSave = async () => {
     try {
@@ -608,8 +667,9 @@ ${plan}
   const exportPrescriptionToMarkdown = () => {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
     
-    // Convert HTML breaks to newlines, then strip remaining HTML tags
+    // Remove page break elements, convert HTML breaks to newlines, then strip remaining HTML tags
     const cleanPrescription = prescription
+      .replace(/<div[^>]*data-page-break="true"[^>]*>.*?<\/div>/gi, '\n\n\n')
       .replace(/<br\s*\/?>/gi, '\n')
       .replace(/<\/p>/gi, '\n')
       .replace(/<[^>]*>/g, '')
@@ -666,6 +726,14 @@ ${cleanPrescription}
       
       const patientAge = patient.date_of_birth ? calculateAge(patient.date_of_birth) : undefined;
       
+      // Remove page break elements, convert HTML breaks to newlines, then strip remaining HTML tags
+      const cleanPrescription = prescription
+        .replace(/<div[^>]*data-page-break="true"[^>]*>.*?<\/div>/gi, '\n\n\n')
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<\/p>/gi, '\n')
+        .replace(/<[^>]*>/g, '')
+        .replace(/&nbsp;/g, ' ');
+      
       // Convert settings to proper format if exists
       const formattedSettings = settings ? {
         paper_size: settings.paper_size,
@@ -691,13 +759,6 @@ ${cleanPrescription}
         signature_width: settings.signature_width,
         signature_height: settings.signature_height,
       } : undefined;
-      
-      // Convert HTML breaks to newlines, then strip remaining HTML tags
-      const cleanPrescription = prescription
-        .replace(/<br\s*\/?>/gi, '\n')
-        .replace(/<\/p>/gi, '\n')
-        .replace(/<[^>]*>/g, '')
-        .replace(/&nbsp;/g, ' ');
       
       // Get logo data URL if exists
       let logoDataUrl;
@@ -1027,24 +1088,19 @@ ${cleanPrescription}
                       <Label>Prescription Details</Label>
                       {!isViewMode && (
                         <div className="flex gap-2">
-                          <TranscribeButton
-                            onTranscription={(text) => {
-                              const editor = prescriptionEditorRef.current?.getEditor();
-                              if (editor) {
-                                const formattedText = text.replace(/\n/g, '<br />');
-                                editor.chain().focus().insertContent(formattedText).run();
-                              }
-                            }}
-                            disabled={isViewMode}
-                          />
-                          <TranslateButton
-                            textToTranslate={prescription.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ')}
-                            onTranslation={(translatedText) => {
-                              const formattedText = translatedText.replace(/\n/g, '<br />');
-                              setPrescription(formattedText);
-                            }}
-                            disabled={isViewMode}
-                          />
+                          <div data-transcribe-button>
+                            <TranscribeButton
+                              onTranscription={handleTranscribeComplete}
+                              disabled={isViewMode}
+                            />
+                          </div>
+                          <div data-translate-button>
+                            <TranslateButton
+                              textToTranslate={prescription.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ')}
+                              onTranslation={(translatedText) => handleTranslateComplete(translatedText, 'Selected Language')}
+                              disabled={isViewMode}
+                            />
+                          </div>
                         </div>
                       )}
                     </div>
@@ -1055,12 +1111,24 @@ ${cleanPrescription}
                           dangerouslySetInnerHTML={{ __html: prescription }}
                         />
                       ) : (
-                        <RichTextEditor
-                          ref={prescriptionEditorRef}
-                          content={prescription}
-                          onChange={setPrescription}
-                          placeholder="Enter prescription details using the formatting toolbar above..."
-                        />
+                        <ContextMenu>
+                          <ContextMenuTrigger>
+                            <RichTextEditor
+                              ref={prescriptionEditorRef}
+                              content={prescription}
+                              onChange={setPrescription}
+                              placeholder="Enter prescription details using the formatting toolbar above..."
+                            />
+                          </ContextMenuTrigger>
+                          <ContextMenuContent>
+                            <ContextMenuItem onClick={handleContextMenuTranscribe}>
+                              <span>Transcribe Audio</span>
+                            </ContextMenuItem>
+                            <ContextMenuItem onClick={handleContextMenuTranslate}>
+                              <span>Translate Text</span>
+                            </ContextMenuItem>
+                          </ContextMenuContent>
+                        </ContextMenu>
                       )}
                     </div>
                   </div>
@@ -1193,6 +1261,23 @@ ${cleanPrescription}
         onOpenChange={setShowPrescriptionPreview}
         generatedContent={generatedPrescription}
         onInsert={handleInsertPrescription}
+      />
+
+      <TranscribeOutputDialog
+        open={showTranscribeOutput}
+        onOpenChange={setShowTranscribeOutput}
+        transcribedText={transcribedText}
+        onInsertAtCursor={() => handleInsertTranscription("cursor")}
+        onInsertAtEnd={() => handleInsertTranscription("end")}
+      />
+
+      <TranslateOutputDialog
+        open={showTranslateOutput}
+        onOpenChange={setShowTranslateOutput}
+        translatedText={translatedText}
+        targetLanguage={translatedLanguage}
+        onInsertAtCursor={() => handleInsertTranslation("cursor")}
+        onInsertAtEnd={() => handleInsertTranslation("end")}
       />
     </div>
   );

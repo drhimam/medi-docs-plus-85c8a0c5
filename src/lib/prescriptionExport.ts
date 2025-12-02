@@ -218,9 +218,18 @@ export const exportPrescriptionToPDF = async (
 
   yPosition += 5;
 
-  // Add prescription text (strip markdown formatting)
+  // Add prescription text (strip markdown formatting and handle page breaks)
   const cleanPrescription = stripMarkdown(prescription || "No prescription details");
-  addText(cleanPrescription);
+  const sections = cleanPrescription.split(/\n\n\n/); // Split by page breaks (triple newlines after cleaning)
+  
+  sections.forEach((section, index) => {
+    if (index > 0) {
+      // Add new page for each section after page break
+      doc.addPage();
+      drawHeader();
+    }
+    addText(section.trim());
+  });
 
   // Add footer
   yPosition = pageHeight - 25;

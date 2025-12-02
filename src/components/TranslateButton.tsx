@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/popover";
 
 interface TranslateButtonProps {
-  onTranslation: (text: string) => void;
+  onTranslation: (text: string, languageName: string) => void;
   disabled?: boolean;
   textToTranslate: string;
 }
@@ -64,7 +64,8 @@ export const TranslateButton = ({ onTranslation, disabled, textToTranslate }: Tr
       if (error) throw error;
 
       if (data?.translatedText) {
-        onTranslation(data.translatedText);
+        const selectedLang = languages.find(l => l.code === targetLanguage);
+        onTranslation(data.translatedText, selectedLang?.name || targetLanguage);
         setIsOpen(false);
         toast({
           title: "Translation successful",

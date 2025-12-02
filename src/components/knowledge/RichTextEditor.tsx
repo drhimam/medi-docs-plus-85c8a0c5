@@ -52,7 +52,7 @@ const PageBreak = Extension.create({
   addCommands() {
     return {
       insertPageBreak: () => ({ commands }: any) => {
-        return commands.insertContent('<div class="page-break" style="page-break-after: always; border-top: 2px dashed #ccc; margin: 20px 0; padding: 10px 0; text-align: center; color: #999;">───── Page Break ─────</div>');
+        return commands.insertContent('<div class="page-break" style="page-break-after: always; border-top: 2px dashed #ccc; margin: 20px 0; padding: 10px 0; text-align: center; color: #999;" data-page-break="true">───── Page Break ─────</div>');
       },
     } as any;
   },
@@ -62,6 +62,7 @@ interface RichTextEditorProps {
   content: string;
   onChange: (content: string) => void;
   placeholder?: string;
+  onContextMenu?: (event: React.MouseEvent) => void;
 }
 
 export interface RichTextEditorHandle {
@@ -69,7 +70,7 @@ export interface RichTextEditorHandle {
 }
 
 export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
-  ({ content, onChange, placeholder }, ref) => {
+  ({ content, onChange, placeholder, onContextMenu }, ref) => {
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -108,7 +109,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
 
   return (
     <div className="border rounded-md">
-      <div className="border-b bg-muted/50 p-2 flex flex-wrap gap-1">
+      <div className="sticky top-0 z-10 border-b bg-muted/50 p-2 flex flex-wrap gap-1">
         <Button
           type="button"
           variant="ghost"
@@ -236,7 +237,9 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
             <FileText className="h-4 w-4" />
           </Button>
         </div>
-      <EditorContent editor={editor} />
+      <div onContextMenu={onContextMenu}>
+        <EditorContent editor={editor} />
+      </div>
     </div>
   );
 });
