@@ -7,7 +7,7 @@ import { Extension } from '@tiptap/core';
 import { Button } from '@/components/ui/button';
 import { 
   Bold, Italic, List, ListOrdered, Heading1, Heading2, Heading3,
-  Undo, Redo, Quote, Underline as UnderlineIcon, FileText
+  Undo, Redo, Quote, Underline as UnderlineIcon, FileText, Mic, Languages
 } from 'lucide-react';
 import {
   Select,
@@ -63,6 +63,9 @@ interface RichTextEditorProps {
   onChange: (content: string) => void;
   placeholder?: string;
   onContextMenu?: (event: React.MouseEvent) => void;
+  onTranscribe?: () => void;
+  onTranslate?: () => void;
+  showTranscribeTranslate?: boolean;
 }
 
 export interface RichTextEditorHandle {
@@ -70,7 +73,7 @@ export interface RichTextEditorHandle {
 }
 
 export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
-  ({ content, onChange, placeholder, onContextMenu }, ref) => {
+  ({ content, onChange, placeholder, onContextMenu, onTranscribe, onTranslate, showTranscribeTranslate = false }, ref) => {
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -109,7 +112,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
 
   return (
     <div className="border rounded-md">
-      <div className="sticky top-0 z-10 border-b bg-muted/50 p-2 flex flex-wrap gap-1">
+      <div className="sticky top-0 z-10 border-b bg-white p-2 flex flex-wrap gap-1">
         <Button
           type="button"
           variant="ghost"
@@ -236,6 +239,34 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
           >
             <FileText className="h-4 w-4" />
           </Button>
+
+          {showTranscribeTranslate && (
+            <>
+              <div className="w-px h-6 bg-border mx-1" />
+              
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={onTranscribe}
+                title="Transcribe Audio"
+                data-transcribe-button
+              >
+                <Mic className="h-4 w-4" />
+              </Button>
+
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={onTranslate}
+                title="Translate Text"
+                data-translate-button
+              >
+                <Languages className="h-4 w-4" />
+              </Button>
+            </>
+          )}
         </div>
       <div onContextMenu={onContextMenu}>
         <EditorContent editor={editor} />
