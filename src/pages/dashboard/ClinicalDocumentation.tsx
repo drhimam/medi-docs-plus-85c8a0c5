@@ -21,6 +21,7 @@ import { TranslateButton } from "@/components/TranslateButton";
 import { TranscribeOutputDialog } from "@/components/transcribe/TranscribeOutputDialog";
 import { TranslateOutputDialog } from "@/components/translate/TranslateOutputDialog";
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu";
+import { PrescriptionSnippetsDialog } from "@/components/prescription/PrescriptionSnippetsDialog";
 import jsPDF from "jspdf";
 import { exportPrescriptionToPDF as exportPrescriptionWithSettings } from "@/lib/prescriptionExport";
 
@@ -1082,6 +1083,16 @@ ${cleanPrescription}
                         </>
                       )}
                     </Button>
+                    <PrescriptionSnippetsDialog
+                      onInsert={(content) => {
+                        const editor = prescriptionEditorRef.current?.getEditor();
+                        if (editor) {
+                          const formattedContent = content.replace(/\n/g, '<br />');
+                          editor.chain().focus().insertContent(formattedContent).run();
+                        }
+                      }}
+                      currentContent={prescription}
+                    />
                   </div>
                   <div>
                     <div className="flex items-center justify-between mb-2">
