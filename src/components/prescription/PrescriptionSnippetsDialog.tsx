@@ -5,9 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { BookmarkPlus, Trash2, Edit2, Plus, Check, X, Copy, Star } from "lucide-react";
+import { BookmarkPlus, Trash2, Edit2, Plus, Check, X, Copy, Star, FileText } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +27,238 @@ interface Snippet {
   created_at: string;
 }
 
+interface PrescriptionTemplate {
+  id: string;
+  condition: string;
+  category: string;
+  content: string;
+}
+
+const PRESCRIPTION_TEMPLATES: PrescriptionTemplate[] = [
+  {
+    id: "hypertension-1",
+    condition: "Hypertension - Initial Treatment",
+    category: "Cardiovascular",
+    content: `Rx:
+1. Tab. Amlodipine 5mg
+   - Take one tablet once daily in the morning
+   - Duration: 30 days
+
+2. Tab. Telmisartan 40mg
+   - Take one tablet once daily in the morning
+   - Duration: 30 days
+
+Advice:
+- Low salt diet (<5g/day)
+- Regular exercise (30 min walk daily)
+- Avoid smoking and alcohol
+- Monitor BP daily and maintain a log
+- Follow up after 2 weeks`
+  },
+  {
+    id: "hypertension-2",
+    condition: "Hypertension - Follow-up (Controlled)",
+    category: "Cardiovascular",
+    content: `Rx:
+1. Tab. Amlodipine 5mg
+   - Continue one tablet once daily in the morning
+   - Duration: 30 days
+
+Advice:
+- Continue low salt diet
+- Maintain regular exercise routine
+- Continue BP monitoring
+- Follow up after 1 month`
+  },
+  {
+    id: "diabetes-1",
+    condition: "Type 2 Diabetes - Initial Treatment",
+    category: "Endocrine",
+    content: `Rx:
+1. Tab. Metformin 500mg
+   - Take one tablet twice daily after meals
+   - Duration: 30 days
+
+2. Tab. Glimepiride 1mg
+   - Take one tablet once daily before breakfast
+   - Duration: 30 days
+
+Advice:
+- Diabetic diet (avoid sugar, white rice, potatoes)
+- Regular exercise (30 min walk daily)
+- Monitor fasting blood sugar weekly
+- Carry sugar/candy for hypoglycemia
+- Follow up after 2 weeks with FBS report`
+  },
+  {
+    id: "diabetes-2",
+    condition: "Type 2 Diabetes - Follow-up (Controlled)",
+    category: "Endocrine",
+    content: `Rx:
+1. Tab. Metformin 500mg
+   - Continue one tablet twice daily after meals
+   - Duration: 30 days
+
+Advice:
+- Continue diabetic diet
+- Maintain exercise routine
+- HbA1c test every 3 months
+- Annual eye and kidney function tests
+- Follow up after 1 month`
+  },
+  {
+    id: "common-cold",
+    condition: "Common Cold / URTI",
+    category: "Respiratory",
+    content: `Rx:
+1. Tab. Paracetamol 650mg
+   - Take one tablet every 6-8 hours if fever/body ache
+   - Duration: 3 days
+
+2. Tab. Cetirizine 10mg
+   - Take one tablet at bedtime
+   - Duration: 5 days
+
+3. Syp. Dextromethorphan + Phenylephrine
+   - Take 10ml three times daily
+   - Duration: 5 days
+
+4. Steam inhalation
+   - Three times daily for 10 minutes
+
+Advice:
+- Plenty of warm fluids
+- Rest adequately
+- Gargle with warm salt water
+- Avoid cold beverages
+- Follow up if symptoms persist beyond 5 days`
+  },
+  {
+    id: "gastritis",
+    condition: "Gastritis / Acid Peptic Disease",
+    category: "Gastrointestinal",
+    content: `Rx:
+1. Cap. Pantoprazole 40mg
+   - Take one capsule before breakfast
+   - Duration: 14 days
+
+2. Tab. Domperidone 10mg
+   - Take one tablet three times daily before meals
+   - Duration: 7 days
+
+3. Syp. Sucralfate 10ml
+   - Take 10ml three times daily before meals
+   - Duration: 14 days
+
+Advice:
+- Avoid spicy, oily, and fried foods
+- Eat small frequent meals
+- Avoid smoking and alcohol
+- Don't lie down immediately after eating
+- Reduce stress
+- Follow up after 2 weeks`
+  },
+  {
+    id: "uti",
+    condition: "Urinary Tract Infection",
+    category: "Urology",
+    content: `Rx:
+1. Tab. Nitrofurantoin 100mg
+   - Take one tablet twice daily after meals
+   - Duration: 7 days
+
+2. Tab. Paracetamol 650mg
+   - Take one tablet every 6-8 hours if fever
+   - Duration: As needed
+
+Advice:
+- Drink plenty of water (3-4 liters/day)
+- Complete the full course of antibiotics
+- Urinate frequently, don't hold
+- Maintain personal hygiene
+- Follow up if symptoms persist
+- Repeat urine culture after completing antibiotics`
+  },
+  {
+    id: "allergic-rhinitis",
+    condition: "Allergic Rhinitis",
+    category: "ENT",
+    content: `Rx:
+1. Tab. Levocetirizine 5mg
+   - Take one tablet at bedtime
+   - Duration: 14 days
+
+2. Nasal spray Fluticasone
+   - 2 sprays in each nostril once daily
+   - Duration: 14 days
+
+3. Tab. Montelukast 10mg
+   - Take one tablet at bedtime
+   - Duration: 14 days
+
+Advice:
+- Avoid known allergens (dust, pollen)
+- Use air purifier if possible
+- Keep windows closed during high pollen days
+- Wash nasal passages with saline
+- Follow up after 2 weeks`
+  },
+  {
+    id: "migraine",
+    condition: "Migraine",
+    category: "Neurology",
+    content: `Rx:
+For acute attack:
+1. Tab. Sumatriptan 50mg
+   - Take one tablet at onset of headache
+   - May repeat after 2 hours if needed (max 2/day)
+
+For prevention:
+2. Tab. Propranolol 20mg
+   - Take one tablet twice daily
+   - Duration: 30 days
+
+3. Tab. Amitriptyline 10mg
+   - Take one tablet at bedtime
+   - Duration: 30 days
+
+Advice:
+- Maintain regular sleep schedule
+- Avoid known triggers
+- Stay hydrated
+- Reduce screen time
+- Practice relaxation techniques
+- Maintain headache diary
+- Follow up after 1 month`
+  },
+  {
+    id: "lower-back-pain",
+    condition: "Lower Back Pain (Muscular)",
+    category: "Orthopedics",
+    content: `Rx:
+1. Tab. Aceclofenac 100mg + Paracetamol 325mg
+   - Take one tablet twice daily after meals
+   - Duration: 5 days
+
+2. Tab. Thiocolchicoside 4mg
+   - Take one tablet twice daily
+   - Duration: 5 days
+
+3. Cap. Vitamin D3 60000 IU
+   - Take one capsule once weekly
+   - Duration: 8 weeks
+
+Advice:
+- Hot fomentation locally
+- Avoid prolonged sitting/standing
+- Use firm mattress
+- Maintain proper posture
+- Gentle stretching exercises
+- Avoid heavy lifting
+- Follow up if pain persists`
+  }
+];
+
 interface PrescriptionSnippetsDialogProps {
   onInsert: (content: string) => void;
   currentContent?: string;
@@ -42,6 +275,13 @@ export function PrescriptionSnippetsDialog({ onInsert, currentContent }: Prescri
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [saveCurrentOpen, setSaveCurrentOpen] = useState(false);
   const [saveCurrentTitle, setSaveCurrentTitle] = useState("");
+  const [templateFilter, setTemplateFilter] = useState<string>("all");
+
+  const categories = ["all", ...Array.from(new Set(PRESCRIPTION_TEMPLATES.map(t => t.category)))];
+
+  const filteredTemplates = templateFilter === "all" 
+    ? PRESCRIPTION_TEMPLATES 
+    : PRESCRIPTION_TEMPLATES.filter(t => t.category === templateFilter);
 
   useEffect(() => {
     if (open) {
@@ -208,7 +448,7 @@ export function PrescriptionSnippetsDialog({ onInsert, currentContent }: Prescri
 
   const handleCopy = (content: string) => {
     navigator.clipboard.writeText(content);
-    toast({ title: "Copied", description: "Snippet copied to clipboard" });
+    toast({ title: "Copied", description: "Content copied to clipboard" });
   };
 
   return (
@@ -220,145 +460,208 @@ export function PrescriptionSnippetsDialog({ onInsert, currentContent }: Prescri
             Snippets
           </Button>
         </DialogTrigger>
-        <DialogContent className="max-w-2xl max-h-[80vh]">
+        <DialogContent className="max-w-3xl max-h-[85vh]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <BookmarkPlus className="h-5 w-5" />
-              Prescription Snippets
+              Prescription Snippets & Templates
             </DialogTitle>
           </DialogHeader>
 
-          <div className="flex gap-2 mb-4">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setIsAddingNew(true)}
-              disabled={isAddingNew}
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              New Snippet
-            </Button>
-            {currentContent && currentContent.replace(/<[^>]*>/g, '').trim() && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setSaveCurrentOpen(true)}
-              >
-                <BookmarkPlus className="h-4 w-4 mr-1" />
-                Save Current
-              </Button>
-            )}
-          </div>
+          <Tabs defaultValue="templates" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="templates" className="gap-2">
+                <FileText className="h-4 w-4" />
+                Templates
+              </TabsTrigger>
+              <TabsTrigger value="snippets" className="gap-2">
+                <Star className="h-4 w-4" />
+                My Snippets
+              </TabsTrigger>
+            </TabsList>
 
-          {isAddingNew && (
-            <div className="border rounded-lg p-4 mb-4 bg-muted/30">
-              <div className="space-y-3">
-                <div>
-                  <Label>Title</Label>
-                  <Input
-                    placeholder="e.g., Common Cold Treatment"
-                    value={newTitle}
-                    onChange={(e) => setNewTitle(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label>Content</Label>
-                  <Textarea
-                    placeholder="Enter prescription text..."
-                    value={newContent}
-                    onChange={(e) => setNewContent(e.target.value)}
-                    rows={4}
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={handleSaveNew}>
-                    <Check className="h-4 w-4 mr-1" />
-                    Save
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="ghost" 
-                    onClick={() => {
-                      setIsAddingNew(false);
-                      setNewTitle("");
-                      setNewContent("");
-                    }}
+            <TabsContent value="templates" className="mt-4">
+              <div className="flex flex-wrap gap-2 mb-4">
+                {categories.map((cat) => (
+                  <Button
+                    key={cat}
+                    variant={templateFilter === cat ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setTemplateFilter(cat)}
+                    className="capitalize"
                   >
-                    <X className="h-4 w-4 mr-1" />
-                    Cancel
+                    {cat}
                   </Button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <ScrollArea className="h-[400px] pr-4">
-            {isLoading ? (
-              <div className="text-center text-muted-foreground py-8">Loading snippets...</div>
-            ) : snippets.length === 0 ? (
-              <div className="text-center text-muted-foreground py-8">
-                No snippets yet. Create your first snippet above.
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {snippets.map((snippet) => (
-                  <div key={snippet.id} className="border rounded-lg p-4 hover:bg-muted/30 transition-colors">
-                    {editingId === snippet.id ? (
-                      <EditSnippetForm
-                        snippet={snippet}
-                        onSave={(title, content) => handleUpdate(snippet.id, title, content)}
-                        onCancel={() => setEditingId(null)}
-                      />
-                    ) : (
-                      <div>
-                        <div className="flex items-start justify-between mb-2">
-                          <h4 className="font-medium">{snippet.title}</h4>
-                          <div className="flex gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => handleCopy(snippet.content)}
-                              title="Copy"
-                            >
-                              <Copy className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => setEditingId(snippet.id)}
-                              title="Edit"
-                            >
-                              <Edit2 className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-destructive"
-                              onClick={() => setDeleteId(snippet.id)}
-                              title="Delete"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        </div>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap line-clamp-3 mb-3">
-                          {snippet.content}
-                        </p>
-                        <Button 
-                          size="sm" 
-                          onClick={() => handleInsertSnippet(snippet.content)}
-                        >
-                          Insert
-                        </Button>
-                      </div>
-                    )}
-                  </div>
                 ))}
               </div>
-            )}
-          </ScrollArea>
+              <ScrollArea className="h-[400px] pr-4">
+                <div className="space-y-3">
+                  {filteredTemplates.map((template) => (
+                    <div key={template.id} className="border rounded-lg p-4 hover:bg-muted/30 transition-colors">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h4 className="font-medium">{template.condition}</h4>
+                          <span className="text-xs text-muted-foreground">{template.category}</span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => handleCopy(template.content)}
+                          title="Copy"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap line-clamp-4 mb-3">
+                        {template.content}
+                      </p>
+                      <Button 
+                        size="sm" 
+                        onClick={() => handleInsertSnippet(template.content)}
+                      >
+                        Insert Template
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="snippets" className="mt-4">
+              <div className="flex gap-2 mb-4">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setIsAddingNew(true)}
+                  disabled={isAddingNew}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  New Snippet
+                </Button>
+                {currentContent && currentContent.replace(/<[^>]*>/g, '').trim() && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setSaveCurrentOpen(true)}
+                  >
+                    <BookmarkPlus className="h-4 w-4 mr-1" />
+                    Save Current
+                  </Button>
+                )}
+              </div>
+
+              {isAddingNew && (
+                <div className="border rounded-lg p-4 mb-4 bg-muted/30">
+                  <div className="space-y-3">
+                    <div>
+                      <Label>Title</Label>
+                      <Input
+                        placeholder="e.g., Common Cold Treatment"
+                        value={newTitle}
+                        onChange={(e) => setNewTitle(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label>Content</Label>
+                      <Textarea
+                        placeholder="Enter prescription text..."
+                        value={newContent}
+                        onChange={(e) => setNewContent(e.target.value)}
+                        rows={4}
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={handleSaveNew}>
+                        <Check className="h-4 w-4 mr-1" />
+                        Save
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        onClick={() => {
+                          setIsAddingNew(false);
+                          setNewTitle("");
+                          setNewContent("");
+                        }}
+                      >
+                        <X className="h-4 w-4 mr-1" />
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <ScrollArea className="h-[400px] pr-4">
+                {isLoading ? (
+                  <div className="text-center text-muted-foreground py-8">Loading snippets...</div>
+                ) : snippets.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-8">
+                    No snippets yet. Create your first snippet above.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {snippets.map((snippet) => (
+                      <div key={snippet.id} className="border rounded-lg p-4 hover:bg-muted/30 transition-colors">
+                        {editingId === snippet.id ? (
+                          <EditSnippetForm
+                            snippet={snippet}
+                            onSave={(title, content) => handleUpdate(snippet.id, title, content)}
+                            onCancel={() => setEditingId(null)}
+                          />
+                        ) : (
+                          <div>
+                            <div className="flex items-start justify-between mb-2">
+                              <h4 className="font-medium">{snippet.title}</h4>
+                              <div className="flex gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => handleCopy(snippet.content)}
+                                  title="Copy"
+                                >
+                                  <Copy className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => setEditingId(snippet.id)}
+                                  title="Edit"
+                                >
+                                  <Edit2 className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-destructive"
+                                  onClick={() => setDeleteId(snippet.id)}
+                                  title="Delete"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </div>
+                            <p className="text-sm text-muted-foreground whitespace-pre-wrap line-clamp-3 mb-3">
+                              {snippet.content}
+                            </p>
+                            <Button 
+                              size="sm" 
+                              onClick={() => handleInsertSnippet(snippet.content)}
+                            >
+                              Insert
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </ScrollArea>
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
 
