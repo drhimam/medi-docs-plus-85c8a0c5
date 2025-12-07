@@ -6,9 +6,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { BookmarkPlus, Trash2, Edit2, Plus, Check, X, Copy, Star, FileText, Search, Save } from "lucide-react";
+import { BookmarkPlus, Trash2, Edit2, Plus, Check, X, Copy, Star, FileText, Search, FolderOpen } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,6 +25,7 @@ interface Snippet {
   id: string;
   title: string;
   content: string;
+  category: string;
   created_at: string;
 }
 
@@ -259,6 +261,21 @@ Advice:
   }
 ];
 
+const SNIPPET_CATEGORIES = [
+  "General",
+  "Cardiovascular",
+  "Endocrine",
+  "Respiratory",
+  "Gastrointestinal",
+  "Urology",
+  "ENT",
+  "Neurology",
+  "Orthopedics",
+  "Dermatology",
+  "Pediatrics",
+  "Other"
+];
+
 interface PrescriptionSnippetsDialogProps {
   onInsert: (content: string) => void;
   currentContent?: string;
@@ -272,17 +289,21 @@ export function PrescriptionSnippetsDialog({ onInsert, currentContent }: Prescri
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState("");
   const [newContent, setNewContent] = useState("");
+  const [newCategory, setNewCategory] = useState("General");
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [saveCurrentOpen, setSaveCurrentOpen] = useState(false);
   const [saveCurrentTitle, setSaveCurrentTitle] = useState("");
+  const [saveCurrentCategory, setSaveCurrentCategory] = useState("General");
   const [templateFilter, setTemplateFilter] = useState<string>("all");
+  const [snippetCategoryFilter, setSnippetCategoryFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
-  const [templateToSave, setTemplateToSave] = useState<PrescriptionTemplate | null>(null);
-  const [customTemplateTitle, setCustomTemplateTitle] = useState("");
-  const [customTemplateContent, setCustomTemplateContent] = useState("");
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
+  const [editedTemplateTitle, setEditedTemplateTitle] = useState("");
+  const [editedTemplateContent, setEditedTemplateContent] = useState("");
+  const [editedTemplateCategory, setEditedTemplateCategory] = useState("");
 
-  const categories = ["all", ...Array.from(new Set(PRESCRIPTION_TEMPLATES.map(t => t.category)))];
+  const templateCategories = ["all", ...Array.from(new Set(PRESCRIPTION_TEMPLATES.map(t => t.category)))];
+  const snippetCategories = ["all", ...Array.from(new Set(snippets.map(s => s.category || "General")))];
 
   const filteredTemplates = PRESCRIPTION_TEMPLATES.filter(template => {
     const matchesCategory = templateFilter === "all" || template.category === templateFilter;
@@ -294,10 +315,23 @@ export function PrescriptionSnippetsDialog({ onInsert, currentContent }: Prescri
   });
 
   const filteredSnippets = snippets.filter(snippet => {
-    return searchQuery === "" ||
+    const matchesCategory = snippetCategoryFilter === "all" || (snippet.category || "General") === snippetCategoryFilter;
+    const matchesSearch = searchQuery === "" ||
       snippet.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      snippet.content.toLowerCase().includes(searchQuery.toLowerCase());
+      snippet.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (snippet.category || "").toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
   });
+
+  // Group snippets by category for display
+  const groupedSnippets = filteredSnippets.reduce((acc, snippet) => {
+    const category = snippet.category || "General";
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(snippet);
+    return acc;
+  }, {} as Record<string, Snippet[]>);
 
   useEffect(() => {
     if (open) {
@@ -315,6 +349,7 @@ export function PrescriptionSnippetsDialog({ onInsert, currentContent }: Prescri
         .from("prescription_snippets")
         .select("*")
         .eq("user_id", user.id)
+        .order("category", { ascending: true })
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -351,6 +386,7 @@ export function PrescriptionSnippetsDialog({ onInsert, currentContent }: Prescri
           user_id: user.id,
           title: newTitle.trim(),
           content: newContent.trim(),
+          category: newCategory,
         });
 
       if (error) throw error;
@@ -358,6 +394,7 @@ export function PrescriptionSnippetsDialog({ onInsert, currentContent }: Prescri
       toast({ title: "Success", description: "Snippet saved" });
       setNewTitle("");
       setNewContent("");
+      setNewCategory("General");
       setIsAddingNew(false);
       fetchSnippets();
     } catch (error: any) {
@@ -370,11 +407,11 @@ export function PrescriptionSnippetsDialog({ onInsert, currentContent }: Prescri
     }
   };
 
-  const handleUpdate = async (id: string, title: string, content: string) => {
+  const handleUpdate = async (id: string, title: string, content: string, category: string) => {
     try {
       const { error } = await supabase
         .from("prescription_snippets")
-        .update({ title: title.trim(), content: content.trim() })
+        .update({ title: title.trim(), content: content.trim(), category })
         .eq("id", id);
 
       if (error) throw error;
@@ -435,7 +472,6 @@ export function PrescriptionSnippetsDialog({ onInsert, currentContent }: Prescri
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Strip HTML tags for storage
       const plainContent = currentContent.replace(/<[^>]*>/g, '').trim();
 
       const { error } = await supabase
@@ -444,12 +480,14 @@ export function PrescriptionSnippetsDialog({ onInsert, currentContent }: Prescri
           user_id: user.id,
           title: saveCurrentTitle.trim(),
           content: plainContent,
+          category: saveCurrentCategory,
         });
 
       if (error) throw error;
 
       toast({ title: "Success", description: "Current prescription saved as snippet" });
       setSaveCurrentTitle("");
+      setSaveCurrentCategory("General");
       setSaveCurrentOpen(false);
       fetchSnippets();
     } catch (error: any) {
@@ -467,8 +505,15 @@ export function PrescriptionSnippetsDialog({ onInsert, currentContent }: Prescri
     toast({ title: "Copied", description: "Content copied to clipboard" });
   };
 
-  const handleSaveTemplateAsSnippet = async () => {
-    if (!customTemplateTitle.trim() || !customTemplateContent.trim()) {
+  const handleEditTemplate = (template: PrescriptionTemplate) => {
+    setEditingTemplateId(template.id);
+    setEditedTemplateTitle(template.condition);
+    setEditedTemplateContent(template.content);
+    setEditedTemplateCategory(template.category);
+  };
+
+  const handleSaveEditedTemplate = async () => {
+    if (!editedTemplateTitle.trim() || !editedTemplateContent.trim()) {
       toast({
         title: "Error",
         description: "Please enter both title and content",
@@ -485,33 +530,34 @@ export function PrescriptionSnippetsDialog({ onInsert, currentContent }: Prescri
         .from("prescription_snippets")
         .insert({
           user_id: user.id,
-          title: customTemplateTitle.trim(),
-          content: customTemplateContent.trim(),
+          title: editedTemplateTitle.trim(),
+          content: editedTemplateContent.trim(),
+          category: editedTemplateCategory,
         });
 
       if (error) throw error;
 
-      toast({ title: "Success", description: "Template saved as custom snippet" });
-      setCustomTemplateTitle("");
-      setCustomTemplateContent("");
-      setSaveTemplateOpen(false);
-      setTemplateToSave(null);
+      toast({ title: "Success", description: "Template saved to My Snippets" });
+      setEditingTemplateId(null);
+      setEditedTemplateTitle("");
+      setEditedTemplateContent("");
+      setEditedTemplateCategory("");
       fetchSnippets();
     } catch (error: any) {
-      console.error("Error saving template as snippet:", error);
+      console.error("Error saving template:", error);
       toast({
         title: "Error",
-        description: "Failed to save snippet",
+        description: "Failed to save template",
         variant: "destructive",
       });
     }
   };
 
-  const openSaveTemplateDialog = (template: PrescriptionTemplate) => {
-    setTemplateToSave(template);
-    setCustomTemplateTitle(template.condition + " (Custom)");
-    setCustomTemplateContent(template.content);
-    setSaveTemplateOpen(true);
+  const handleCancelEditTemplate = () => {
+    setEditingTemplateId(null);
+    setEditedTemplateTitle("");
+    setEditedTemplateContent("");
+    setEditedTemplateCategory("");
   };
 
   return (
@@ -554,7 +600,7 @@ export function PrescriptionSnippetsDialog({ onInsert, currentContent }: Prescri
                 />
               </div>
               <div className="flex flex-wrap gap-2 mb-4">
-                {categories.map((cat) => (
+                {templateCategories.map((cat) => (
                   <Button
                     key={cat}
                     variant={templateFilter === cat ? "default" : "outline"}
@@ -575,41 +621,87 @@ export function PrescriptionSnippetsDialog({ onInsert, currentContent }: Prescri
                   ) : (
                     filteredTemplates.map((template) => (
                       <div key={template.id} className="border rounded-lg p-4 hover:bg-muted/30 transition-colors">
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <h4 className="font-medium">{template.condition}</h4>
-                            <span className="text-xs text-muted-foreground">{template.category}</span>
+                        {editingTemplateId === template.id ? (
+                          <div className="space-y-3">
+                            <div>
+                              <Label>Title</Label>
+                              <Input
+                                value={editedTemplateTitle}
+                                onChange={(e) => setEditedTemplateTitle(e.target.value)}
+                              />
+                            </div>
+                            <div>
+                              <Label>Category</Label>
+                              <Select value={editedTemplateCategory} onValueChange={setEditedTemplateCategory}>
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {SNIPPET_CATEGORIES.map((cat) => (
+                                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <Label>Content</Label>
+                              <Textarea
+                                value={editedTemplateContent}
+                                onChange={(e) => setEditedTemplateContent(e.target.value)}
+                                rows={8}
+                                className="font-mono text-sm"
+                              />
+                            </div>
+                            <div className="flex gap-2">
+                              <Button size="sm" onClick={handleSaveEditedTemplate}>
+                                <Check className="h-4 w-4 mr-1" />
+                                Save to My Snippets
+                              </Button>
+                              <Button size="sm" variant="ghost" onClick={handleCancelEditTemplate}>
+                                <X className="h-4 w-4 mr-1" />
+                                Cancel
+                              </Button>
+                            </div>
                           </div>
-                          <div className="flex gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => openSaveTemplateDialog(template)}
-                              title="Save as Custom Snippet"
+                        ) : (
+                          <>
+                            <div className="flex items-start justify-between mb-2">
+                              <div>
+                                <h4 className="font-medium">{template.condition}</h4>
+                                <span className="text-xs text-muted-foreground">{template.category}</span>
+                              </div>
+                              <div className="flex gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => handleEditTemplate(template)}
+                                  title="Edit & Save as Snippet"
+                                >
+                                  <Edit2 className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => handleCopy(template.content)}
+                                  title="Copy"
+                                >
+                                  <Copy className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </div>
+                            <p className="text-sm text-muted-foreground whitespace-pre-wrap line-clamp-4 mb-3">
+                              {template.content}
+                            </p>
+                            <Button 
+                              size="sm" 
+                              onClick={() => handleInsertSnippet(template.content)}
                             >
-                              <Save className="h-3.5 w-3.5" />
+                              Insert Template
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => handleCopy(template.content)}
-                              title="Copy"
-                            >
-                              <Copy className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        </div>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap line-clamp-4 mb-3">
-                          {template.content}
-                        </p>
-                        <Button 
-                          size="sm" 
-                          onClick={() => handleInsertSnippet(template.content)}
-                        >
-                          Insert Template
-                        </Button>
+                          </>
+                        )}
                       </div>
                     ))
                   )}
@@ -621,11 +713,27 @@ export function PrescriptionSnippetsDialog({ onInsert, currentContent }: Prescri
               <div className="relative mb-4">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search snippets by title or content..."
+                  placeholder="Search snippets by title, content, or category..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
                 />
+              </div>
+              <div className="flex flex-wrap gap-2 mb-4">
+                <div className="flex gap-2 flex-wrap flex-1">
+                  {snippetCategories.map((cat) => (
+                    <Button
+                      key={cat}
+                      variant={snippetCategoryFilter === cat ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSnippetCategoryFilter(cat)}
+                      className="capitalize gap-1"
+                    >
+                      {cat !== "all" && <FolderOpen className="h-3 w-3" />}
+                      {cat}
+                    </Button>
+                  ))}
+                </div>
               </div>
               <div className="flex gap-2 mb-4">
                 <Button 
@@ -652,13 +760,28 @@ export function PrescriptionSnippetsDialog({ onInsert, currentContent }: Prescri
               {isAddingNew && (
                 <div className="border rounded-lg p-4 mb-4 bg-muted/30">
                   <div className="space-y-3">
-                    <div>
-                      <Label>Title</Label>
-                      <Input
-                        placeholder="e.g., Common Cold Treatment"
-                        value={newTitle}
-                        onChange={(e) => setNewTitle(e.target.value)}
-                      />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label>Title</Label>
+                        <Input
+                          placeholder="e.g., Common Cold Treatment"
+                          value={newTitle}
+                          onChange={(e) => setNewTitle(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Label>Category</Label>
+                        <Select value={newCategory} onValueChange={setNewCategory}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {SNIPPET_CATEGORIES.map((cat) => (
+                              <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                     <div>
                       <Label>Content</Label>
@@ -681,6 +804,7 @@ export function PrescriptionSnippetsDialog({ onInsert, currentContent }: Prescri
                           setIsAddingNew(false);
                           setNewTitle("");
                           setNewContent("");
+                          setNewCategory("General");
                         }}
                       >
                         <X className="h-4 w-4 mr-1" />
@@ -699,60 +823,71 @@ export function PrescriptionSnippetsDialog({ onInsert, currentContent }: Prescri
                     {searchQuery ? `No snippets found matching "${searchQuery}"` : "No snippets yet. Create your first snippet above."}
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {filteredSnippets.map((snippet) => (
-                      <div key={snippet.id} className="border rounded-lg p-4 hover:bg-muted/30 transition-colors">
-                        {editingId === snippet.id ? (
-                          <EditSnippetForm
-                            snippet={snippet}
-                            onSave={(title, content) => handleUpdate(snippet.id, title, content)}
-                            onCancel={() => setEditingId(null)}
-                          />
-                        ) : (
-                          <div>
-                            <div className="flex items-start justify-between mb-2">
-                              <h4 className="font-medium">{snippet.title}</h4>
-                              <div className="flex gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7"
-                                  onClick={() => handleCopy(snippet.content)}
-                                  title="Copy"
-                                >
-                                  <Copy className="h-3.5 w-3.5" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7"
-                                  onClick={() => setEditingId(snippet.id)}
-                                  title="Edit"
-                                >
-                                  <Edit2 className="h-3.5 w-3.5" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7 text-destructive"
-                                  onClick={() => setDeleteId(snippet.id)}
-                                  title="Delete"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              </div>
+                  <div className="space-y-4">
+                    {Object.entries(groupedSnippets).map(([category, categorySnippets]) => (
+                      <div key={category}>
+                        <div className="flex items-center gap-2 mb-2 sticky top-0 bg-background py-1">
+                          <FolderOpen className="h-4 w-4 text-muted-foreground" />
+                          <h3 className="font-medium text-sm text-muted-foreground">{category}</h3>
+                          <span className="text-xs text-muted-foreground">({categorySnippets.length})</span>
+                        </div>
+                        <div className="space-y-3 ml-2">
+                          {categorySnippets.map((snippet) => (
+                            <div key={snippet.id} className="border rounded-lg p-4 hover:bg-muted/30 transition-colors">
+                              {editingId === snippet.id ? (
+                                <EditSnippetForm
+                                  snippet={snippet}
+                                  onSave={(title, content, category) => handleUpdate(snippet.id, title, content, category)}
+                                  onCancel={() => setEditingId(null)}
+                                />
+                              ) : (
+                                <div>
+                                  <div className="flex items-start justify-between mb-2">
+                                    <h4 className="font-medium">{snippet.title}</h4>
+                                    <div className="flex gap-1">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7"
+                                        onClick={() => handleCopy(snippet.content)}
+                                        title="Copy"
+                                      >
+                                        <Copy className="h-3.5 w-3.5" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7"
+                                        onClick={() => setEditingId(snippet.id)}
+                                        title="Edit"
+                                      >
+                                        <Edit2 className="h-3.5 w-3.5" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7 text-destructive"
+                                        onClick={() => setDeleteId(snippet.id)}
+                                        title="Delete"
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                  <p className="text-sm text-muted-foreground whitespace-pre-wrap line-clamp-3 mb-3">
+                                    {snippet.content}
+                                  </p>
+                                  <Button 
+                                    size="sm" 
+                                    onClick={() => handleInsertSnippet(snippet.content)}
+                                  >
+                                    Insert
+                                  </Button>
+                                </div>
+                              )}
                             </div>
-                            <p className="text-sm text-muted-foreground whitespace-pre-wrap line-clamp-3 mb-3">
-                              {snippet.content}
-                            </p>
-                            <Button 
-                              size="sm" 
-                              onClick={() => handleInsertSnippet(snippet.content)}
-                            >
-                              Insert
-                            </Button>
-                          </div>
-                        )}
+                          ))}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -785,64 +920,38 @@ export function PrescriptionSnippetsDialog({ onInsert, currentContent }: Prescri
           <AlertDialogHeader>
             <AlertDialogTitle>Save as Snippet</AlertDialogTitle>
             <AlertDialogDescription>
-              Enter a name for this snippet to save it for future use.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="py-4">
-            <Label>Snippet Title</Label>
-            <Input
-              placeholder="e.g., Diabetes Follow-up"
-              value={saveCurrentTitle}
-              onChange={(e) => setSaveCurrentTitle(e.target.value)}
-            />
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setSaveCurrentTitle("")}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleSaveCurrent}>Save</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={saveTemplateOpen} onOpenChange={(open) => {
-        setSaveTemplateOpen(open);
-        if (!open) {
-          setTemplateToSave(null);
-          setCustomTemplateTitle("");
-          setCustomTemplateContent("");
-        }
-      }}>
-        <AlertDialogContent className="max-w-2xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Customize & Save Template</AlertDialogTitle>
-            <AlertDialogDescription>
-              Modify this template and save it as your own custom snippet.
+              Enter a name and category for this snippet to save it for future use.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="py-4 space-y-4">
             <div>
               <Label>Snippet Title</Label>
               <Input
-                placeholder="e.g., My Custom Hypertension Treatment"
-                value={customTemplateTitle}
-                onChange={(e) => setCustomTemplateTitle(e.target.value)}
+                placeholder="e.g., Diabetes Follow-up"
+                value={saveCurrentTitle}
+                onChange={(e) => setSaveCurrentTitle(e.target.value)}
               />
             </div>
             <div>
-              <Label>Content (customize as needed)</Label>
-              <Textarea
-                value={customTemplateContent}
-                onChange={(e) => setCustomTemplateContent(e.target.value)}
-                rows={10}
-                className="font-mono text-sm"
-              />
+              <Label>Category</Label>
+              <Select value={saveCurrentCategory} onValueChange={setSaveCurrentCategory}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SNIPPET_CATEGORIES.map((cat) => (
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleSaveTemplateAsSnippet}>
-              <Save className="h-4 w-4 mr-1" />
-              Save as Snippet
-            </AlertDialogAction>
+            <AlertDialogCancel onClick={() => {
+              setSaveCurrentTitle("");
+              setSaveCurrentCategory("General");
+            }}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSaveCurrent}>Save</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -856,24 +965,40 @@ function EditSnippetForm({
   onCancel 
 }: { 
   snippet: Snippet; 
-  onSave: (title: string, content: string) => void; 
+  onSave: (title: string, content: string, category: string) => void; 
   onCancel: () => void;
 }) {
   const [title, setTitle] = useState(snippet.title);
   const [content, setContent] = useState(snippet.content);
+  const [category, setCategory] = useState(snippet.category || "General");
 
   return (
     <div className="space-y-3">
-      <div>
-        <Label>Title</Label>
-        <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label>Title</Label>
+          <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+        </div>
+        <div>
+          <Label>Category</Label>
+          <Select value={category} onValueChange={setCategory}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SNIPPET_CATEGORIES.map((cat) => (
+                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
       <div>
         <Label>Content</Label>
         <Textarea value={content} onChange={(e) => setContent(e.target.value)} rows={4} />
       </div>
       <div className="flex gap-2">
-        <Button size="sm" onClick={() => onSave(title, content)}>
+        <Button size="sm" onClick={() => onSave(title, content, category)}>
           <Check className="h-4 w-4 mr-1" />
           Save
         </Button>
