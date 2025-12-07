@@ -10,7 +10,7 @@ import {
   LayoutDashboard,
   Sparkles,
   User,
-  Settings,
+  Settings as SettingsIcon,
   CreditCard,
   Menu,
   Calendar,
@@ -70,6 +70,8 @@ const AddVisit = lazy(() => import("./dashboard/AddVisit"));
 const ClinicalDocumentation = lazy(() => import("./dashboard/ClinicalDocumentation"));
 const AITools = lazy(() => import("./dashboard/AITools"));
 const KnowledgeBase = lazy(() => import("./dashboard/KnowledgeBase"));
+const Profile = lazy(() => import("./dashboard/Profile"));
+const Settings = lazy(() => import("./dashboard/Settings"));
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -251,7 +253,7 @@ const Dashboard = () => {
                   </Link>
                   <Link to="/dashboard/settings" onClick={() => setMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start gap-2">
-                      <Settings className="h-4 w-4" />
+                      <SettingsIcon className="h-4 w-4" />
                       Settings
                     </Button>
                   </Link>
@@ -310,7 +312,7 @@ const Dashboard = () => {
                   <span>Profile</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate("/dashboard/settings")}>
-                  <Settings className="mr-2 h-4 w-4" />
+                  <SettingsIcon className="mr-2 h-4 w-4" />
                   <span>Settings</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate("/dashboard/billing")}>
@@ -358,7 +360,7 @@ const Dashboard = () => {
                 <span>Profile</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate("/dashboard/settings")}>
-                <Settings className="mr-2 h-4 w-4" />
+                <SettingsIcon className="mr-2 h-4 w-4" />
                 <span>Settings</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate("/dashboard/billing")}>
@@ -392,8 +394,8 @@ const Dashboard = () => {
             <Route path="clinical-documentation/:visitId" element={<ClinicalDocumentation />} />
             <Route path="ai-tools" element={<AITools />} />
             <Route path="knowledge/*" element={<KnowledgeBase />} />
-            <Route path="profile" element={<div className="p-6"><h2 className="text-2xl font-bold mb-4">User Profile</h2><p className="text-muted-foreground">Profile page coming soon...</p></div>} />
-            <Route path="settings" element={<div className="p-6"><h2 className="text-2xl font-bold mb-4">Settings</h2><p className="text-muted-foreground">Settings page coming soon...</p></div>} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="settings" element={<Settings />} />
             <Route path="billing" element={<div className="p-6"><h2 className="text-2xl font-bold mb-4">Subscription & Billing</h2><p className="text-muted-foreground">Billing page coming soon...</p></div>} />
           </Routes>
         </Suspense>
