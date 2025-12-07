@@ -552,6 +552,54 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          clinic_address: string | null
+          clinic_name: string | null
+          created_at: string
+          first_name: string | null
+          id: string
+          last_name: string | null
+          license_number: string | null
+          phone: string | null
+          specialty: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          clinic_address?: string | null
+          clinic_name?: string | null
+          created_at?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          license_number?: string | null
+          phone?: string | null
+          specialty?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          clinic_address?: string | null
+          clinic_name?: string | null
+          created_at?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          license_number?: string | null
+          phone?: string | null
+          specialty?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       sticky_notes: {
         Row: {
           color: string
@@ -622,6 +670,48 @@ export type Database = {
           position?: number | null
           priority?: string
           title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_settings: {
+        Row: {
+          appointment_reminders: boolean | null
+          created_at: string
+          date_format: string | null
+          email_notifications: boolean | null
+          id: string
+          language: string | null
+          reminder_time: number | null
+          theme: string | null
+          time_format: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          appointment_reminders?: boolean | null
+          created_at?: string
+          date_format?: string | null
+          email_notifications?: boolean | null
+          id?: string
+          language?: string | null
+          reminder_time?: number | null
+          theme?: string | null
+          time_format?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          appointment_reminders?: boolean | null
+          created_at?: string
+          date_format?: string | null
+          email_notifications?: boolean | null
+          id?: string
+          language?: string | null
+          reminder_time?: number | null
+          theme?: string | null
+          time_format?: string | null
           updated_at?: string
           user_id?: string
         }
