@@ -335,7 +335,7 @@ export default function ClinicalDocumentation() {
   const handleDownloadDocument = async (doc: any) => {
     try {
       const { data, error } = await supabase.storage
-        .from('documents')
+        .from('visit-documents')
         .download(doc.file_path);
 
       if (error) throw error;
@@ -366,13 +366,14 @@ export default function ClinicalDocumentation() {
   const handleViewDocument = async (doc: any) => {
     try {
       const { data, error } = await supabase.storage
-        .from('documents')
+        .from('visit-documents')
         .createSignedUrl(doc.file_path, 3600);
 
       if (error) throw error;
 
       if (data?.signedUrl) {
-        window.open(data.signedUrl, '_blank');
+        // Open document in a new window/tab
+        window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
       }
     } catch (error: any) {
       console.error("Error viewing document:", error);
