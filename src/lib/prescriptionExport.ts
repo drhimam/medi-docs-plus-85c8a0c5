@@ -38,9 +38,19 @@ const PAGE_BREAK_MARKER = '{{PAGE_BREAK}}';
 
 // Function to convert HTML to plain text while preserving structure
 const htmlToPlainText = (html: string): string => {
-  return html
-    // Replace page break divs with marker FIRST
-    .replace(/<div[^>]*data-page-break="true"[^>]*>.*?<\/div>/gi, PAGE_BREAK_MARKER)
+  let result = html;
+  
+  // Replace page break divs with marker FIRST (handle various formats)
+  // Match div with data-page-break attribute
+  result = result.replace(/<div[^>]*data-page-break\s*=\s*["']true["'][^>]*>[^<]*<\/div>/gi, PAGE_BREAK_MARKER);
+  // Also match divs with class="page-break"
+  result = result.replace(/<div[^>]*class\s*=\s*["'][^"']*page-break[^"']*["'][^>]*>[^<]*<\/div>/gi, PAGE_BREAK_MARKER);
+  // Match text-based page break markers (%%%%% Page Break %%%%% or ───── Page Break ─────)
+  result = result.replace(/%{3,}\s*Page\s*Break\s*%{3,}/gi, PAGE_BREAK_MARKER);
+  result = result.replace(/─{3,}\s*Page\s*Break\s*─{3,}/gi, PAGE_BREAK_MARKER);
+  result = result.replace(/[-─]{3,}\s*Page\s*Break\s*[-─]{3,}/gi, PAGE_BREAK_MARKER);
+  
+  return result
     // Convert block elements to newlines
     .replace(/<\/p>/gi, '\n')
     .replace(/<p[^>]*>/gi, '')
