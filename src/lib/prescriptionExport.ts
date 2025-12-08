@@ -33,9 +33,14 @@ interface PrescriptionSettings {
   signature_height?: number;
 }
 
-// Function to strip markdown formatting
+// Page break marker for splitting content
+const PAGE_BREAK_MARKER = '{{PAGE_BREAK}}';
+
+// Function to strip markdown formatting and prepare content
 const stripMarkdown = (text: string): string => {
   return text
+    // Replace page break divs with marker BEFORE stripping HTML
+    .replace(/<div[^>]*data-page-break="true"[^>]*>.*?<\/div>/gi, PAGE_BREAK_MARKER)
     .replace(/\*\*(.+?)\*\*/g, '$1') // Remove bold **text**
     .replace(/\*(.+?)\*/g, '$1')     // Remove italic *text*
     .replace(/__(.+?)__/g, '$1')     // Remove bold __text__
@@ -220,15 +225,30 @@ export const exportPrescriptionToPDF = async (
 
   // Add prescription text (strip markdown formatting and handle page breaks)
   const cleanPrescription = stripMarkdown(prescription || "No prescription details");
-  const sections = cleanPrescription.split(/\n\n\n/); // Split by page breaks (triple newlines after cleaning)
+  
+  // Split by page break marker
+  const sections = cleanPrescription.split(PAGE_BREAK_MARKER);
   
   sections.forEach((section, index) => {
+    const cleanSection = section
+      .replace(/<[^>]*>/g, ' ')  // Remove remaining HTML tags
+      .replace(/&nbsp;/g, ' ')   // Replace non-breaking spaces
+      .replace(/&amp;/g, '&')    // Replace HTML entities
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/\s+/g, ' ')      // Normalize whitespace
+      .trim();
+    
+    if (!cleanSection) return; // Skip empty sections
+    
     if (index > 0) {
       // Add new page for each section after page break
       doc.addPage();
       drawHeader();
     }
-    addText(section.trim());
+    addText(cleanSection);
   });
 
   // Add footer
