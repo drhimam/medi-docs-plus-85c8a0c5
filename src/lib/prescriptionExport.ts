@@ -36,20 +36,50 @@ interface PrescriptionSettings {
 // Page break marker for splitting content
 const PAGE_BREAK_MARKER = '{{PAGE_BREAK}}';
 
-// Function to strip markdown formatting and prepare content
-const stripMarkdown = (text: string): string => {
-  return text
-    // Replace page break divs with marker BEFORE stripping HTML
+// Function to convert HTML to plain text while preserving structure
+const htmlToPlainText = (html: string): string => {
+  return html
+    // Replace page break divs with marker FIRST
     .replace(/<div[^>]*data-page-break="true"[^>]*>.*?<\/div>/gi, PAGE_BREAK_MARKER)
-    .replace(/\*\*(.+?)\*\*/g, '$1') // Remove bold **text**
-    .replace(/\*(.+?)\*/g, '$1')     // Remove italic *text*
-    .replace(/__(.+?)__/g, '$1')     // Remove bold __text__
-    .replace(/_(.+?)_/g, '$1')       // Remove italic _text_
-    .replace(/~~(.+?)~~/g, '$1')     // Remove strikethrough ~~text~~
-    .replace(/`(.+?)`/g, '$1')       // Remove inline code `text`
-    .replace(/#{1,6}\s/g, '')        // Remove heading markers
-    .replace(/\[(.+?)\]\(.+?\)/g, '$1') // Remove links [text](url)
-    .replace(/!\[(.+?)\]\(.+?\)/g, '$1'); // Remove images ![alt](url)
+    // Convert block elements to newlines
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<p[^>]*>/gi, '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/div>/gi, '\n')
+    .replace(/<div[^>]*>/gi, '')
+    .replace(/<\/h[1-6]>/gi, '\n')
+    .replace(/<h[1-6][^>]*>/gi, '')
+    // Handle lists - add bullet/number and newlines
+    .replace(/<li[^>]*>/gi, '• ')
+    .replace(/<\/li>/gi, '\n')
+    .replace(/<\/?[ou]l[^>]*>/gi, '\n')
+    // Handle blockquotes
+    .replace(/<blockquote[^>]*>/gi, '')
+    .replace(/<\/blockquote>/gi, '\n')
+    // Remove remaining HTML tags
+    .replace(/<[^>]*>/g, '')
+    // Decode HTML entities
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&mdash;/g, '—')
+    .replace(/&ndash;/g, '–')
+    // Strip markdown formatting
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/\*(.+?)\*/g, '$1')
+    .replace(/__(.+?)__/g, '$1')
+    .replace(/_(.+?)_/g, '$1')
+    .replace(/~~(.+?)~~/g, '$1')
+    .replace(/`(.+?)`/g, '$1')
+    .replace(/#{1,6}\s/g, '')
+    .replace(/\[(.+?)\]\(.+?\)/g, '$1')
+    .replace(/!\[(.+?)\]\(.+?\)/g, '$1')
+    // Clean up excessive newlines but preserve structure
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 };
 
 export const exportPrescriptionToPDF = async (
@@ -223,23 +253,14 @@ export const exportPrescriptionToPDF = async (
 
   yPosition += 5;
 
-  // Add prescription text (strip markdown formatting and handle page breaks)
-  const cleanPrescription = stripMarkdown(prescription || "No prescription details");
+  // Add prescription text - convert HTML to plain text and handle page breaks
+  const cleanPrescription = htmlToPlainText(prescription || "No prescription details");
   
   // Split by page break marker
   const sections = cleanPrescription.split(PAGE_BREAK_MARKER);
   
   sections.forEach((section, index) => {
-    const cleanSection = section
-      .replace(/<[^>]*>/g, ' ')  // Remove remaining HTML tags
-      .replace(/&nbsp;/g, ' ')   // Replace non-breaking spaces
-      .replace(/&amp;/g, '&')    // Replace HTML entities
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'")
-      .replace(/\s+/g, ' ')      // Normalize whitespace
-      .trim();
+    const cleanSection = section.trim();
     
     if (!cleanSection) return; // Skip empty sections
     
@@ -248,7 +269,18 @@ export const exportPrescriptionToPDF = async (
       doc.addPage();
       drawHeader();
     }
-    addText(cleanSection);
+    
+    // Process line by line to preserve structure
+    const lines = cleanSection.split('\n');
+    lines.forEach((line) => {
+      const trimmedLine = line.trim();
+      if (trimmedLine) {
+        addText(trimmedLine);
+      } else {
+        // Add spacing for empty lines (paragraph breaks)
+        yPosition += 4;
+      }
+    });
   });
 
   // Add footer
