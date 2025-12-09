@@ -87,7 +87,8 @@ export default function ClinicalDocumentation() {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [showCloseDialog, setShowCloseDialog] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isViewMode, setIsViewMode] = useState(false);
+  const [isSoapViewMode, setIsSoapViewMode] = useState(false);
+  const [isPrescriptionViewMode, setIsPrescriptionViewMode] = useState(false);
   const [isGeneratingPrescription, setIsGeneratingPrescription] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showPrescriptionPreview, setShowPrescriptionPreview] = useState(false);
@@ -910,14 +911,6 @@ ${cleanPrescription}
               </div>
             </div>
             <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="icon" 
-                onClick={() => setIsViewMode(!isViewMode)}
-                title={isViewMode ? "Switch to Edit Mode" : "Switch to View Mode"}
-              >
-                {isViewMode ? <Edit className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="icon">
@@ -948,44 +941,6 @@ ${cleanPrescription}
         {/* SOAP Note and Prescription */}
         <div className="p-8 space-y-6">
           <div className="bg-card border rounded-lg p-6 shadow-sm">
-          {isViewMode ? (
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold mb-3 text-primary">Subjective</h3>
-                <div className="whitespace-pre-wrap bg-muted/50 p-4 rounded-md border">
-                  {subjective || "No subjective data"}
-                </div>
-              </div>
-              
-              <div>
-                <h3 className="text-lg font-semibold mb-3 text-primary">Objective</h3>
-                <div className="whitespace-pre-wrap bg-muted/50 p-4 rounded-md border">
-                  {objective || "No objective data"}
-                </div>
-              </div>
-              
-              <div>
-                <h3 className="text-lg font-semibold mb-3 text-primary">Assessment</h3>
-                <div className="whitespace-pre-wrap bg-muted/50 p-4 rounded-md border">
-                  {assessment || "No assessment data"}
-                </div>
-              </div>
-              
-              <div>
-                <h3 className="text-lg font-semibold mb-3 text-primary">Plan</h3>
-                <div className="whitespace-pre-wrap bg-muted/50 p-4 rounded-md border">
-                  {plan || "No plan data"}
-                </div>
-              </div>
-
-              <div className="pt-4 border-t">
-                <h3 className="text-lg font-semibold mb-3 text-primary">Prescription</h3>
-                <div className="whitespace-pre-wrap bg-muted/50 p-4 rounded-md border">
-                  {prescription || "No prescription"}
-                </div>
-              </div>
-            </div>
-          ) : (
             <Tabs defaultValue="soap">
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="soap">SOAP Note</TabsTrigger>
@@ -1021,12 +976,12 @@ ${cleanPrescription}
                         <Button 
                           variant="outline" 
                           size="icon" 
-                          onClick={() => setIsViewMode(!isViewMode)}
+                          onClick={() => setIsSoapViewMode(!isSoapViewMode)}
                         >
-                          {isViewMode ? <Edit className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          {isSoapViewMode ? <Edit className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent>{isViewMode ? "Edit Mode" : "View Mode"}</TooltipContent>
+                      <TooltipContent>{isSoapViewMode ? "Edit Mode" : "View Mode"}</TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
 
@@ -1042,107 +997,141 @@ ${cleanPrescription}
                   </TooltipProvider>
                 </div>
 
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <Label>Subjective</Label>
-                  </div>
-                  <Textarea
-                    value={subjective}
-                    onChange={(e) => setSubjective(e.target.value)}
-                    className="min-h-[200px] font-mono text-sm"
-                  />
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <Label>Objective</Label>
-                  </div>
-                  <Textarea
-                    value={objective}
-                    onChange={(e) => setObjective(e.target.value)}
-                    className="min-h-[200px] font-mono text-sm"
-                  />
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <Label>Assessment</Label>
-                    <div className="flex gap-2">
-                      <TranscribeButton 
-                        onTranscription={(text) => {
-                          const textarea = assessmentRef.current;
-                          if (textarea) {
-                            const start = textarea.selectionStart;
-                            const end = textarea.selectionEnd;
-                            const newValue = assessment.substring(0, start) + text + assessment.substring(end);
-                            setAssessment(newValue);
-                            setTimeout(() => {
-                              textarea.focus();
-                              textarea.selectionStart = textarea.selectionEnd = start + text.length;
-                            }, 0);
-                          }
-                        }}
-                        disabled={isViewMode}
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleGenerateAssessment}
-                        disabled={isGenerating}
-                      >
-                        <Sparkles className="w-4 h-4 mr-2" />
-                        Generate with AI
-                      </Button>
+                {isSoapViewMode ? (
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-lg font-semibold mb-3 text-primary">Subjective</h3>
+                      <div className="whitespace-pre-wrap bg-muted/50 p-4 rounded-md border">
+                        {subjective || "No subjective data"}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-lg font-semibold mb-3 text-primary">Objective</h3>
+                      <div className="whitespace-pre-wrap bg-muted/50 p-4 rounded-md border">
+                        {objective || "No objective data"}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-lg font-semibold mb-3 text-primary">Assessment</h3>
+                      <div className="whitespace-pre-wrap bg-muted/50 p-4 rounded-md border">
+                        {assessment || "No assessment data"}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-lg font-semibold mb-3 text-primary">Plan</h3>
+                      <div className="whitespace-pre-wrap bg-muted/50 p-4 rounded-md border">
+                        {plan || "No plan data"}
+                      </div>
                     </div>
                   </div>
-                  <Textarea
-                    ref={assessmentRef}
-                    value={assessment}
-                    onChange={(e) => setAssessment(e.target.value)}
-                    className="min-h-[200px] font-mono text-sm"
-                    placeholder="AI will generate a clinical assessment based on subjective and objective data"
-                  />
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <Label>Plan</Label>
-                    <div className="flex gap-2">
-                      <TranscribeButton 
-                        onTranscription={(text) => {
-                          const textarea = planRef.current;
-                          if (textarea) {
-                            const start = textarea.selectionStart;
-                            const end = textarea.selectionEnd;
-                            const newValue = plan.substring(0, start) + text + plan.substring(end);
-                            setPlan(newValue);
-                            setTimeout(() => {
-                              textarea.focus();
-                              textarea.selectionStart = textarea.selectionEnd = start + text.length;
-                            }, 0);
-                          }
-                        }}
-                        disabled={isViewMode}
+                ) : (
+                  <>
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <Label>Subjective</Label>
+                      </div>
+                      <Textarea
+                        value={subjective}
+                        onChange={(e) => setSubjective(e.target.value)}
+                        className="min-h-[200px] font-mono text-sm"
                       />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleGeneratePlan}
-                        disabled={isGenerating}
-                      >
-                        <Sparkles className="w-4 h-4 mr-2" />
-                        Generate with AI
-                      </Button>
                     </div>
-                  </div>
-                  <Textarea
-                    ref={planRef}
-                    value={plan}
-                    onChange={(e) => setPlan(e.target.value)}
-                    className="min-h-[200px] font-mono text-sm"
-                    placeholder="AI will generate a comprehensive treatment plan based on S, O, and A"
-                  />
-                </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <Label>Objective</Label>
+                      </div>
+                      <Textarea
+                        value={objective}
+                        onChange={(e) => setObjective(e.target.value)}
+                        className="min-h-[200px] font-mono text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <Label>Assessment</Label>
+                        <div className="flex gap-2">
+                          <TranscribeButton 
+                            onTranscription={(text) => {
+                              const textarea = assessmentRef.current;
+                              if (textarea) {
+                                const start = textarea.selectionStart;
+                                const end = textarea.selectionEnd;
+                                const newValue = assessment.substring(0, start) + text + assessment.substring(end);
+                                setAssessment(newValue);
+                                setTimeout(() => {
+                                  textarea.focus();
+                                  textarea.selectionStart = textarea.selectionEnd = start + text.length;
+                                }, 0);
+                              }
+                            }}
+                            disabled={isSoapViewMode}
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleGenerateAssessment}
+                            disabled={isGenerating}
+                          >
+                            <Sparkles className="w-4 h-4 mr-2" />
+                            Generate with AI
+                          </Button>
+                        </div>
+                      </div>
+                      <Textarea
+                        ref={assessmentRef}
+                        value={assessment}
+                        onChange={(e) => setAssessment(e.target.value)}
+                        className="min-h-[200px] font-mono text-sm"
+                        placeholder="AI will generate a clinical assessment based on subjective and objective data"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <Label>Plan</Label>
+                        <div className="flex gap-2">
+                          <TranscribeButton 
+                            onTranscription={(text) => {
+                              const textarea = planRef.current;
+                              if (textarea) {
+                                const start = textarea.selectionStart;
+                                const end = textarea.selectionEnd;
+                                const newValue = plan.substring(0, start) + text + plan.substring(end);
+                                setPlan(newValue);
+                                setTimeout(() => {
+                                  textarea.focus();
+                                  textarea.selectionStart = textarea.selectionEnd = start + text.length;
+                                }, 0);
+                              }
+                            }}
+                            disabled={isSoapViewMode}
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleGeneratePlan}
+                            disabled={isGenerating}
+                          >
+                            <Sparkles className="w-4 h-4 mr-2" />
+                            Generate with AI
+                          </Button>
+                        </div>
+                      </div>
+                      <Textarea
+                        ref={planRef}
+                        value={plan}
+                        onChange={(e) => setPlan(e.target.value)}
+                        className="min-h-[200px] font-mono text-sm"
+                        placeholder="AI will generate a comprehensive treatment plan based on S, O, and A"
+                      />
+                    </div>
+                  </>
+                )}
               </TabsContent>
 
               <TabsContent value="prescription" className="space-y-6 mt-6">
@@ -1150,7 +1139,7 @@ ${cleanPrescription}
                   <div className="flex items-center gap-2 border-b pb-4">
                     <Button
                       onClick={handleGeneratePrescription}
-                      disabled={isGeneratingPrescription || isViewMode}
+                      disabled={isGeneratingPrescription || isPrescriptionViewMode}
                       variant="outline"
                       size="sm"
                       className="gap-2"
@@ -1205,12 +1194,12 @@ ${cleanPrescription}
                           <Button 
                             variant="outline" 
                             size="icon" 
-                            onClick={() => setIsViewMode(!isViewMode)}
+                            onClick={() => setIsPrescriptionViewMode(!isPrescriptionViewMode)}
                           >
-                            {isViewMode ? <Edit className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            {isPrescriptionViewMode ? <Edit className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>{isViewMode ? "Edit Mode" : "View Mode"}</TooltipContent>
+                        <TooltipContent>{isPrescriptionViewMode ? "Edit Mode" : "View Mode"}</TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
 
@@ -1246,19 +1235,19 @@ ${cleanPrescription}
                       <div data-transcribe-button>
                         <TranscribeButton
                           onTranscription={handleTranscribeComplete}
-                          disabled={isViewMode}
+                          disabled={isPrescriptionViewMode}
                         />
                       </div>
                       <div data-translate-button>
                         <TranslateButton
                           textToTranslate={prescription.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ')}
                           onTranslation={(translatedText, languageName) => handleTranslateComplete(translatedText, languageName)}
-                          disabled={isViewMode}
+                          disabled={isPrescriptionViewMode}
                         />
                       </div>
                     </div>
                     <div className="mt-2">
-                      {isViewMode ? (
+                      {isPrescriptionViewMode ? (
                         <div 
                           className="prose prose-sm max-w-none border rounded-md p-4 min-h-[400px]"
                           dangerouslySetInnerHTML={{ __html: prescription }}
@@ -1401,7 +1390,6 @@ ${cleanPrescription}
                 </div>
               </TabsContent>
             </Tabs>
-          )}
         </div>
         </div>
       </div>
