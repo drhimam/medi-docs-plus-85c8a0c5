@@ -6,7 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Save, X, FileText, Download, Sparkles, Eye, Edit, Loader2, MoreVertical, ArrowUpDown, ExternalLink, Trash2, Settings, CheckCircle, AlertCircle } from "lucide-react";
+import { ArrowLeft, Save, X, FileText, Download, Sparkles, Eye, Edit, Loader2, MoreVertical, ArrowUpDown, ExternalLink, Trash2, Settings, CheckCircle, AlertCircle, FileDown } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import TranscribeButton from "@/components/TranscribeButton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -96,6 +97,8 @@ export default function ClinicalDocumentation() {
   const [showTranslateOutput, setShowTranslateOutput] = useState(false);
   const [translatedText, setTranslatedText] = useState("");
   const [translatedLanguage, setTranslatedLanguage] = useState("");
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [documentToDelete, setDocumentToDelete] = useState<string | null>(null);
   const assessmentRef = useRef<HTMLTextAreaElement>(null);
   const planRef = useRef<HTMLTextAreaElement>(null);
   const prescriptionEditorRef = useRef<RichTextEditorHandle>(null);
@@ -329,7 +332,15 @@ export default function ClinicalDocumentation() {
         description: error.message || "Failed to delete document",
         variant: "destructive",
       });
+    } finally {
+      setShowDeleteDialog(false);
+      setDocumentToDelete(null);
     }
+  };
+
+  const confirmDeleteDocument = (docId: string) => {
+    setDocumentToDelete(docId);
+    setShowDeleteDialog(true);
   };
 
   const handleDownloadDocument = async (doc: any) => {
@@ -983,6 +994,54 @@ ${cleanPrescription}
               </TabsList>
               
               <TabsContent value="soap" className="space-y-6 mt-6">
+                {/* SOAP Note Action Toolbar */}
+                <div className="flex items-center gap-2 border-b pb-4">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="icon">
+                              <FileDown className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            <DropdownMenuItem onClick={exportSOAPToMarkdown}>Export as Markdown</DropdownMenuItem>
+                            <DropdownMenuItem onClick={exportSOAPToPDF}>Export as PDF</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TooltipTrigger>
+                      <TooltipContent>Export SOAP Note</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          size="icon" 
+                          onClick={() => setIsViewMode(!isViewMode)}
+                        >
+                          {isViewMode ? <Edit className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>{isViewMode ? "Edit Mode" : "View Mode"}</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="outline" size="icon" onClick={handleSave}>
+                          <Save className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Save</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <Label>Subjective</Label>
@@ -1118,6 +1177,64 @@ ${cleanPrescription}
                       }}
                       currentContent={prescription}
                     />
+
+                    <div className="h-6 w-px bg-border mx-1" />
+
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="icon">
+                                <FileDown className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                              <DropdownMenuItem onClick={exportPrescriptionToMarkdown}>Export as Markdown</DropdownMenuItem>
+                              <DropdownMenuItem onClick={exportPrescriptionToPDF}>Export as PDF</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TooltipTrigger>
+                        <TooltipContent>Export Prescription</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            onClick={() => setIsViewMode(!isViewMode)}
+                          >
+                            {isViewMode ? <Edit className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>{isViewMode ? "Edit Mode" : "View Mode"}</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="outline" size="icon" onClick={handleSave}>
+                            <Save className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Save</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="outline" size="icon" onClick={() => setIsSettingsOpen(true)}>
+                            <Settings className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Prescription Settings</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                   <div>
                     <div className="flex items-center justify-between mb-2">
@@ -1264,7 +1381,7 @@ ${cleanPrescription}
                                       </DropdownMenuItem>
                                     )}
                                     <DropdownMenuItem 
-                                      onClick={() => handleDeleteDocument(doc.id)}
+                                      onClick={() => confirmDeleteDocument(doc.id)}
                                       className="text-destructive focus:text-destructive"
                                     >
                                       <Trash2 className="h-4 w-4 mr-2" />
@@ -1313,6 +1430,26 @@ ${cleanPrescription}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmClose}>Close</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Document</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this document? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => documentToDelete && handleDeleteDocument(documentToDelete)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
