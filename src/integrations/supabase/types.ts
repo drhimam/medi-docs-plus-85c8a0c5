@@ -198,6 +198,7 @@ export type Database = {
           file_type: string
           id: string
           patient_id: string
+          review_status: string
           upload_date: string
           user_id: string
           visit_id: string
@@ -213,6 +214,7 @@ export type Database = {
           file_type: string
           id?: string
           patient_id: string
+          review_status?: string
           upload_date?: string
           user_id: string
           visit_id: string
@@ -228,6 +230,7 @@ export type Database = {
           file_type?: string
           id?: string
           patient_id?: string
+          review_status?: string
           upload_date?: string
           user_id?: string
           visit_id?: string

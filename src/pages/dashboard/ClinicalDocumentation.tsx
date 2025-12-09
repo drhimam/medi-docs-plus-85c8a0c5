@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Save, X, FileText, Download, Sparkles, Eye, Edit, Loader2, MoreVertical, ArrowUpDown, ExternalLink, Trash2, Settings } from "lucide-react";
+import { ArrowLeft, Save, X, FileText, Download, Sparkles, Eye, Edit, Loader2, MoreVertical, ArrowUpDown, ExternalLink, Trash2, Settings, CheckCircle, AlertCircle } from "lucide-react";
 import TranscribeButton from "@/components/TranscribeButton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -380,6 +380,30 @@ export default function ClinicalDocumentation() {
       toast({
         title: "Error",
         description: error.message || "Failed to view document",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUpdateReviewStatus = async (docId: string, status: 'reviewed' | 'needs_review' | 'pending') => {
+    try {
+      const { error } = await supabase
+        .from('documents')
+        .update({ review_status: status })
+        .eq('id', docId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Document marked as ${status === 'reviewed' ? 'reviewed' : status === 'needs_review' ? 'needs review' : 'pending'}`,
+      });
+      fetchDocuments();
+    } catch (error: any) {
+      console.error("Error updating review status:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update document status",
         variant: "destructive",
       });
     }
@@ -1197,9 +1221,19 @@ ${cleanPrescription}
                               <TableCell>{doc.description}</TableCell>
                               <TableCell>{new Date(doc.upload_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</TableCell>
                               <TableCell>
-                                <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">
-                                  Need Review
-                                </Badge>
+                                {doc.review_status === 'reviewed' ? (
+                                  <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-200">
+                                    Reviewed
+                                  </Badge>
+                                ) : doc.review_status === 'needs_review' ? (
+                                  <Badge variant="secondary" className="bg-red-100 text-red-800 hover:bg-red-200">
+                                    Needs Review
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">
+                                    Pending
+                                  </Badge>
+                                )}
                               </TableCell>
                               <TableCell>
                                 <DropdownMenu>
@@ -1217,6 +1251,18 @@ ${cleanPrescription}
                                       <Download className="h-4 w-4 mr-2" />
                                       Download
                                     </DropdownMenuItem>
+                                    {doc.review_status !== 'reviewed' && (
+                                      <DropdownMenuItem onClick={() => handleUpdateReviewStatus(doc.id, 'reviewed')}>
+                                        <CheckCircle className="h-4 w-4 mr-2" />
+                                        Mark as Reviewed
+                                      </DropdownMenuItem>
+                                    )}
+                                    {doc.review_status !== 'needs_review' && (
+                                      <DropdownMenuItem onClick={() => handleUpdateReviewStatus(doc.id, 'needs_review')}>
+                                        <AlertCircle className="h-4 w-4 mr-2" />
+                                        Mark as Needs Review
+                                      </DropdownMenuItem>
+                                    )}
                                     <DropdownMenuItem 
                                       onClick={() => handleDeleteDocument(doc.id)}
                                       className="text-destructive focus:text-destructive"
