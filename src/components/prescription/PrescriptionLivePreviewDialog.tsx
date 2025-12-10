@@ -1,8 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
+import { Loader2, Printer, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface HeaderLine {
   text: string;
@@ -96,10 +98,13 @@ export function PrescriptionLivePreviewDialog({
   const [logoUrl, setLogoUrl] = useState<string>("");
   const [signatureUrl, setSignatureUrl] = useState<string>("");
   const [loading, setLoading] = useState(true);
+  const [zoom, setZoom] = useState(1);
+  const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (open) {
       loadSettings();
+      setZoom(1);
     }
   }, [open]);
 
@@ -186,6 +191,53 @@ export function PrescriptionLivePreviewDialog({
     }
   };
 
+  const handlePrint = () => {
+    if (!printRef.current) return;
+
+    const printContent = printRef.current.innerHTML;
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Prescription - ${patientName}</title>
+          <style>
+            @media print {
+              body { margin: 0; padding: 20px; }
+              @page { size: ${settings?.paper_size === "a4" ? "A4" : "letter"}; margin: 20mm; }
+            }
+            body {
+              font-family: ${settings?.body_font || "Courier New"}, monospace;
+              color: ${settings?.body_text_color || "#333333"};
+            }
+            .prescription-container {
+              max-width: ${settings?.paper_size === "a4" ? "595px" : "612px"};
+              margin: 0 auto;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="prescription-container">
+            ${printContent}
+          </div>
+        </body>
+      </html>
+    `);
+
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 250);
+  };
+
+  const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.1, 2));
+  const handleZoomOut = () => setZoom(prev => Math.max(prev - 0.1, 0.5));
+  const handleZoomReset = () => setZoom(1);
+
   const getLogoPositionStyle = () => {
     switch (settings?.logo_position) {
       case 'top-center':
@@ -214,7 +266,60 @@ export function PrescriptionLivePreviewDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh]">
         <DialogHeader>
-          <DialogTitle>Prescription Preview</DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle>Prescription Preview</DialogTitle>
+            <div className="flex items-center gap-1">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="icon" onClick={handleZoomOut} disabled={zoom <= 0.5}>
+                      <ZoomOut className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Zoom Out</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <span className="text-sm text-muted-foreground min-w-[50px] text-center">
+                {Math.round(zoom * 100)}%
+              </span>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="icon" onClick={handleZoomIn} disabled={zoom >= 2}>
+                      <ZoomIn className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Zoom In</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="icon" onClick={handleZoomReset}>
+                      <RotateCcw className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Reset Zoom</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <div className="w-px h-6 bg-border mx-2" />
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="icon" onClick={handlePrint}>
+                      <Printer className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Print Prescription</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          </div>
         </DialogHeader>
 
         {loading ? (
@@ -223,140 +328,145 @@ export function PrescriptionLivePreviewDialog({
           </div>
         ) : (
           <ScrollArea className="h-[70vh]">
-            <div 
-              className="bg-white text-black border shadow-lg mx-auto p-8"
-              style={{ 
-                width: settings?.paper_size === "a4" ? "595px" : "612px",
-                minHeight: settings?.paper_size === "a4" ? "842px" : "792px",
-                fontFamily: settings?.body_font || "Courier New",
-              }}
-            >
-              {/* Header */}
-              {!settings?.use_own_letterhead && (
-                <div 
-                  className="pb-4 mb-4"
-                  style={{ backgroundColor: settings?.header_background_color || "#ffffff" }}
-                >
-                  {/* Logo */}
-                  {logoUrl && (
-                    <div className={`mb-2 ${getLogoPositionStyle()}`} style={{ width: 'fit-content' }}>
-                      <img 
-                        src={logoUrl} 
-                        alt="Logo" 
-                        style={{ 
-                          width: settings?.logo_width || 60, 
-                          height: settings?.logo_height || 40,
-                          objectFit: 'contain'
-                        }} 
-                      />
-                    </div>
-                  )}
-
-                  {/* Header Text */}
-                  <div className="flex justify-between gap-4">
-                    <div style={{ fontFamily: settings?.header_font || "Arial" }}>
-                      {settings?.header_left_lines.map((line, idx) => (
-                        line.text && (
-                          <p 
-                            key={idx}
-                            style={{ 
-                              fontSize: line.fontSize,
-                              fontWeight: line.bold ? 'bold' : 'normal',
-                              textDecoration: line.underline ? 'underline' : 'none',
-                              marginBottom: settings?.header_line_spacing || 6,
-                            }}
-                          >
-                            {line.text}
-                          </p>
-                        )
-                      ))}
-                    </div>
-                    <div style={{ fontFamily: settings?.header_font || "Arial" }}>
-                      {settings?.header_right_lines.map((line, idx) => (
-                        line.text && (
-                          <p 
-                            key={idx}
-                            style={{ 
-                              fontSize: line.fontSize,
-                              fontWeight: line.bold ? 'bold' : 'normal',
-                              textDecoration: line.underline ? 'underline' : 'none',
-                              marginBottom: settings?.header_line_spacing || 6,
-                            }}
-                          >
-                            {line.text}
-                          </p>
-                        )
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <hr className="border-gray-300 mt-2" />
-                </div>
-              )}
-
-              {/* Patient Information */}
-              <div className="mb-4 text-sm">
-                <p className="font-bold">
-                  Patient: {patientName}
-                  {patientAge && <span className="ml-4">| Age: {patientAge}</span>}
-                  <span className="ml-4">| Date: {new Date().toLocaleDateString()}</span>
-                </p>
-                {patientContact && (
-                  <p>Contact: {patientContact}</p>
-                )}
-                {patientAddress && (
-                  <p>Address: {patientAddress}</p>
-                )}
-              </div>
-
-              {/* Barcode Placeholder */}
-              {settings?.barcode_enabled && (
-                <div className="mb-4 p-2 border border-dashed border-gray-400 inline-block">
-                  <p className="text-xs text-gray-500">Barcode: {patientId.slice(0, 8)}</p>
-                </div>
-              )}
-
-              {/* Prescription Content */}
+            <div className="flex justify-center p-4">
               <div 
-                className="mt-4 whitespace-pre-wrap"
+                ref={printRef}
+                className="bg-white text-black border shadow-lg p-8 relative"
                 style={{ 
+                  width: settings?.paper_size === "a4" ? "595px" : "612px",
+                  minHeight: settings?.paper_size === "a4" ? "842px" : "792px",
                   fontFamily: settings?.body_font || "Courier New",
-                  fontSize: settings?.body_font_size || 12,
-                  color: settings?.body_text_color || "#333333",
+                  transform: `scale(${zoom})`,
+                  transformOrigin: 'top center',
                 }}
               >
-                {cleanPrescription}
-              </div>
+                {/* Header */}
+                {!settings?.use_own_letterhead && (
+                  <div 
+                    className="pb-4 mb-4"
+                    style={{ backgroundColor: settings?.header_background_color || "#ffffff" }}
+                  >
+                    {/* Logo */}
+                    {logoUrl && (
+                      <div className={`mb-2 ${getLogoPositionStyle()}`} style={{ width: 'fit-content' }}>
+                        <img 
+                          src={logoUrl} 
+                          alt="Logo" 
+                          style={{ 
+                            width: settings?.logo_width || 60, 
+                            height: settings?.logo_height || 40,
+                            objectFit: 'contain'
+                          }} 
+                        />
+                      </div>
+                    )}
 
-              {/* Signature */}
-              {signatureUrl && (
-                <div className={`flex mt-8 ${getSignaturePositionStyle()}`}>
-                  <img 
-                    src={signatureUrl} 
-                    alt="Signature" 
-                    style={{ 
-                      width: settings?.signature_width || 80, 
-                      height: settings?.signature_height || 40,
-                      objectFit: 'contain'
-                    }} 
-                  />
-                </div>
-              )}
-
-              {/* Footer */}
-              <div className="absolute bottom-8 left-8 right-8">
-                {settings?.footer_line_enabled !== false && (
-                  <hr className="border-gray-300 mb-2" />
+                    {/* Header Text */}
+                    <div className="flex justify-between gap-4">
+                      <div style={{ fontFamily: settings?.header_font || "Arial" }}>
+                        {settings?.header_left_lines.map((line, idx) => (
+                          line.text && (
+                            <p 
+                              key={idx}
+                              style={{ 
+                                fontSize: line.fontSize,
+                                fontWeight: line.bold ? 'bold' : 'normal',
+                                textDecoration: line.underline ? 'underline' : 'none',
+                                marginBottom: settings?.header_line_spacing || 6,
+                              }}
+                            >
+                              {line.text}
+                            </p>
+                          )
+                        ))}
+                      </div>
+                      <div style={{ fontFamily: settings?.header_font || "Arial" }}>
+                        {settings?.header_right_lines.map((line, idx) => (
+                          line.text && (
+                            <p 
+                              key={idx}
+                              style={{ 
+                                fontSize: line.fontSize,
+                                fontWeight: line.bold ? 'bold' : 'normal',
+                                textDecoration: line.underline ? 'underline' : 'none',
+                                marginBottom: settings?.header_line_spacing || 6,
+                              }}
+                            >
+                              {line.text}
+                            </p>
+                          )
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <hr className="border-gray-300 mt-2" />
+                  </div>
                 )}
-                <p 
-                  className="italic text-center"
+
+                {/* Patient Information */}
+                <div className="mb-4 text-sm">
+                  <p className="font-bold">
+                    Patient: {patientName}
+                    {patientAge && <span className="ml-4">| Age: {patientAge}</span>}
+                    <span className="ml-4">| Date: {new Date().toLocaleDateString()}</span>
+                  </p>
+                  {patientContact && (
+                    <p>Contact: {patientContact}</p>
+                  )}
+                  {patientAddress && (
+                    <p>Address: {patientAddress}</p>
+                  )}
+                </div>
+
+                {/* Barcode Placeholder */}
+                {settings?.barcode_enabled && (
+                  <div className="mb-4 p-2 border border-dashed border-gray-400 inline-block">
+                    <p className="text-xs text-gray-500">Barcode: {patientId.slice(0, 8)}</p>
+                  </div>
+                )}
+
+                {/* Prescription Content */}
+                <div 
+                  className="mt-4 whitespace-pre-wrap"
                   style={{ 
-                    fontSize: settings?.footer_font_size || 10,
-                    color: settings?.footer_text_color || "#666666",
+                    fontFamily: settings?.body_font || "Courier New",
+                    fontSize: settings?.body_font_size || 12,
+                    color: settings?.body_text_color || "#333333",
                   }}
                 >
-                  This prescription is computer generated and valid.
-                </p>
+                  {cleanPrescription}
+                </div>
+
+                {/* Signature */}
+                {signatureUrl && (
+                  <div className={`flex mt-8 ${getSignaturePositionStyle()}`}>
+                    <img 
+                      src={signatureUrl} 
+                      alt="Signature" 
+                      style={{ 
+                        width: settings?.signature_width || 80, 
+                        height: settings?.signature_height || 40,
+                        objectFit: 'contain'
+                      }} 
+                    />
+                  </div>
+                )}
+
+                {/* Footer */}
+                <div className="mt-auto pt-8">
+                  {settings?.footer_line_enabled !== false && (
+                    <hr className="border-gray-300 mb-2" />
+                  )}
+                  <p 
+                    className="italic text-center"
+                    style={{ 
+                      fontSize: settings?.footer_font_size || 10,
+                      color: settings?.footer_text_color || "#666666",
+                    }}
+                  >
+                    This prescription is computer generated and valid.
+                  </p>
+                </div>
               </div>
             </div>
           </ScrollArea>
