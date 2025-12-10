@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Save, X, FileText, Download, Sparkles, Eye, Edit, Loader2, MoreVertical, ArrowUpDown, ExternalLink, Trash2, Settings, CheckCircle, AlertCircle, FileDown } from "lucide-react";
+import { ArrowLeft, Save, X, FileText, Download, Sparkles, Eye, Edit, Loader2, MoreVertical, ArrowUpDown, ExternalLink, Trash2, Settings, CheckCircle, AlertCircle, FileDown, FileSearch } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import TranscribeButton from "@/components/TranscribeButton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import DocumentUploadDialog from "@/components/visit/DocumentUploadDialog";
 import PrescriptionSettingsDialog from "@/components/prescription/PrescriptionSettingsDialog";
 import { PrescriptionPreviewDialog } from "@/components/prescription/PrescriptionPreviewDialog";
+import { PrescriptionLivePreviewDialog } from "@/components/prescription/PrescriptionLivePreviewDialog";
 import { RichTextEditor, RichTextEditorHandle } from "@/components/knowledge/RichTextEditor";
 import { TranslateButton } from "@/components/TranslateButton";
 import { TranscribeOutputDialog } from "@/components/transcribe/TranscribeOutputDialog";
@@ -92,6 +93,7 @@ export default function ClinicalDocumentation() {
   const [isGeneratingPrescription, setIsGeneratingPrescription] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showPrescriptionPreview, setShowPrescriptionPreview] = useState(false);
+  const [showLivePreview, setShowLivePreview] = useState(false);
   const [generatedPrescription, setGeneratedPrescription] = useState("");
   const [showTranscribeOutput, setShowTranscribeOutput] = useState(false);
   const [transcribedText, setTranscribedText] = useState("");
@@ -1217,6 +1219,17 @@ ${cleanPrescription}
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
+                          <Button variant="outline" size="icon" onClick={() => setShowLivePreview(true)}>
+                            <FileSearch className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Preview Prescription</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
                           <Button variant="outline" size="icon" onClick={() => setIsSettingsOpen(true)}>
                             <Settings className="h-4 w-4" />
                           </Button>
@@ -1464,6 +1477,17 @@ ${cleanPrescription}
         targetLanguage={translatedLanguage}
         onInsertAtCursor={() => handleInsertTranslation("cursor")}
         onInsertAtEnd={() => handleInsertTranslation("end")}
+      />
+
+      <PrescriptionLivePreviewDialog
+        open={showLivePreview}
+        onOpenChange={setShowLivePreview}
+        prescription={prescription}
+        patientName={`${patient.first_name} ${patient.last_name}`}
+        patientAge={patient.date_of_birth ? `${new Date().getFullYear() - new Date(patient.date_of_birth).getFullYear()}` : undefined}
+        patientContact={patient.contact_number}
+        patientAddress={patient.address}
+        patientId={patient.id}
       />
     </div>
   );
