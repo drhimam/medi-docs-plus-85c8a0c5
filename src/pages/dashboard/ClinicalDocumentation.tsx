@@ -890,7 +890,7 @@ ${cleanPrescription}
         <div className="bg-card border-b p-6 shadow-sm">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <Button variant="ghost" size="icon" onClick={handleClose}>
                 <ArrowLeft className="w-5 h-5" />
               </Button>
               <div>
@@ -912,31 +912,50 @@ ${cleanPrescription}
                 </div>
               </div>
             </div>
-            <div className="flex gap-2">
+            <TooltipProvider>
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon">
-                    <Download className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem onClick={exportSOAPToMarkdown}>Export SOAP Note (MD)</DropdownMenuItem>
-                  <DropdownMenuItem onClick={exportSOAPToPDF}>Export SOAP Note (PDF)</DropdownMenuItem>
-                  <DropdownMenuItem onClick={exportPrescriptionToMarkdown}>Export Prescription (MD)</DropdownMenuItem>
-                  <DropdownMenuItem onClick={exportPrescriptionToPDF}>Export Prescription (PDF)</DropdownMenuItem>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="icon">
+                        <MoreVertical className="w-4 h-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>Options</TooltipContent>
+                </Tooltip>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={exportSOAPToMarkdown}>
+                    <FileDown className="w-4 h-4 mr-2" />
+                    Export SOAP Note (MD)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportSOAPToPDF}>
+                    <FileDown className="w-4 h-4 mr-2" />
+                    Export SOAP Note (PDF)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportPrescriptionToMarkdown}>
+                    <FileDown className="w-4 h-4 mr-2" />
+                    Export Prescription (MD)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportPrescriptionToPDF}>
+                    <FileDown className="w-4 h-4 mr-2" />
+                    Export Prescription (PDF)
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setIsSettingsOpen(true)}>
                     <Settings className="w-4 h-4 mr-2" />
                     Prescription Settings
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleSave}>
+                    <Save className="w-4 h-4 mr-2" />
+                    Save
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleClose}>
+                    <X className="w-4 h-4 mr-2" />
+                    Close
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button variant="outline" size="icon" onClick={handleSave}>
-                <Save className="w-4 h-4" />
-              </Button>
-              <Button variant="outline" size="icon" onClick={handleClose}>
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
+            </TooltipProvider>
           </div>
         </div>
 
