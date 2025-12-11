@@ -186,8 +186,62 @@ export const exportPrescriptionToPDF = async (
     }
   };
 
-  // Draw initial header
+  // Function to draw patient particulars
+  const drawPatientParticulars = (includeBarcode: boolean = false) => {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(0, 0, 0);
+    
+    // Line 1: Patient name and Age
+    let line1 = `Patient: ${patientName}`;
+    if (patientAge) {
+      line1 += `  |  Age: ${patientAge}`;
+    }
+    line1 += `  |  Date: ${new Date().toLocaleDateString()}`;
+    doc.text(line1, margin, yPosition);
+    yPosition += 6;
+
+    // Line 2: Contact
+    doc.setFont("helvetica", "normal");
+    if (patientContact) {
+      let line2 = `Contact: ${patientContact}`;
+      doc.text(line2, margin, yPosition);
+      yPosition += 6;
+    }
+
+    // Line 3: Address
+    if (patientAddress) {
+      doc.text(`Address: ${patientAddress}`, margin, yPosition);
+      yPosition += 6;
+    }
+    
+    yPosition += 4;
+
+    // Add barcode if enabled (only on first page)
+    if (includeBarcode && settings?.barcode_enabled && patientId) {
+      try {
+        const canvas = document.createElement("canvas");
+        JsBarcode(canvas, patientId, {
+          format: "CODE128",
+          width: 1.5,
+          height: 30,
+          displayValue: true,
+          fontSize: 10,
+        });
+        const barcodeImage = canvas.toDataURL("image/png");
+        doc.addImage(barcodeImage, "PNG", margin, yPosition, 50, 16);
+        yPosition += 20;
+      } catch (error) {
+        console.error("Error generating barcode:", error);
+      }
+    }
+
+    yPosition += 5;
+  };
+
+  // Draw initial header and patient particulars
   drawHeader();
+  drawPatientParticulars(true); // Include barcode on first page
 
   // Add prescription content
   const addText = (text: string, fontSize?: number, color?: string) => {
@@ -206,62 +260,13 @@ export const exportPrescriptionToPDF = async (
     lines.forEach((line: string) => {
       if (yPosition > pageHeight - 40) {
         doc.addPage();
-        drawHeader(); // Draw header on new page
+        drawHeader();
+        drawPatientParticulars(false); // No barcode on subsequent pages
       }
       doc.text(line, margin, yPosition);
       yPosition += (fontSize || settings?.body_font_size || 12) / 2 + 3;
     });
   };
-
-  // Add patient information - compact layout
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  
-  // Line 1: Patient name and Age
-  let line1 = `Patient: ${patientName}`;
-  if (patientAge) {
-    line1 += `  |  Age: ${patientAge}`;
-  }
-  line1 += `  |  Date: ${new Date().toLocaleDateString()}`;
-  doc.text(line1, margin, yPosition);
-  yPosition += 6;
-
-  // Line 2: Contact and Gender (if available)
-  doc.setFont("helvetica", "normal");
-  if (patientContact) {
-    let line2 = `Contact: ${patientContact}`;
-    doc.text(line2, margin, yPosition);
-    yPosition += 6;
-  }
-
-  // Line 3: Address
-  if (patientAddress) {
-    doc.text(`Address: ${patientAddress}`, margin, yPosition);
-    yPosition += 6;
-  }
-  
-  yPosition += 4;
-
-  // Add barcode if enabled
-  if (settings?.barcode_enabled && patientId) {
-    try {
-      const canvas = document.createElement("canvas");
-      JsBarcode(canvas, patientId, {
-        format: "CODE128",
-        width: 1.5,
-        height: 30,
-        displayValue: true,
-        fontSize: 10,
-      });
-      const barcodeImage = canvas.toDataURL("image/png");
-      doc.addImage(barcodeImage, "PNG", margin, yPosition, 50, 16);
-      yPosition += 20;
-    } catch (error) {
-      console.error("Error generating barcode:", error);
-    }
-  }
-
-  yPosition += 5;
 
   // Add prescription text - convert HTML to plain text and handle page breaks
   const cleanPrescription = htmlToPlainText(prescription || "No prescription details");
@@ -278,6 +283,7 @@ export const exportPrescriptionToPDF = async (
       // Add new page for each section after page break
       doc.addPage();
       drawHeader();
+      drawPatientParticulars(false); // No barcode on subsequent pages
     }
     
     // Process line by line to preserve structure
@@ -293,40 +299,57 @@ export const exportPrescriptionToPDF = async (
     });
   });
 
-  // Add footer
-  yPosition = pageHeight - 25;
-  
-  // Add footer line if enabled
-  if (settings?.footer_line_enabled !== false) {
-    doc.setDrawColor(200, 200, 200);
-    doc.line(margin, yPosition - 5, pageWidth - margin, yPosition - 5);
-  }
-  
-  doc.setFontSize(settings?.footer_font_size || 10);
-  if (settings?.footer_text_color) {
-    const rgb = hexToRgb(settings.footer_text_color);
-    doc.setTextColor(rgb.r, rgb.g, rgb.b);
-  }
-  doc.setFont("helvetica", "italic");
-  doc.text("This prescription is computer generated and valid.", margin, yPosition);
+  // Get total page count
+  const totalPages = doc.getNumberOfPages();
 
-  // Add digital signature if provided
-  if (signatureDataUrl && settings?.signature_path) {
-    const sigWidth = settings.signature_width || 80;
-    const sigHeight = settings.signature_height || 40;
-    let sigX = margin;
-    const sigY = pageHeight - 55;
+  // Add footer, signature, and page numbers to all pages
+  for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+    doc.setPage(pageNum);
     
-    if (settings.signature_position === 'bottom-center') {
-      sigX = (pageWidth - sigWidth) / 2;
-    } else if (settings.signature_position === 'bottom-right') {
-      sigX = pageWidth - margin - sigWidth;
+    // Add footer line if enabled
+    const footerY = pageHeight - 25;
+    if (settings?.footer_line_enabled !== false) {
+      doc.setDrawColor(200, 200, 200);
+      doc.line(margin, footerY - 5, pageWidth - margin, footerY - 5);
     }
     
-    try {
-      doc.addImage(signatureDataUrl, 'PNG', sigX, sigY, sigWidth, sigHeight);
-    } catch (error) {
-      console.error("Error adding signature:", error);
+    // Add footer text
+    doc.setFontSize(settings?.footer_font_size || 10);
+    if (settings?.footer_text_color) {
+      const rgb = hexToRgb(settings.footer_text_color);
+      doc.setTextColor(rgb.r, rgb.g, rgb.b);
+    } else {
+      doc.setTextColor(100, 100, 100);
+    }
+    doc.setFont("helvetica", "italic");
+    doc.text("This prescription is computer generated and valid.", margin, footerY);
+
+    // Add page number at center bottom
+    const pageNumberText = `Page ${pageNum} of ${totalPages}`;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(100, 100, 100);
+    const textWidth = doc.getTextWidth(pageNumberText);
+    doc.text(pageNumberText, (pageWidth - textWidth) / 2, pageHeight - 10);
+
+    // Add digital signature on last page only
+    if (pageNum === totalPages && signatureDataUrl && settings?.signature_path) {
+      const sigWidth = settings.signature_width || 80;
+      const sigHeight = settings.signature_height || 40;
+      let sigX = margin;
+      const sigY = pageHeight - 55;
+      
+      if (settings.signature_position === 'bottom-center') {
+        sigX = (pageWidth - sigWidth) / 2;
+      } else if (settings.signature_position === 'bottom-right') {
+        sigX = pageWidth - margin - sigWidth;
+      }
+      
+      try {
+        doc.addImage(signatureDataUrl, 'PNG', sigX, sigY, sigWidth, sigHeight);
+      } catch (error) {
+        console.error("Error adding signature:", error);
+      }
     }
   }
 
