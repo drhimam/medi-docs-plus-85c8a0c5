@@ -1,4 +1,4 @@
-import { FileText, Zap, Image, Activity, Heart, Clock, Sparkles, Target, FileSignature } from "lucide-react";
+import { FileText, Zap, Image, Activity, Heart, Clock, Sparkles, Target, FileSignature, BookOpen, MessageCircleQuestion } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +36,22 @@ const aiTools: AITool[] = [
     icon: Zap,
     status: "active",
     route: "/dashboard/clinical-documentation"
+  },
+  {
+    id: "generate-article",
+    title: "Generate AI Article",
+    description: "Generate comprehensive medical knowledge articles using AI. Input a topic and get a well-structured, evidence-based article for your knowledge base.",
+    icon: BookOpen,
+    status: "active",
+    route: "/dashboard/knowledge?tab=ai-generated"
+  },
+  {
+    id: "ask-ai",
+    title: "Ask AI",
+    description: "Chat with an AI assistant powered by your personal knowledge base. Get instant answers to medical questions based on your saved articles.",
+    icon: MessageCircleQuestion,
+    status: "active",
+    route: "/dashboard/knowledge?tab=ask-ai"
   },
   {
     id: "skin-lesion",
