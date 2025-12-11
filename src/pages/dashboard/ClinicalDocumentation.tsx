@@ -890,7 +890,7 @@ ${cleanPrescription}
         <div className="bg-card border-b p-6 shadow-sm">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" onClick={handleClose}>
+              <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
                 <ArrowLeft className="w-5 h-5" />
               </Button>
               <div>
@@ -953,31 +953,50 @@ ${cleanPrescription}
               <TabsContent value="soap" className="space-y-6 mt-6">
                 {/* SOAP Note Action Toolbar */}
                 <div className="flex items-center gap-2 border-b pb-4">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="icon">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start">
-                      <DropdownMenuItem onClick={exportSOAPToMarkdown}>
-                        <FileDown className="h-4 w-4 mr-2" />
-                        Export as Markdown
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={exportSOAPToPDF}>
-                        <FileDown className="h-4 w-4 mr-2" />
-                        Export as PDF
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setIsSoapViewMode(!isSoapViewMode)}>
-                        {isSoapViewMode ? <Edit className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
-                        {isSoapViewMode ? "Edit Mode" : "View Mode"}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={handleSave}>
-                        <Save className="h-4 w-4 mr-2" />
-                        Save
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="icon">
+                              <FileDown className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            <DropdownMenuItem onClick={exportSOAPToMarkdown}>Export as Markdown</DropdownMenuItem>
+                            <DropdownMenuItem onClick={exportSOAPToPDF}>Export as PDF</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TooltipTrigger>
+                      <TooltipContent>Export SOAP Note</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          size="icon" 
+                          onClick={() => setIsSoapViewMode(!isSoapViewMode)}
+                        >
+                          {isSoapViewMode ? <Edit className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>{isSoapViewMode ? "Edit Mode" : "View Mode"}</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="outline" size="icon" onClick={handleSave}>
+                          <Save className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Save</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
 
                 {isSoapViewMode ? (
@@ -1152,39 +1171,72 @@ ${cleanPrescription}
 
                     <div className="h-6 w-px bg-border mx-1" />
 
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="icon">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start">
-                        <DropdownMenuItem onClick={exportPrescriptionToMarkdown}>
-                          <FileDown className="h-4 w-4 mr-2" />
-                          Export as Markdown
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={exportPrescriptionToPDF}>
-                          <FileDown className="h-4 w-4 mr-2" />
-                          Export as PDF
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setIsPrescriptionViewMode(!isPrescriptionViewMode)}>
-                          {isPrescriptionViewMode ? <Edit className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
-                          {isPrescriptionViewMode ? "Edit Mode" : "View Mode"}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={handleSave}>
-                          <Save className="h-4 w-4 mr-2" />
-                          Save
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setShowLivePreview(true)}>
-                          <FileSearch className="h-4 w-4 mr-2" />
-                          Preview Prescription
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setIsSettingsOpen(true)}>
-                          <Settings className="h-4 w-4 mr-2" />
-                          Prescription Settings
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="icon">
+                                <FileDown className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                              <DropdownMenuItem onClick={exportPrescriptionToMarkdown}>Export as Markdown</DropdownMenuItem>
+                              <DropdownMenuItem onClick={exportPrescriptionToPDF}>Export as PDF</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TooltipTrigger>
+                        <TooltipContent>Export Prescription</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            onClick={() => setIsPrescriptionViewMode(!isPrescriptionViewMode)}
+                          >
+                            {isPrescriptionViewMode ? <Edit className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>{isPrescriptionViewMode ? "Edit Mode" : "View Mode"}</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="outline" size="icon" onClick={handleSave}>
+                            <Save className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Save</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="outline" size="icon" onClick={() => setShowLivePreview(true)}>
+                            <FileSearch className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Preview Prescription</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="outline" size="icon" onClick={() => setIsSettingsOpen(true)}>
+                            <Settings className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Prescription Settings</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                   <div>
                     <div className="flex items-center justify-between mb-2">
