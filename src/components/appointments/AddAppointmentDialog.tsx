@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Save, Settings } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -16,23 +16,33 @@ interface AddAppointmentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
+  preselectedPatientId?: string | null;
 }
 
 export function AddAppointmentDialog({
   open,
   onOpenChange,
   onSuccess,
+  preselectedPatientId = null,
 }: AddAppointmentDialogProps) {
   const [patientType, setPatientType] = useState<"new" | "existing">("existing");
-  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(preselectedPatientId);
   const [newPatientData, setNewPatientData] = useState<any>(null);
   const [appointmentData, setAppointmentData] = useState<any>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // Update selectedPatientId when preselectedPatientId changes
+  useEffect(() => {
+    if (preselectedPatientId) {
+      setSelectedPatientId(preselectedPatientId);
+      setPatientType("existing");
+    }
+  }, [preselectedPatientId]);
+
   const handleClose = () => {
     setPatientType("existing");
-    setSelectedPatientId(null);
+    setSelectedPatientId(preselectedPatientId);
     setNewPatientData(null);
     setAppointmentData(null);
     onOpenChange(false);
