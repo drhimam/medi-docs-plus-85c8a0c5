@@ -159,8 +159,8 @@ export function AddAppointmentDialog({
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b">
           <DialogTitle>Add Appointment</DialogTitle>
-          <TooltipProvider>
-            <div className="flex items-center gap-2">
+          <TooltipProvider delayDuration={300}>
+            <div className="flex items-center gap-2 pr-8">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -171,7 +171,7 @@ export function AddAppointmentDialog({
                     <Settings className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Settings</TooltipContent>
+                <TooltipContent side="bottom">Settings</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -184,7 +184,7 @@ export function AddAppointmentDialog({
                     <Save className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>{saving ? "Saving..." : "Save"}</TooltipContent>
+                <TooltipContent side="bottom">{saving ? "Saving..." : "Save"}</TooltipContent>
               </Tooltip>
             </div>
           </TooltipProvider>
