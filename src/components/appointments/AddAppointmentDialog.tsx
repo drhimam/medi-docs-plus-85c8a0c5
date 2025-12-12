@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { X, Save, Settings } from "lucide-react";
+import { Save, Settings } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { NewPatientForm } from "./NewPatientForm";
 import { ExistingPatientSearch } from "./ExistingPatientSearch";
 import { AppointmentScheduler } from "./AppointmentScheduler";
@@ -158,33 +159,35 @@ export function AddAppointmentDialog({
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b">
           <DialogTitle>Add Appointment</DialogTitle>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowSettings(true)}
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Settings
-            </Button>
-            <Button
-              variant="default"
-              size="sm"
-              onClick={handleSave}
-              disabled={saving}
-            >
-              <Save className="h-4 w-4 mr-2" />
-              {saving ? "Saving..." : "Save"}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClose}
-            >
-              <X className="h-4 w-4 mr-2" />
-              Cancel
-            </Button>
-          </div>
+          <TooltipProvider>
+            <div className="flex items-center gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setShowSettings(true)}
+                  >
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Settings</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="default"
+                    size="icon"
+                    onClick={handleSave}
+                    disabled={saving}
+                  >
+                    <Save className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{saving ? "Saving..." : "Save"}</TooltipContent>
+              </Tooltip>
+            </div>
+          </TooltipProvider>
         </DialogHeader>
 
         <div className="space-y-6 pt-4">
