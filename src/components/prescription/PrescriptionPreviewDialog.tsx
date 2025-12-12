@@ -6,6 +6,7 @@ import { useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Copy } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import DOMPurify from "dompurify";
 
 interface PrescriptionPreviewDialogProps {
   open: boolean;
@@ -69,7 +70,7 @@ export const PrescriptionPreviewDialog = ({
         <ScrollArea className="max-h-[400px] border rounded-md p-4 bg-muted/50">
           <div 
             className="prose prose-sm max-w-none"
-            dangerouslySetInnerHTML={{ __html: generatedContent.replace(/\n/g, '<br />') }}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(generatedContent.replace(/\n/g, '<br />')) }}
           />
         </ScrollArea>
 
