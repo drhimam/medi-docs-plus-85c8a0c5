@@ -25,6 +25,7 @@ import { TranslateOutputDialog } from "@/components/translate/TranslateOutputDia
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { PrescriptionSnippetsDialog } from "@/components/prescription/PrescriptionSnippetsDialog";
 import jsPDF from "jspdf";
+import DOMPurify from "dompurify";
 import { exportPrescriptionToPDF as exportPrescriptionWithSettings } from "@/lib/prescriptionExport";
 
 interface Patient {
@@ -803,40 +804,44 @@ ${cleanPrescription}
       // Get logo data URL if exists
       let logoDataUrl;
       if (settings?.logo_path) {
-        const { data: { publicUrl } } = supabase.storage
+        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
           .from('prescription-logos')
-          .getPublicUrl(settings.logo_path);
+          .createSignedUrl(settings.logo_path, 3600);
         
-        try {
-          const response = await fetch(publicUrl);
-          const blob = await response.blob();
-          logoDataUrl = await new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.readAsDataURL(blob);
-          });
-        } catch (error) {
-          console.error("Error loading logo:", error);
+        if (!signedUrlError && signedUrlData?.signedUrl) {
+          try {
+            const response = await fetch(signedUrlData.signedUrl);
+            const blob = await response.blob();
+            logoDataUrl = await new Promise<string>((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.readAsDataURL(blob);
+            });
+          } catch (error) {
+            console.error("Error loading logo:", error);
+          }
         }
       }
 
       // Get signature data URL if exists
       let signatureDataUrl;
       if (settings?.signature_path) {
-        const { data: { publicUrl } } = supabase.storage
+        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
           .from('prescription-signatures')
-          .getPublicUrl(settings.signature_path);
+          .createSignedUrl(settings.signature_path, 3600);
         
-        try {
-          const response = await fetch(publicUrl);
-          const blob = await response.blob();
-          signatureDataUrl = await new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.readAsDataURL(blob);
-          });
-        } catch (error) {
-          console.error("Error loading signature:", error);
+        if (!signedUrlError && signedUrlData?.signedUrl) {
+          try {
+            const response = await fetch(signedUrlData.signedUrl);
+            const blob = await response.blob();
+            signatureDataUrl = await new Promise<string>((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.readAsDataURL(blob);
+            });
+          } catch (error) {
+            console.error("Error loading signature:", error);
+          }
         }
       }
       
@@ -1354,7 +1359,7 @@ ${cleanPrescription}
                       {isPrescriptionViewMode ? (
                         <div 
                           className="prose prose-sm max-w-none border rounded-md p-4 min-h-[400px]"
-                          dangerouslySetInnerHTML={{ __html: prescription }}
+                          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(prescription) }}
                         />
                       ) : (
                         <ContextMenu>

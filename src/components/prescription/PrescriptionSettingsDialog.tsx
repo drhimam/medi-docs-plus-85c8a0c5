@@ -98,17 +98,21 @@ export default function PrescriptionSettingsDialog({ open, onOpenChange }: Presc
         setSignatureHeight(data.signature_height?.toString() || "40");
         
         if (data.logo_path) {
-          const { data: { publicUrl } } = supabase.storage
+          const { data: signedUrlData } = await supabase.storage
             .from('prescription-logos')
-            .getPublicUrl(data.logo_path);
-          setLogoPreview(publicUrl);
+            .createSignedUrl(data.logo_path, 3600);
+          if (signedUrlData?.signedUrl) {
+            setLogoPreview(signedUrlData.signedUrl);
+          }
         }
         
         if (data.signature_path) {
-          const { data: { publicUrl } } = supabase.storage
+          const { data: signedUrlData } = await supabase.storage
             .from('prescription-signatures')
-            .getPublicUrl(data.signature_path);
-          setSignaturePreview(publicUrl);
+            .createSignedUrl(data.signature_path, 3600);
+          if (signedUrlData?.signedUrl) {
+            setSignaturePreview(signedUrlData.signedUrl);
+          }
         }
         
         if (data.header_left_lines) {
