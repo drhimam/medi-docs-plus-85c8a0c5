@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Plus, Search, MoreVertical, Calendar } from "lucide-react";
 import { toast } from "sonner";
+import { AddAppointmentDialog } from "@/components/appointments/AddAppointmentDialog";
 
 interface Patient {
   id: string;
@@ -37,6 +38,18 @@ const Patients = () => {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [appointmentDialogOpen, setAppointmentDialogOpen] = useState(false);
+  const [selectedPatientForAppointment, setSelectedPatientForAppointment] = useState<string | null>(null);
+
+  const handleSetAppointment = (patientId: string) => {
+    setSelectedPatientForAppointment(patientId);
+    setAppointmentDialogOpen(true);
+  };
+
+  const handleAppointmentSuccess = () => {
+    toast.success("Appointment scheduled successfully");
+    setSelectedPatientForAppointment(null);
+  };
 
   useEffect(() => {
     fetchPatients();
@@ -163,7 +176,7 @@ const Patients = () => {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
-                            onClick={() => toast.info("Set appointment feature coming soon")}
+                            onClick={() => handleSetAppointment(patient.id)}
                           >
                             <Calendar className="mr-2 h-4 w-4" />
                             Set an appointment
@@ -178,6 +191,16 @@ const Patients = () => {
           </Table>
         </div>
       )}
+
+      <AddAppointmentDialog
+        open={appointmentDialogOpen}
+        onOpenChange={(open) => {
+          setAppointmentDialogOpen(open);
+          if (!open) setSelectedPatientForAppointment(null);
+        }}
+        onSuccess={handleAppointmentSuccess}
+        preselectedPatientId={selectedPatientForAppointment}
+      />
     </div>
   );
 };
