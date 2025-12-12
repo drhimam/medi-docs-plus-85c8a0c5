@@ -185,7 +185,7 @@ export default function Subscription() {
             <div className="flex flex-col sm:flex-row sm:items-center gap-4">
               <Button 
                 className="bg-blue-600 hover:bg-blue-700"
-                onClick={() => window.open("https://paypal.me/", "_blank")}
+                onClick={() => window.open("https://www.paypal.com/ncp/payment/KZBGHR87EF5ZY", "_blank")}
               >
                 Pay with PayPal
               </Button>
