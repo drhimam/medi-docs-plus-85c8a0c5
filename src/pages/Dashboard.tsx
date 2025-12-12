@@ -72,6 +72,7 @@ const AITools = lazy(() => import("./dashboard/AITools"));
 const KnowledgeBase = lazy(() => import("./dashboard/KnowledgeBase"));
 const Profile = lazy(() => import("./dashboard/Profile"));
 const Settings = lazy(() => import("./dashboard/Settings"));
+const Subscription = lazy(() => import("./dashboard/Subscription"));
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -396,7 +397,7 @@ const Dashboard = () => {
             <Route path="knowledge/*" element={<KnowledgeBase />} />
             <Route path="profile" element={<Profile />} />
             <Route path="settings" element={<Settings />} />
-            <Route path="billing" element={<div className="p-6"><h2 className="text-2xl font-bold mb-4">Subscription & Billing</h2><p className="text-muted-foreground">Billing page coming soon...</p></div>} />
+            <Route path="billing" element={<Subscription />} />
           </Routes>
         </Suspense>
       </main>

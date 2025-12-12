@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_usage: {
+        Row: {
+          ai_speech_count: number
+          ai_text_count: number
+          created_at: string
+          id: string
+          period_end: string
+          period_start: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_speech_count?: number
+          ai_text_count?: number
+          created_at?: string
+          id?: string
+          period_end?: string
+          period_start?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_speech_count?: number
+          ai_text_count?: number
+          created_at?: string
+          id?: string
+          period_end?: string
+          period_start?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       appointment_settings: {
         Row: {
           break_end_time: string | null
@@ -639,6 +672,39 @@ export type Database = {
         }
         Relationships: []
       }
+      subscriptions: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          id: string
+          plan_type: string
+          started_at: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          plan_type?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          plan_type?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       todos: {
         Row: {
           completed: boolean
@@ -824,6 +890,29 @@ export type Database = {
     }
     Functions: {
       cleanup_old_reset_attempts: { Args: never; Returns: undefined }
+      get_or_create_ai_usage: {
+        Args: { p_user_id: string }
+        Returns: {
+          ai_speech_count: number
+          ai_text_count: number
+          created_at: string
+          id: string
+          period_end: string
+          period_start: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "ai_usage"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      increment_ai_usage: {
+        Args: { p_type: string; p_user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
