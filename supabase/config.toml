@@ -5,3 +5,33 @@ verify_jwt = true
 
 [functions.password-reset-with-rate-limit]
 verify_jwt = false
+
+[functions.generate-prescription]
+verify_jwt = true
+
+[functions.generate-soap]
+verify_jwt = true
+
+[functions.generate-article]
+verify_jwt = true
+
+[functions.generate-assessment]
+verify_jwt = true
+
+[functions.generate-plan]
+verify_jwt = true
+
+[functions.ask-knowledge-ai]
+verify_jwt = true
+
+[functions.translate-text]
+verify_jwt = true
+
+[functions.enhance-article]
+verify_jwt = true
+
+[functions.send-appointment-confirmation]
+verify_jwt = true
+
+[functions.send-appointment-reminders]
+verify_jwt = true
