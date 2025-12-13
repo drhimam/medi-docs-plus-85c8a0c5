@@ -13,93 +13,90 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-interface ConditionEntry {
+interface SurgeryEntry {
   name: string;
   year: string;
   checked: boolean;
 }
 
-interface CustomCondition {
+interface CustomSurgery {
   name: string;
   year: string;
 }
 
-const COMMON_PAST_CONDITIONS = [
-  "Heart Attack",
-  "Stroke",
-  "Gallbladder Stone",
-  "Kidney Stone",
-  "Jaundice",
-  "Syphilis",
-  "Gonorrhea",
-  "HIV/AIDS",
-  "Non-pulmonary TB",
-  "Pneumonia",
-  "Pulmonary Tuberculosis",
-  "Malaria",
-  "Dengue",
-  "Typhoid",
-  "Chickenpox",
-  "Measles",
-  "Mumps",
-  "Hepatitis A",
-  "Hepatitis B",
-  "Hepatitis C",
-  "COVID-19",
-  "Deep Vein Thrombosis",
-  "Pulmonary Embolism",
-  "Cancer (specify type)",
-  "Blood Transfusion",
-  "Major Trauma",
+const COMMON_SURGERIES = [
+  "Appendectomy",
+  "Cholecystectomy",
+  "Tonsillectomy",
+  "Hernia Repair",
+  "C-Section",
+  "Hysterectomy",
+  "Joint Replacement",
+  "Fracture Fixation",
+  "Cataract Surgery",
+  "LASIK",
+  "Thyroidectomy",
+  "Mastectomy",
+  "Prostatectomy",
+  "Colectomy",
+  "Gastrectomy",
+  "Nephrectomy",
+  "Splenectomy",
   "Coronary Bypass Surgery",
   "Angioplasty/Stent",
   "Pacemaker Insertion",
+  "Valve Replacement",
+  "Laminectomy/Discectomy",
+  "Spinal Fusion",
+  "Hemorrhoidectomy",
+  "Vasectomy",
+  "Tubal Ligation",
 ];
 
-interface PastConditionsDialogProps {
+interface SurgicalHistoryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onInsert: (text: string) => void;
   currentValue?: string;
 }
 
-export function PastConditionsDialog({
+export function SurgicalHistoryDialog({
   open,
   onOpenChange,
   onInsert,
   currentValue = "",
-}: PastConditionsDialogProps) {
-  const [conditions, setConditions] = useState<ConditionEntry[]>(
-    COMMON_PAST_CONDITIONS.map((name) => ({
+}: SurgicalHistoryDialogProps) {
+  const [surgeries, setSurgeries] = useState<SurgeryEntry[]>(
+    COMMON_SURGERIES.map((name) => ({
       name,
       year: "",
       checked: false,
     }))
   );
-  const [customConditions, setCustomConditions] = useState<CustomCondition[]>([]);
+  const [customSurgeries, setCustomSurgeries] = useState<CustomSurgery[]>([]);
   const [newCustomName, setNewCustomName] = useState("");
 
-  const handleConditionToggle = (index: number, checked: boolean) => {
-    setConditions((prev) =>
-      prev.map((c, i) => (i === index ? { ...c, checked } : c))
+  const handleSurgeryToggle = (index: number, checked: boolean) => {
+    setSurgeries((prev) =>
+      prev.map((s, i) => (i === index ? { ...s, checked } : s))
     );
   };
 
   const handleYearChange = (index: number, year: string) => {
-    setConditions((prev) =>
-      prev.map((c, i) => (i === index ? { ...c, year } : c))
+    setSurgeries((prev) =>
+      prev.map((s, i) => (i === index ? { ...s, year } : s))
     );
   };
 
   const handleCustomYearChange = (index: number, year: string) => {
-    setCustomConditions((prev) =>
-      prev.map((c, i) => (i === index ? { ...c, year } : c))
+    setCustomSurgeries((prev) =>
+      prev.map((s, i) => (i === index ? { ...s, year } : s))
     );
   };
 
   const handleAddCustom = () => {
     if (newCustomName.trim()) {
-      setCustomConditions((prev) => [
+      setCustomSurgeries((prev) => [
         ...prev,
         { name: newCustomName.trim(), year: "" },
       ]);
@@ -108,26 +105,26 @@ export function PastConditionsDialog({
   };
 
   const handleRemoveCustom = (index: number) => {
-    setCustomConditions((prev) => prev.filter((_, i) => i !== index));
+    setCustomSurgeries((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleInsert = () => {
-    const selectedConditions = conditions
-      .filter((c) => c.checked)
-      .map((c) => (c.year ? `${c.name} (${c.year})` : c.name));
+    const selectedSurgeries = surgeries
+      .filter((s) => s.checked)
+      .map((s) => (s.year ? `${s.name} (${s.year})` : s.name));
 
-    const customEntries = customConditions
-      .filter((c) => c.name.trim())
-      .map((c) => (c.year ? `${c.name} (${c.year})` : c.name));
+    const customEntries = customSurgeries
+      .filter((s) => s.name.trim())
+      .map((s) => (s.year ? `${s.name} (${s.year})` : s.name));
 
-    const allConditions = [...selectedConditions, ...customEntries];
+    const allSurgeries = [...selectedSurgeries, ...customEntries];
 
-    if (allConditions.length === 0) {
+    if (allSurgeries.length === 0) {
       onOpenChange(false);
       return;
     }
 
-    const newText = allConditions.join(", ");
+    const newText = allSurgeries.join(", ");
     const finalText = currentValue
       ? `${currentValue}, ${newText}`
       : newText;
@@ -138,14 +135,14 @@ export function PastConditionsDialog({
   };
 
   const handleReset = () => {
-    setConditions(
-      COMMON_PAST_CONDITIONS.map((name) => ({
+    setSurgeries(
+      COMMON_SURGERIES.map((name) => ({
         name,
         year: "",
         checked: false,
       }))
     );
-    setCustomConditions([]);
+    setCustomSurgeries([]);
     setNewCustomName("");
   };
 
@@ -158,18 +155,18 @@ export function PastConditionsDialog({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>Insert Past Medical Conditions</DialogTitle>
+          <DialogTitle>Insert Surgical History</DialogTitle>
         </DialogHeader>
 
         <ScrollArea className="flex-1 pr-4">
           <div className="space-y-4">
-            {/* Other Conditions - At Top */}
+            {/* Other Surgeries - At Top */}
             <div className="space-y-2 border-b pb-4">
-              <Label className="text-sm font-medium">Add Other Condition</Label>
+              <Label className="text-sm font-medium">Add Other Surgery</Label>
               
               <div className="flex items-center gap-2">
                 <Input
-                  placeholder="Enter other condition..."
+                  placeholder="Enter other surgery..."
                   value={newCustomName}
                   onChange={(e) => setNewCustomName(e.target.value)}
                   onKeyDown={(e) => {
@@ -191,15 +188,15 @@ export function PastConditionsDialog({
                 </Button>
               </div>
 
-              {customConditions.map((condition, index) => (
+              {customSurgeries.map((surgery, index) => (
                 <div
                   key={index}
                   className="flex items-center gap-2 p-2 rounded-md bg-muted/30"
                 >
-                  <span className="flex-1 text-sm">{condition.name}</span>
+                  <span className="flex-1 text-sm">{surgery.name}</span>
                   <Input
                     placeholder="Year (e.g., 2020)"
-                    value={condition.year}
+                    value={surgery.year}
                     onChange={(e) =>
                       handleCustomYearChange(index, e.target.value)
                     }
@@ -218,32 +215,32 @@ export function PastConditionsDialog({
               ))}
             </div>
 
-            {/* Common Past Conditions */}
+            {/* Common Surgeries */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Common Past Conditions</Label>
+              <Label className="text-sm font-medium">Common Surgeries</Label>
               <div className="grid grid-cols-1 gap-2">
-                {conditions.map((condition, index) => (
+                {surgeries.map((surgery, index) => (
                   <div
-                    key={condition.name}
+                    key={surgery.name}
                     className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50"
                   >
                     <Checkbox
-                      id={`past-condition-${index}`}
-                      checked={condition.checked}
+                      id={`surgery-${index}`}
+                      checked={surgery.checked}
                       onCheckedChange={(checked) =>
-                        handleConditionToggle(index, checked as boolean)
+                        handleSurgeryToggle(index, checked as boolean)
                       }
                     />
                     <Label
-                      htmlFor={`past-condition-${index}`}
+                      htmlFor={`surgery-${index}`}
                       className="flex-1 cursor-pointer text-sm"
                     >
-                      {condition.name}
+                      {surgery.name}
                     </Label>
-                    {condition.checked && (
+                    {surgery.checked && (
                       <Input
                         placeholder="Year (e.g., 2020)"
-                        value={condition.year}
+                        value={surgery.year}
                         onChange={(e) =>
                           handleYearChange(index, e.target.value)
                         }

@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { ArrowLeft, ListPlus } from "lucide-react";
 import { OngoingConditionsDialog } from "@/components/patient/OngoingConditionsDialog";
 import { PastConditionsDialog } from "@/components/patient/PastConditionsDialog";
+import { SurgicalHistoryDialog } from "@/components/patient/SurgicalHistoryDialog";
 
 const patientSchema = z.object({
   first_name: z.string().min(1, "First name is required").max(100, "First name must be less than 100 characters"),
@@ -64,6 +65,7 @@ const AddPatient = () => {
   const [loading, setLoading] = useState(false);
   const [showOngoingConditionsDialog, setShowOngoingConditionsDialog] = useState(false);
   const [showPastConditionsDialog, setShowPastConditionsDialog] = useState(false);
+  const [showSurgicalHistoryDialog, setShowSurgicalHistoryDialog] = useState(false);
   
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<PatientFormData>({
     resolver: zodResolver(patientSchema),
@@ -435,12 +437,30 @@ const AddPatient = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="surgical_history">Surgical History</Label>
+                <div className="flex items-center gap-2 mb-1">
+                  <Label htmlFor="surgical_history">Surgical History</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => setShowSurgicalHistoryDialog(true)}
+                    title="Insert Surgical History"
+                  >
+                    <ListPlus className="h-4 w-4" />
+                  </Button>
+                </div>
                 <Textarea
                   id="surgical_history"
                   placeholder="List past surgeries and procedures..."
                   {...register("surgical_history")}
                   rows={3}
+                />
+                <SurgicalHistoryDialog
+                  open={showSurgicalHistoryDialog}
+                  onOpenChange={setShowSurgicalHistoryDialog}
+                  onInsert={(text) => setValue("surgical_history", text)}
+                  currentValue={watch("surgical_history")}
                 />
               </div>
               <div>
