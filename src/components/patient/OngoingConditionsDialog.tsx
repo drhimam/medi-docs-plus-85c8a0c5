@@ -170,6 +170,61 @@ export function OngoingConditionsDialog({
 
         <ScrollArea className="flex-1 pr-4">
           <div className="space-y-4">
+            {/* Other Conditions - At Top */}
+            <div className="space-y-2 border-b pb-4">
+              <Label className="text-sm font-medium">Add Other Condition</Label>
+              
+              <div className="flex items-center gap-2">
+                <Input
+                  placeholder="Enter other condition..."
+                  value={newCustomName}
+                  onChange={(e) => setNewCustomName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddCustom();
+                    }
+                  }}
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={handleAddCustom}
+                  disabled={!newCustomName.trim()}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {customConditions.map((condition, index) => (
+                <div
+                  key={index}
+                  className="flex items-center gap-2 p-2 rounded-md bg-muted/30"
+                >
+                  <span className="flex-1 text-sm">{condition.name}</span>
+                  <Input
+                    placeholder="Duration"
+                    value={condition.duration}
+                    onChange={(e) =>
+                      handleCustomDurationChange(index, e.target.value)
+                    }
+                    className="w-40 h-8 text-sm"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleRemoveCustom(index)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+
             {/* Common Conditions */}
             <div className="space-y-2">
               <Label className="text-sm font-medium">Common Conditions</Label>
@@ -204,61 +259,6 @@ export function OngoingConditionsDialog({
                     )}
                   </div>
                 ))}
-              </div>
-            </div>
-
-            {/* Custom Conditions */}
-            <div className="space-y-2 border-t pt-4">
-              <Label className="text-sm font-medium">Other Conditions</Label>
-              
-              {customConditions.map((condition, index) => (
-                <div
-                  key={index}
-                  className="flex items-center gap-2 p-2 rounded-md bg-muted/30"
-                >
-                  <span className="flex-1 text-sm">{condition.name}</span>
-                  <Input
-                    placeholder="Duration"
-                    value={condition.duration}
-                    onChange={(e) =>
-                      handleCustomDurationChange(index, e.target.value)
-                    }
-                    className="w-40 h-8 text-sm"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => handleRemoveCustom(index)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-
-              <div className="flex items-center gap-2">
-                <Input
-                  placeholder="Enter other condition..."
-                  value={newCustomName}
-                  onChange={(e) => setNewCustomName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddCustom();
-                    }
-                  }}
-                  className="flex-1"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={handleAddCustom}
-                  disabled={!newCustomName.trim()}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
               </div>
             </div>
           </div>
