@@ -30,6 +30,7 @@ const COMMON_PAST_CONDITIONS = [
   "Gallbladder Stone",
   "Kidney Stone",
   "Jaundice",
+  "Prolonged Fever/PUO",
   "Syphilis",
   "Gonorrhea",
   "HIV/AIDS",
