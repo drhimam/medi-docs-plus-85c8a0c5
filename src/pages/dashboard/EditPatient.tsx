@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2, ListPlus } from "lucide-react";
 import { OngoingConditionsDialog } from "@/components/patient/OngoingConditionsDialog";
+import { PastConditionsDialog } from "@/components/patient/PastConditionsDialog";
 
 const patientSchema = z.object({
   first_name: z.string().min(1, "First name is required").max(100, "First name must be less than 100 characters"),
@@ -64,6 +65,7 @@ const EditPatient = () => {
   const [loading, setLoading] = useState(false);
   const [fetchingData, setFetchingData] = useState(true);
   const [showOngoingConditionsDialog, setShowOngoingConditionsDialog] = useState(false);
+  const [showPastConditionsDialog, setShowPastConditionsDialog] = useState(false);
   
   const { register, handleSubmit, watch, setValue, formState: { errors }, reset } = useForm<PatientFormData>({
     resolver: zodResolver(patientSchema),
@@ -456,12 +458,30 @@ const EditPatient = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="medical_history_past">Past Medical History</Label>
+                <div className="flex items-center gap-2 mb-1">
+                  <Label htmlFor="medical_history_past">Past Medical History</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => setShowPastConditionsDialog(true)}
+                    title="Insert Past Conditions"
+                  >
+                    <ListPlus className="h-4 w-4" />
+                  </Button>
+                </div>
                 <Textarea
                   id="medical_history_past"
                   placeholder="List past medical conditions..."
                   {...register("medical_history_past")}
                   rows={3}
+                />
+                <PastConditionsDialog
+                  open={showPastConditionsDialog}
+                  onOpenChange={setShowPastConditionsDialog}
+                  onInsert={(text) => setValue("medical_history_past", text)}
+                  currentValue={watch("medical_history_past")}
                 />
               </div>
               <div>
