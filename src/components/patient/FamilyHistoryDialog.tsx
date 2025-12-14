@@ -24,12 +24,14 @@ interface FamilyHistoryDialogProps {
 interface FamilyMember {
   id: string;
   relation: string;
+  gender?: "male" | "female";
   status: "alive" | "deceased";
   ageAtDeath?: string;
   causeOfDeath?: string[];
   otherCauseOfDeath?: string;
   chronicConditions?: string[];
   cancerType?: string;
+  otherChronicCondition?: string;
 }
 
 const DEATH_CAUSES = [
@@ -72,13 +74,15 @@ const FamilyHistoryDialog = ({
   ]);
   const [siblingCount, setSiblingCount] = useState(0);
 
-  const addSibling = () => {
+  const addSibling = (gender: "male" | "female") => {
     const newId = `sibling-${siblingCount + 1}`;
+    const genderLabel = gender === "male" ? "Brother" : "Sister";
     setMembers([
       ...members,
       {
         id: newId,
-        relation: `Sibling ${siblingCount + 1}`,
+        relation: `${genderLabel} ${siblingCount + 1}`,
+        gender,
         status: "alive",
         chronicConditions: [],
         causeOfDeath: [],
@@ -140,6 +144,9 @@ const FamilyHistoryDialog = ({
         if (member.cancerType && conditions.includes("Cancer")) {
           const idx = conditions.indexOf("Cancer");
           conditions[idx] = `Cancer (${member.cancerType})`;
+        }
+        if (member.otherChronicCondition) {
+          conditions.push(member.otherChronicCondition);
         }
         if (conditions.length > 0) {
           entry += ` - History of: ${conditions.join(", ")}`;
@@ -298,20 +305,42 @@ const FamilyHistoryDialog = ({
                         />
                       </div>
                     )}
+                    <div className="mt-2">
+                      <Input
+                        placeholder="Other condition..."
+                        value={member.otherChronicCondition || ""}
+                        onChange={(e) =>
+                          updateMember(member.id, {
+                            otherChronicCondition: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
                   </div>
                 )}
               </div>
             ))}
 
-            <Button
-              type="button"
-              variant="outline"
-              onClick={addSibling}
-              className="w-full"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Sibling
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => addSibling("male")}
+                className="flex-1"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Brother
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => addSibling("female")}
+                className="flex-1"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Sister
+              </Button>
+            </div>
           </div>
         </ScrollArea>
 
