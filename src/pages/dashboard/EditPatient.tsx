@@ -16,6 +16,7 @@ import { OngoingConditionsDialog } from "@/components/patient/OngoingConditionsD
 import { PastConditionsDialog } from "@/components/patient/PastConditionsDialog";
 import { SurgicalHistoryDialog } from "@/components/patient/SurgicalHistoryDialog";
 import { HospitalizationHistoryDialog } from "@/components/patient/HospitalizationHistoryDialog";
+import FamilyHistoryDialog from "@/components/patient/FamilyHistoryDialog";
 
 const patientSchema = z.object({
   first_name: z.string().min(1, "First name is required").max(100, "First name must be less than 100 characters"),
@@ -70,6 +71,7 @@ const EditPatient = () => {
   const [showPastConditionsDialog, setShowPastConditionsDialog] = useState(false);
   const [showSurgicalHistoryDialog, setShowSurgicalHistoryDialog] = useState(false);
   const [showHospitalizationDialog, setShowHospitalizationDialog] = useState(false);
+  const [showFamilyHistoryDialog, setShowFamilyHistoryDialog] = useState(false);
   
   const { register, handleSubmit, watch, setValue, formState: { errors }, reset } = useForm<PatientFormData>({
     resolver: zodResolver(patientSchema),
@@ -543,12 +545,29 @@ const EditPatient = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="family_history">Family History</Label>
+                <div className="flex items-center gap-2 mb-1">
+                  <Label htmlFor="family_history">Family History</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => setShowFamilyHistoryDialog(true)}
+                  >
+                    <ListPlus className="h-4 w-4" />
+                  </Button>
+                </div>
                 <Textarea
                   id="family_history"
                   placeholder="List relevant family medical history..."
                   {...register("family_history")}
                   rows={3}
+                />
+                <FamilyHistoryDialog
+                  open={showFamilyHistoryDialog}
+                  onOpenChange={setShowFamilyHistoryDialog}
+                  onInsert={(text) => setValue("family_history", text)}
+                  currentValue={watch("family_history") || ""}
                 />
               </div>
               <div>
