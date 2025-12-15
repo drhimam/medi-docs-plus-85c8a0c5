@@ -25,6 +25,10 @@ import { AccidentsInjuriesDialog } from "@/components/patient/AccidentsInjuriesD
 import { PreventiveScreeningDialog } from "@/components/patient/PreventiveScreeningDialog";
 import { MedicationsDialog } from "@/components/patient/MedicationsDialog";
 import { SupplementsDialog } from "@/components/patient/SupplementsDialog";
+import { VaccinationHistoryDialog } from "@/components/patient/VaccinationHistoryDialog";
+import { DrugAllergyDialog } from "@/components/patient/DrugAllergyDialog";
+import { FoodAllergyDialog } from "@/components/patient/FoodAllergyDialog";
+import { EnvironmentalAllergyDialog } from "@/components/patient/EnvironmentalAllergyDialog";
 
 const patientSchema = z.object({
   first_name: z.string().min(1, "First name is required").max(100, "First name must be less than 100 characters"),
@@ -86,6 +90,10 @@ const AddPatient = () => {
   const [showPreventiveScreeningDialog, setShowPreventiveScreeningDialog] = useState(false);
   const [showMedicationsDialog, setShowMedicationsDialog] = useState(false);
   const [showSupplementsDialog, setShowSupplementsDialog] = useState(false);
+  const [showVaccinationDialog, setShowVaccinationDialog] = useState(false);
+  const [showDrugAllergyDialog, setShowDrugAllergyDialog] = useState(false);
+  const [showFoodAllergyDialog, setShowFoodAllergyDialog] = useState(false);
+  const [showEnvAllergyDialog, setShowEnvAllergyDialog] = useState(false);
   
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<PatientFormData>({
     resolver: zodResolver(patientSchema),
@@ -776,7 +784,19 @@ const AddPatient = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="vaccinations">Vaccination History</Label>
+                <div className="flex items-center gap-2 mb-1">
+                  <Label htmlFor="vaccinations">Vaccination History</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => setShowVaccinationDialog(true)}
+                    title="Insert Vaccinations"
+                  >
+                    <ListPlus className="h-4 w-4" />
+                  </Button>
+                </div>
                 <Textarea
                   id="vaccinations"
                   placeholder="Enter vaccinations separated by commas (e.g., COVID-19 2023, Flu 2023)"
@@ -784,6 +804,12 @@ const AddPatient = () => {
                   rows={3}
                 />
                 <p className="text-sm text-muted-foreground mt-1">Separate multiple items with commas</p>
+                <VaccinationHistoryDialog
+                  open={showVaccinationDialog}
+                  onOpenChange={setShowVaccinationDialog}
+                  onInsert={(text) => setValue("vaccinations", text)}
+                  currentValue={watch("vaccinations")}
+                />
               </div>
             </CardContent>
           </Card>
@@ -796,7 +822,19 @@ const AddPatient = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="allergic_history_drug">Drug Allergies</Label>
+                <div className="flex items-center gap-2 mb-1">
+                  <Label htmlFor="allergic_history_drug">Drug Allergies</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => setShowDrugAllergyDialog(true)}
+                    title="Insert Drug Allergies"
+                  >
+                    <ListPlus className="h-4 w-4" />
+                  </Button>
+                </div>
                 <Textarea
                   id="allergic_history_drug"
                   placeholder="Enter drug allergies separated by commas (e.g., Penicillin, Aspirin)"
@@ -804,9 +842,27 @@ const AddPatient = () => {
                   rows={3}
                 />
                 <p className="text-sm text-muted-foreground mt-1">Separate multiple items with commas</p>
+                <DrugAllergyDialog
+                  open={showDrugAllergyDialog}
+                  onOpenChange={setShowDrugAllergyDialog}
+                  onInsert={(text) => setValue("allergic_history_drug", text)}
+                  currentValue={watch("allergic_history_drug")}
+                />
               </div>
               <div>
-                <Label htmlFor="allergic_history_food">Food Allergies</Label>
+                <div className="flex items-center gap-2 mb-1">
+                  <Label htmlFor="allergic_history_food">Food Allergies</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => setShowFoodAllergyDialog(true)}
+                    title="Insert Food Allergies"
+                  >
+                    <ListPlus className="h-4 w-4" />
+                  </Button>
+                </div>
                 <Textarea
                   id="allergic_history_food"
                   placeholder="Enter food allergies separated by commas (e.g., Peanuts, Shellfish)"
@@ -814,9 +870,27 @@ const AddPatient = () => {
                   rows={3}
                 />
                 <p className="text-sm text-muted-foreground mt-1">Separate multiple items with commas</p>
+                <FoodAllergyDialog
+                  open={showFoodAllergyDialog}
+                  onOpenChange={setShowFoodAllergyDialog}
+                  onInsert={(text) => setValue("allergic_history_food", text)}
+                  currentValue={watch("allergic_history_food")}
+                />
               </div>
               <div>
-                <Label htmlFor="allergic_history_env">Environmental Allergies</Label>
+                <div className="flex items-center gap-2 mb-1">
+                  <Label htmlFor="allergic_history_env">Environmental Allergies</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => setShowEnvAllergyDialog(true)}
+                    title="Insert Environmental Allergies"
+                  >
+                    <ListPlus className="h-4 w-4" />
+                  </Button>
+                </div>
                 <Textarea
                   id="allergic_history_env"
                   placeholder="Enter environmental allergies separated by commas (e.g., Pollen, Dust)"
@@ -824,6 +898,12 @@ const AddPatient = () => {
                   rows={3}
                 />
                 <p className="text-sm text-muted-foreground mt-1">Separate multiple items with commas</p>
+                <EnvironmentalAllergyDialog
+                  open={showEnvAllergyDialog}
+                  onOpenChange={setShowEnvAllergyDialog}
+                  onInsert={(text) => setValue("allergic_history_env", text)}
+                  currentValue={watch("allergic_history_env")}
+                />
               </div>
             </CardContent>
           </Card>
