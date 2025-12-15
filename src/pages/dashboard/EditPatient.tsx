@@ -23,6 +23,8 @@ import { DevelopmentalHistoryDialog } from "@/components/patient/DevelopmentalHi
 import { ChildhoodIllnessesDialog } from "@/components/patient/ChildhoodIllnessesDialog";
 import { AccidentsInjuriesDialog } from "@/components/patient/AccidentsInjuriesDialog";
 import { PreventiveScreeningDialog } from "@/components/patient/PreventiveScreeningDialog";
+import { MedicationsDialog } from "@/components/patient/MedicationsDialog";
+import { SupplementsDialog } from "@/components/patient/SupplementsDialog";
 
 const patientSchema = z.object({
   first_name: z.string().min(1, "First name is required").max(100, "First name must be less than 100 characters"),
@@ -84,6 +86,8 @@ const EditPatient = () => {
   const [showChildhoodIllnessesDialog, setShowChildhoodIllnessesDialog] = useState(false);
   const [showAccidentsInjuriesDialog, setShowAccidentsInjuriesDialog] = useState(false);
   const [showPreventiveScreeningDialog, setShowPreventiveScreeningDialog] = useState(false);
+  const [showMedicationsDialog, setShowMedicationsDialog] = useState(false);
+  const [showSupplementsDialog, setShowSupplementsDialog] = useState(false);
   
   const { register, handleSubmit, watch, setValue, formState: { errors }, reset } = useForm<PatientFormData>({
     resolver: zodResolver(patientSchema),
@@ -766,21 +770,57 @@ const EditPatient = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="ongoing_medications">Ongoing Medications</Label>
+                <div className="flex items-center gap-2 mb-1">
+                  <Label htmlFor="ongoing_medications">Ongoing Medications</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => setShowMedicationsDialog(true)}
+                    title="Insert Medications"
+                  >
+                    <ListPlus className="h-4 w-4" />
+                  </Button>
+                </div>
                 <Textarea
                   id="ongoing_medications"
                   placeholder="e.g., Aspirin 100mg daily, Metformin 500mg twice daily"
                   {...register("ongoing_medications")}
                   rows={3}
                 />
+                <MedicationsDialog
+                  open={showMedicationsDialog}
+                  onOpenChange={setShowMedicationsDialog}
+                  onInsert={(text) => setValue("ongoing_medications", text)}
+                  currentValue={watch("ongoing_medications")}
+                />
               </div>
               <div>
-                <Label htmlFor="supplements">Supplements</Label>
+                <div className="flex items-center gap-2 mb-1">
+                  <Label htmlFor="supplements">Supplements</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => setShowSupplementsDialog(true)}
+                    title="Insert Supplements"
+                  >
+                    <ListPlus className="h-4 w-4" />
+                  </Button>
+                </div>
                 <Textarea
                   id="supplements"
                   placeholder="e.g., Vitamin D, Omega-3"
                   {...register("supplements")}
                   rows={3}
+                />
+                <SupplementsDialog
+                  open={showSupplementsDialog}
+                  onOpenChange={setShowSupplementsDialog}
+                  onInsert={(text) => setValue("supplements", text)}
+                  currentValue={watch("supplements")}
                 />
               </div>
               <div>
