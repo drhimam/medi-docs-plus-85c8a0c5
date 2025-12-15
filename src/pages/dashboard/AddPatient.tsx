@@ -31,6 +31,7 @@ import { FoodAllergyDialog } from "@/components/patient/FoodAllergyDialog";
 import { EnvironmentalAllergyDialog } from "@/components/patient/EnvironmentalAllergyDialog";
 import { MenstrualPregnancyHistoryDialog } from "@/components/patient/MenstrualPregnancyHistoryDialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { SocialHistoryDialog, SocialHistoryData } from "@/components/patient/SocialHistoryDialog";
 
 const patientSchema = z.object({
   first_name: z.string().min(1, "First name is required").max(100, "First name must be less than 100 characters"),
@@ -98,6 +99,7 @@ const AddPatient = () => {
   const [showEnvAllergyDialog, setShowEnvAllergyDialog] = useState(false);
   const [showMenstrualPregnancyDialog, setShowMenstrualPregnancyDialog] = useState(false);
   const [noKnownAllergies, setNoKnownAllergies] = useState(false);
+  const [showSocialHistoryDialog, setShowSocialHistoryDialog] = useState(false);
   
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<PatientFormData>({
     resolver: zodResolver(patientSchema),
@@ -954,10 +956,47 @@ const AddPatient = () => {
           {/* Social History Section */}
           <Card>
             <CardHeader>
-              <CardTitle>Social History</CardTitle>
-              <CardDescription>Lifestyle factors and occupational information</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Social History</CardTitle>
+                  <CardDescription>Lifestyle factors and occupational information</CardDescription>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowSocialHistoryDialog(true)}
+                >
+                  <ListPlus className="h-4 w-4 mr-2" />
+                  Use Preset
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
+              <SocialHistoryDialog
+                open={showSocialHistoryDialog}
+                onOpenChange={setShowSocialHistoryDialog}
+                onInsert={(data: SocialHistoryData) => {
+                  if (data.smokingStatus) {
+                    setValue("smoking_status", data.smokingStatus as "NEVER" | "FORMER" | "CURRENT");
+                  }
+                  if (data.alcoholConsumption) {
+                    setValue("alcohol_consumption", data.alcoholConsumption as "NEVER" | "OCCASIONAL" | "MODERATE" | "HEAVY");
+                  }
+                  if (data.recreationalDrugUse) {
+                    setValue("recreational_drug_use", data.recreationalDrugUse);
+                  }
+                  if (data.exerciseHabits) {
+                    setValue("exercise_habits", data.exerciseHabits);
+                  }
+                  if (data.diet) {
+                    setValue("diet", data.diet);
+                  }
+                  if (data.livingEnvironment) {
+                    setValue("living_environment", data.livingEnvironment);
+                  }
+                }}
+              />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="smoking_status">Smoking Status</Label>
