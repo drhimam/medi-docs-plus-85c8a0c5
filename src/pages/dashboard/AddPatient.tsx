@@ -17,6 +17,12 @@ import { PastConditionsDialog } from "@/components/patient/PastConditionsDialog"
 import { SurgicalHistoryDialog } from "@/components/patient/SurgicalHistoryDialog";
 import { HospitalizationHistoryDialog } from "@/components/patient/HospitalizationHistoryDialog";
 import FamilyHistoryDialog from "@/components/patient/FamilyHistoryDialog";
+import { MentalHealthHistoryDialog } from "@/components/patient/MentalHealthHistoryDialog";
+import { BirthHistoryDialog } from "@/components/patient/BirthHistoryDialog";
+import { DevelopmentalHistoryDialog } from "@/components/patient/DevelopmentalHistoryDialog";
+import { ChildhoodIllnessesDialog } from "@/components/patient/ChildhoodIllnessesDialog";
+import { AccidentsInjuriesDialog } from "@/components/patient/AccidentsInjuriesDialog";
+import { PreventiveScreeningDialog } from "@/components/patient/PreventiveScreeningDialog";
 
 const patientSchema = z.object({
   first_name: z.string().min(1, "First name is required").max(100, "First name must be less than 100 characters"),
@@ -70,6 +76,12 @@ const AddPatient = () => {
   const [showSurgicalHistoryDialog, setShowSurgicalHistoryDialog] = useState(false);
   const [showHospitalizationDialog, setShowHospitalizationDialog] = useState(false);
   const [showFamilyHistoryDialog, setShowFamilyHistoryDialog] = useState(false);
+  const [showMentalHealthDialog, setShowMentalHealthDialog] = useState(false);
+  const [showBirthHistoryDialog, setShowBirthHistoryDialog] = useState(false);
+  const [showDevelopmentalHistoryDialog, setShowDevelopmentalHistoryDialog] = useState(false);
+  const [showChildhoodIllnessesDialog, setShowChildhoodIllnessesDialog] = useState(false);
+  const [showAccidentsInjuriesDialog, setShowAccidentsInjuriesDialog] = useState(false);
+  const [showPreventiveScreeningDialog, setShowPreventiveScreeningDialog] = useState(false);
   
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<PatientFormData>({
     resolver: zodResolver(patientSchema),
@@ -521,48 +533,138 @@ const AddPatient = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="mental_health_history">Mental Health History</Label>
+                <div className="flex items-center gap-2 mb-1">
+                  <Label htmlFor="mental_health_history">Mental Health History</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => setShowMentalHealthDialog(true)}
+                    title="Insert Mental Health History"
+                  >
+                    <ListPlus className="h-4 w-4" />
+                  </Button>
+                </div>
                 <Textarea
                   id="mental_health_history"
                   placeholder="List mental health conditions and treatments..."
                   {...register("mental_health_history")}
                   rows={3}
                 />
+                <MentalHealthHistoryDialog
+                  open={showMentalHealthDialog}
+                  onOpenChange={setShowMentalHealthDialog}
+                  onInsert={(text) => setValue("mental_health_history", text)}
+                  currentValue={watch("mental_health_history")}
+                />
               </div>
               <div>
-                <Label htmlFor="birth_history">Birth History</Label>
+                <div className="flex items-center gap-2 mb-1">
+                  <Label htmlFor="birth_history">Birth History</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => setShowBirthHistoryDialog(true)}
+                    title="Insert Birth History"
+                  >
+                    <ListPlus className="h-4 w-4" />
+                  </Button>
+                </div>
                 <Textarea
                   id="birth_history"
                   placeholder="Describe birth history..."
                   {...register("birth_history")}
                   rows={2}
                 />
+                <BirthHistoryDialog
+                  open={showBirthHistoryDialog}
+                  onOpenChange={setShowBirthHistoryDialog}
+                  onInsert={(text) => setValue("birth_history", text)}
+                  currentValue={watch("birth_history")}
+                />
               </div>
               <div>
-                <Label htmlFor="developmental_history">Developmental History</Label>
+                <div className="flex items-center gap-2 mb-1">
+                  <Label htmlFor="developmental_history">Developmental History</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => setShowDevelopmentalHistoryDialog(true)}
+                    title="Insert Developmental History"
+                  >
+                    <ListPlus className="h-4 w-4" />
+                  </Button>
+                </div>
                 <Textarea
                   id="developmental_history"
                   placeholder="Describe developmental milestones..."
                   {...register("developmental_history")}
                   rows={2}
                 />
+                <DevelopmentalHistoryDialog
+                  open={showDevelopmentalHistoryDialog}
+                  onOpenChange={setShowDevelopmentalHistoryDialog}
+                  onInsert={(text) => setValue("developmental_history", text)}
+                  currentValue={watch("developmental_history")}
+                />
               </div>
               <div>
-                <Label htmlFor="childhood_illnesses">Childhood Illnesses</Label>
+                <div className="flex items-center gap-2 mb-1">
+                  <Label htmlFor="childhood_illnesses">Childhood Illnesses</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => setShowChildhoodIllnessesDialog(true)}
+                    title="Insert Childhood Illnesses"
+                  >
+                    <ListPlus className="h-4 w-4" />
+                  </Button>
+                </div>
                 <Textarea
                   id="childhood_illnesses"
                   placeholder="List significant childhood illnesses..."
                   {...register("childhood_illnesses")}
                   rows={2}
                 />
+                <ChildhoodIllnessesDialog
+                  open={showChildhoodIllnessesDialog}
+                  onOpenChange={setShowChildhoodIllnessesDialog}
+                  onInsert={(text) => setValue("childhood_illnesses", text)}
+                  currentValue={watch("childhood_illnesses")}
+                />
               </div>
               <div>
-                <Label htmlFor="accidents_injuries">Accidents or Injuries</Label>
+                <div className="flex items-center gap-2 mb-1">
+                  <Label htmlFor="accidents_injuries">Accidents or Injuries</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => setShowAccidentsInjuriesDialog(true)}
+                    title="Insert Accidents/Injuries"
+                  >
+                    <ListPlus className="h-4 w-4" />
+                  </Button>
+                </div>
                 <Textarea
                   id="accidents_injuries"
                   placeholder="Describe major accidents or injuries..."
                   {...register("accidents_injuries")}
                   rows={2}
+                />
+                <AccidentsInjuriesDialog
+                  open={showAccidentsInjuriesDialog}
+                  onOpenChange={setShowAccidentsInjuriesDialog}
+                  onInsert={(text) => setValue("accidents_injuries", text)}
+                  currentValue={watch("accidents_injuries")}
                 />
               </div>
               {gender === "FEMALE" && (
@@ -577,12 +679,30 @@ const AddPatient = () => {
                 </div>
               )}
               <div>
-                <Label htmlFor="preventive_screening_history">Preventive Screening History</Label>
+                <div className="flex items-center gap-2 mb-1">
+                  <Label htmlFor="preventive_screening_history">Preventive Screening History</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => setShowPreventiveScreeningDialog(true)}
+                    title="Insert Preventive Screening History"
+                  >
+                    <ListPlus className="h-4 w-4" />
+                  </Button>
+                </div>
                 <Textarea
                   id="preventive_screening_history"
                   placeholder="e.g., mammograms, colonoscopies..."
                   {...register("preventive_screening_history")}
                   rows={2}
+                />
+                <PreventiveScreeningDialog
+                  open={showPreventiveScreeningDialog}
+                  onOpenChange={setShowPreventiveScreeningDialog}
+                  onInsert={(text) => setValue("preventive_screening_history", text)}
+                  currentValue={watch("preventive_screening_history")}
                 />
               </div>
             </CardContent>
