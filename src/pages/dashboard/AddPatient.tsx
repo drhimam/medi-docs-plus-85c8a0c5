@@ -29,6 +29,8 @@ import { VaccinationHistoryDialog } from "@/components/patient/VaccinationHistor
 import { DrugAllergyDialog } from "@/components/patient/DrugAllergyDialog";
 import { FoodAllergyDialog } from "@/components/patient/FoodAllergyDialog";
 import { EnvironmentalAllergyDialog } from "@/components/patient/EnvironmentalAllergyDialog";
+import { MenstrualPregnancyHistoryDialog } from "@/components/patient/MenstrualPregnancyHistoryDialog";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const patientSchema = z.object({
   first_name: z.string().min(1, "First name is required").max(100, "First name must be less than 100 characters"),
@@ -94,6 +96,8 @@ const AddPatient = () => {
   const [showDrugAllergyDialog, setShowDrugAllergyDialog] = useState(false);
   const [showFoodAllergyDialog, setShowFoodAllergyDialog] = useState(false);
   const [showEnvAllergyDialog, setShowEnvAllergyDialog] = useState(false);
+  const [showMenstrualPregnancyDialog, setShowMenstrualPregnancyDialog] = useState(false);
+  const [noKnownAllergies, setNoKnownAllergies] = useState(false);
   
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<PatientFormData>({
     resolver: zodResolver(patientSchema),
@@ -681,12 +685,30 @@ const AddPatient = () => {
               </div>
               {gender === "FEMALE" && (
                 <div>
-                  <Label htmlFor="menstrual_pregnancy_history">Menstrual and Pregnancy History</Label>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Label htmlFor="menstrual_pregnancy_history">Menstrual and Pregnancy History</Label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => setShowMenstrualPregnancyDialog(true)}
+                      title="Insert Menstrual/Pregnancy History"
+                    >
+                      <ListPlus className="h-4 w-4" />
+                    </Button>
+                  </div>
                   <Textarea
                     id="menstrual_pregnancy_history"
                     placeholder="Detail menstrual and pregnancy history..."
                     {...register("menstrual_pregnancy_history")}
                     rows={2}
+                  />
+                  <MenstrualPregnancyHistoryDialog
+                    open={showMenstrualPregnancyDialog}
+                    onOpenChange={setShowMenstrualPregnancyDialog}
+                    onInsert={(text) => setValue("menstrual_pregnancy_history", text)}
+                    currentValue={watch("menstrual_pregnancy_history")}
                   />
                 </div>
               )}
@@ -821,6 +843,27 @@ const AddPatient = () => {
               <CardDescription>Document all known allergies for patient safety</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="flex items-center space-x-2 p-3 bg-muted/50 rounded-md">
+                <Checkbox
+                  id="nkda"
+                  checked={noKnownAllergies}
+                  onCheckedChange={(checked) => {
+                    setNoKnownAllergies(checked === true);
+                    if (checked) {
+                      setValue("allergic_history_drug", "NKDA (No Known Drug Allergies)");
+                      setValue("allergic_history_food", "NKFA (No Known Food Allergies)");
+                      setValue("allergic_history_env", "NKEA (No Known Environmental Allergies)");
+                    } else {
+                      setValue("allergic_history_drug", "");
+                      setValue("allergic_history_food", "");
+                      setValue("allergic_history_env", "");
+                    }
+                  }}
+                />
+                <Label htmlFor="nkda" className="font-medium cursor-pointer">
+                  No Known Allergies (NKDA)
+                </Label>
+              </div>
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <Label htmlFor="allergic_history_drug">Drug Allergies</Label>
