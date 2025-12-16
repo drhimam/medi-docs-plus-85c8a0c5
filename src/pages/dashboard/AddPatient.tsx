@@ -6,7 +6,13 @@ import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { ArrowLeft, ChevronLeft, ChevronRight, FastForward, Printer, Save, Trash2 } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, FastForward, MoreVertical, Printer, Save, Trash2, X } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { WizardProgress } from "@/components/patient/wizard/WizardProgress";
 import { DemographicsStep } from "@/components/patient/wizard/DemographicsStep";
 import { MedicalHistoryStep } from "@/components/patient/wizard/MedicalHistoryStep";
@@ -37,6 +43,7 @@ const patientSchema = z.object({
   address: z.string().optional(),
   blood_group: z.string().optional(),
   health_card_number: z.string().optional(),
+  photo_url: z.string().optional(),
   
   medical_history_ongoing: z.string().optional(),
   medical_history_past: z.string().optional(),
@@ -90,6 +97,7 @@ const DEFAULT_VALUES: PatientFormData = {
   address: "",
   blood_group: "",
   health_card_number: "",
+  photo_url: "",
   medical_history_ongoing: "",
   medical_history_past: "",
   surgical_history: "",
@@ -528,33 +536,27 @@ const AddPatient = () => {
               </div>
             </div>
             <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={handlePrint}
-                title="Print Form"
-              >
-                <Printer className="h-4 w-4" />
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={handleManualSave}
-                disabled={isSaving}
-                title="Save Draft"
-              >
-                <Save className="h-4 w-4" />
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => navigate("/dashboard/patients")}
-                disabled={loading}
-              >
-                Cancel
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handlePrint}>
+                    <Printer className="h-4 w-4 mr-2" />
+                    Print Form
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleManualSave} disabled={isSaving}>
+                    <Save className="h-4 w-4 mr-2" />
+                    {isSaving ? "Saving..." : "Save Draft"}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/dashboard/patients")}>
+                    <X className="h-4 w-4 mr-2" />
+                    Cancel
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               {currentStep === WIZARD_STEPS.length && (
                 <Button 
                   type="submit" 
