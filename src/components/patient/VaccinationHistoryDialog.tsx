@@ -119,7 +119,7 @@ export function VaccinationHistoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh]">
+      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Add Vaccination History</DialogTitle>
         </DialogHeader>
@@ -134,7 +134,7 @@ export function VaccinationHistoryDialog({
           />
         </div>
 
-        <ScrollArea className="h-[350px] pr-4">
+        <ScrollArea className="flex-1 pr-4">
           <div className="space-y-3">
             {filteredVaccinations.map((vaccine, index) => {
               const originalIndex = vaccinations.findIndex(
