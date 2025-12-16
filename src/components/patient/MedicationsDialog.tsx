@@ -163,7 +163,7 @@ export function MedicationsDialog({ open, onOpenChange, onInsert, currentValue }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
+      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>Select Medications</DialogTitle>
           <DialogDescription>
@@ -171,7 +171,7 @@ export function MedicationsDialog({ open, onOpenChange, onInsert, currentValue }
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-hidden flex flex-col gap-4">
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col gap-4">
           <Input
             placeholder="Search medications..."
             value={searchTerm}
@@ -256,7 +256,7 @@ export function MedicationsDialog({ open, onOpenChange, onInsert, currentValue }
           </div>
 
           {/* Common Medications List */}
-          <ScrollArea className="flex-1 border rounded-lg p-3">
+          <ScrollArea className="flex-1 min-h-0 border rounded-lg p-3 pb-6">
             {filteredCategories.map((category) => (
               <div key={category.category} className="mb-4">
                 <Label className="text-sm font-semibold text-primary mb-2 block">{category.category}</Label>
@@ -282,7 +282,7 @@ export function MedicationsDialog({ open, onOpenChange, onInsert, currentValue }
           </ScrollArea>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="sticky bottom-0 bg-background pt-4 border-t -mx-6 px-6">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
