@@ -138,7 +138,7 @@ export function EnvironmentalAllergyDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>Add Environmental Allergies</DialogTitle>
         </DialogHeader>
@@ -153,7 +153,7 @@ export function EnvironmentalAllergyDialog({
           />
         </div>
 
-        <ScrollArea className="flex-1 pr-4">
+        <ScrollArea className="flex-1 min-h-0 pr-4 pb-6">
           <div className="space-y-3">
             {filteredAllergies.map((allergy, index) => {
               const originalIndex = allergies.findIndex(
@@ -226,7 +226,7 @@ export function EnvironmentalAllergyDialog({
           </div>
         </div>
 
-        <DialogFooter className="mt-4">
+        <DialogFooter className="sticky bottom-0 bg-background pt-4 border-t -mx-6 px-6">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>

@@ -222,12 +222,12 @@ export function MenstrualPregnancyHistoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>Menstrual and Pregnancy History</DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 pr-4">
+        <ScrollArea className="flex-1 min-h-0 pr-4 pb-6">
           <div className="space-y-6">
             {/* Menstrual Information */}
             <div>
@@ -470,7 +470,7 @@ export function MenstrualPregnancyHistoryDialog({
           </div>
         </ScrollArea>
 
-        <DialogFooter className="mt-4">
+        <DialogFooter className="sticky bottom-0 bg-background pt-4 border-t -mx-6 px-6">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
