@@ -6,13 +6,14 @@ import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, FastForward } from "lucide-react";
 import { WizardProgress } from "@/components/patient/wizard/WizardProgress";
 import { DemographicsStep } from "@/components/patient/wizard/DemographicsStep";
 import { MedicalHistoryStep } from "@/components/patient/wizard/MedicalHistoryStep";
 import { MedicationsStep } from "@/components/patient/wizard/MedicationsStep";
 import { AllergiesStep } from "@/components/patient/wizard/AllergiesStep";
 import { SocialHistoryStep } from "@/components/patient/wizard/SocialHistoryStep";
+import { ReviewStep } from "@/components/patient/wizard/ReviewStep";
 
 const patientSchema = z.object({
   first_name: z.string().min(1, "First name is required").max(100, "First name must be less than 100 characters"),
@@ -64,6 +65,7 @@ const WIZARD_STEPS = [
   { id: 3, title: "Medications", description: "Current meds" },
   { id: 4, title: "Allergies", description: "Known allergies" },
   { id: 5, title: "Social History", description: "Lifestyle" },
+  { id: 6, title: "Review", description: "Confirm details" },
 ];
 
 const AddPatient = () => {
@@ -228,6 +230,16 @@ const AddPatient = () => {
     }
   };
 
+  const handleSkipToReview = async () => {
+    // Validate required demographics first
+    const fieldsToValidate: (keyof PatientFormData)[] = ["first_name", "last_name", "date_of_birth", "gender", "contact_number"];
+    const isValid = await trigger(fieldsToValidate);
+    
+    if (isValid) {
+      setCurrentStep(WIZARD_STEPS.length); // Jump to review step
+    }
+  };
+
   const handleStepClick = (step: number) => {
     if (step < currentStep) {
       setCurrentStep(step);
@@ -254,6 +266,8 @@ const AddPatient = () => {
         );
       case 5:
         return <SocialHistoryStep register={register} watch={watch} setValue={setValue} />;
+      case 6:
+        return <ReviewStep watch={watch} />;
       default:
         return null;
     }
@@ -330,16 +344,29 @@ const AddPatient = () => {
               Previous
             </Button>
             
-            {currentStep < WIZARD_STEPS.length ? (
-              <Button type="button" onClick={handleNext}>
-                Next
-                <ChevronRight className="h-4 w-4 ml-2" />
-              </Button>
-            ) : (
-              <Button type="submit" disabled={loading}>
-                {loading ? "Saving..." : "Add Patient"}
-              </Button>
-            )}
+            <div className="flex gap-3">
+              {currentStep > 1 && currentStep < WIZARD_STEPS.length && (
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={handleSkipToReview}
+                >
+                  <FastForward className="h-4 w-4 mr-2" />
+                  Skip to Review
+                </Button>
+              )}
+              
+              {currentStep < WIZARD_STEPS.length ? (
+                <Button type="button" onClick={handleNext}>
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-2" />
+                </Button>
+              ) : (
+                <Button type="submit" disabled={loading}>
+                  {loading ? "Saving..." : "Add Patient"}
+                </Button>
+              )}
+            </div>
           </div>
         </form>
       </div>
