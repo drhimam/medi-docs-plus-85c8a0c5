@@ -405,6 +405,7 @@ export type Database = {
           mental_health_history: string | null
           occupation: string | null
           ongoing_medications: Json | null
+          photo_url: string | null
           preventive_screening_history: string | null
           recreational_drug_use: string | null
           smoking_status: string
@@ -446,6 +447,7 @@ export type Database = {
           mental_health_history?: string | null
           occupation?: string | null
           ongoing_medications?: Json | null
+          photo_url?: string | null
           preventive_screening_history?: string | null
           recreational_drug_use?: string | null
           smoking_status: string
@@ -487,6 +489,7 @@ export type Database = {
           mental_health_history?: string | null
           occupation?: string | null
           ongoing_medications?: Json | null
+          photo_url?: string | null
           preventive_screening_history?: string | null
           recreational_drug_use?: string | null
           smoking_status?: string
