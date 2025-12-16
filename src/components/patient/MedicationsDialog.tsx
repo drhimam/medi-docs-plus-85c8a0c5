@@ -180,40 +180,44 @@ export function MedicationsDialog({ open, onOpenChange, onInsert, currentValue }
 
           {/* Selected Medications */}
           {medications.length > 0 && (
-            <div className="border rounded-lg p-3 bg-muted/30">
+            <div className="border rounded-lg p-3 bg-muted/30 overflow-hidden">
               <Label className="text-sm font-medium mb-2 block">Selected Medications</Label>
-              <div className="space-y-2">
-                {medications.map((med) => (
-                  <div key={med.name} className="flex items-center gap-2 flex-wrap bg-background p-2 rounded">
-                    <span className="font-medium min-w-[150px]">{med.name}</span>
-                    <Input
-                      placeholder="Dose (e.g., 100mg)"
-                      value={med.dose}
-                      onChange={(e) => updateMedication(med.name, "dose", e.target.value)}
-                      className="w-32 h-8"
-                    />
-                    <Input
-                      placeholder="Frequency"
-                      value={med.frequency}
-                      onChange={(e) => updateMedication(med.name, "frequency", e.target.value)}
-                      className="w-36 h-8"
-                      list="frequency-options"
-                    />
-                    <datalist id="frequency-options">
-                      {frequencyOptions.map(f => <option key={f} value={f} />)}
-                    </datalist>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => removeMedication(med.name)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
+              <ScrollArea className="max-h-[22vh] pr-2">
+                <div className="space-y-2">
+                  {medications.map((med) => (
+                    <div key={med.name} className="flex items-center gap-2 flex-wrap bg-background p-2 rounded">
+                      <span className="font-medium min-w-[150px]">{med.name}</span>
+                      <Input
+                        placeholder="Dose (e.g., 100mg)"
+                        value={med.dose}
+                        onChange={(e) => updateMedication(med.name, "dose", e.target.value)}
+                        className="w-32 h-8"
+                      />
+                      <Input
+                        placeholder="Frequency"
+                        value={med.frequency}
+                        onChange={(e) => updateMedication(med.name, "frequency", e.target.value)}
+                        className="w-36 h-8"
+                        list="frequency-options"
+                      />
+                      <datalist id="frequency-options">
+                        {frequencyOptions.map((f) => (
+                          <option key={f} value={f} />
+                        ))}
+                      </datalist>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => removeMedication(med.name)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
             </div>
           )}
 

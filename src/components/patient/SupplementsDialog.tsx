@@ -147,30 +147,32 @@ export function SupplementsDialog({ open, onOpenChange, onInsert, currentValue }
 
           {/* Selected Supplements */}
           {supplements.length > 0 && (
-            <div className="border rounded-lg p-3 bg-muted/30">
+            <div className="border rounded-lg p-3 bg-muted/30 overflow-hidden">
               <Label className="text-sm font-medium mb-2 block">Selected Supplements</Label>
-              <div className="space-y-2">
-                {supplements.map((supp) => (
-                  <div key={supp.name} className="flex items-center gap-2 flex-wrap bg-background p-2 rounded">
-                    <span className="font-medium min-w-[150px]">{supp.name}</span>
-                    <Input
-                      placeholder="Dose (e.g., 1000mg)"
-                      value={supp.dose}
-                      onChange={(e) => updateSupplementDose(supp.name, e.target.value)}
-                      className="w-40 h-8"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => removeSupplement(supp.name)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
+              <ScrollArea className="max-h-[22vh] pr-2">
+                <div className="space-y-2">
+                  {supplements.map((supp) => (
+                    <div key={supp.name} className="flex items-center gap-2 flex-wrap bg-background p-2 rounded">
+                      <span className="font-medium min-w-[150px]">{supp.name}</span>
+                      <Input
+                        placeholder="Dose (e.g., 1000mg)"
+                        value={supp.dose}
+                        onChange={(e) => updateSupplementDose(supp.name, e.target.value)}
+                        className="w-40 h-8"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => removeSupplement(supp.name)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
             </div>
           )}
 
