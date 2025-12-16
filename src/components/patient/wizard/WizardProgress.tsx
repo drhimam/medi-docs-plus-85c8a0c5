@@ -20,7 +20,7 @@ export const WizardProgress = ({ steps, currentStep, onStepClick }: WizardProgre
         {steps.map((step, index) => {
           const isCompleted = currentStep > step.id;
           const isCurrent = currentStep === step.id;
-          const isClickable = onStepClick && (isCompleted || currentStep >= step.id);
+          const isClickable = !!onStepClick;
 
           return (
             <div key={step.id} className="flex-1 flex items-center">
@@ -30,11 +30,10 @@ export const WizardProgress = ({ steps, currentStep, onStepClick }: WizardProgre
                   onClick={() => isClickable && onStepClick(step.id)}
                   disabled={!isClickable}
                   className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-all",
-                    isCompleted && "bg-primary text-primary-foreground cursor-pointer hover:bg-primary/90",
+                    "w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-all cursor-pointer",
+                    isCompleted && "bg-primary text-primary-foreground hover:bg-primary/90",
                     isCurrent && "bg-primary text-primary-foreground ring-4 ring-primary/20",
-                    !isCompleted && !isCurrent && "bg-muted text-muted-foreground",
-                    isClickable && !isCurrent && "cursor-pointer"
+                    !isCompleted && !isCurrent && "bg-muted text-muted-foreground hover:bg-muted/80"
                   )}
                 >
                   {isCompleted ? <Check className="w-5 h-5" /> : step.id}

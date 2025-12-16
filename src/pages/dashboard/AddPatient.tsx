@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -6,7 +6,7 @@ import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { ArrowLeft, ChevronLeft, ChevronRight, FastForward } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, FastForward, Printer, Save, Trash2 } from "lucide-react";
 import { WizardProgress } from "@/components/patient/wizard/WizardProgress";
 import { DemographicsStep } from "@/components/patient/wizard/DemographicsStep";
 import { MedicalHistoryStep } from "@/components/patient/wizard/MedicalHistoryStep";
@@ -14,6 +14,18 @@ import { MedicationsStep } from "@/components/patient/wizard/MedicationsStep";
 import { AllergiesStep } from "@/components/patient/wizard/AllergiesStep";
 import { SocialHistoryStep } from "@/components/patient/wizard/SocialHistoryStep";
 import { ReviewStep } from "@/components/patient/wizard/ReviewStep";
+import { PrintablePatientForm } from "@/components/patient/wizard/PrintablePatientForm";
+import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const patientSchema = z.object({
   first_name: z.string().min(1, "First name is required").max(100, "First name must be less than 100 characters"),
@@ -68,56 +80,194 @@ const WIZARD_STEPS = [
   { id: 6, title: "Review", description: "Confirm details" },
 ];
 
+const DEFAULT_VALUES: PatientFormData = {
+  first_name: "",
+  last_name: "",
+  date_of_birth: "",
+  gender: "MALE",
+  contact_number: "",
+  email: "",
+  address: "",
+  blood_group: "",
+  health_card_number: "",
+  medical_history_ongoing: "",
+  medical_history_past: "",
+  surgical_history: "",
+  hospitalization_history: "",
+  family_history: "",
+  mental_health_history: "",
+  birth_history: "",
+  developmental_history: "",
+  childhood_illnesses: "",
+  accidents_injuries: "",
+  menstrual_pregnancy_history: "",
+  preventive_screening_history: "",
+  ongoing_medications: "",
+  supplements: "",
+  vaccinations: "",
+  allergic_history_food: "",
+  allergic_history_drug: "",
+  allergic_history_env: "",
+  smoking_status: "NEVER",
+  alcohol_consumption: "NEVER",
+  recreational_drug_use: "",
+  exercise_habits: "",
+  diet: "",
+  occupation: "",
+  living_environment: "",
+};
+
 const AddPatient = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [noKnownAllergies, setNoKnownAllergies] = useState(false);
+  const [draftId, setDraftId] = useState<string | null>(null);
+  const [hasDraft, setHasDraft] = useState(false);
+  const [showDraftDialog, setShowDraftDialog] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const printRef = useRef<HTMLDivElement>(null);
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  const { register, handleSubmit, watch, setValue, formState: { errors }, trigger } = useForm<PatientFormData>({
+  const { register, handleSubmit, watch, setValue, formState: { errors }, trigger, reset } = useForm<PatientFormData>({
     resolver: zodResolver(patientSchema),
-    defaultValues: {
-      first_name: "",
-      last_name: "",
-      date_of_birth: "",
-      gender: "MALE",
-      contact_number: "",
-      email: "",
-      address: "",
-      blood_group: "",
-      health_card_number: "",
-      
-      medical_history_ongoing: "",
-      medical_history_past: "",
-      surgical_history: "",
-      hospitalization_history: "",
-      family_history: "",
-      mental_health_history: "",
-      
-      birth_history: "",
-      developmental_history: "",
-      childhood_illnesses: "",
-      accidents_injuries: "",
-      menstrual_pregnancy_history: "",
-      preventive_screening_history: "",
-      
-      ongoing_medications: "",
-      supplements: "",
-      vaccinations: "",
-      
-      allergic_history_food: "",
-      allergic_history_drug: "",
-      allergic_history_env: "",
-      
-      smoking_status: "NEVER",
-      alcohol_consumption: "NEVER",
-      recreational_drug_use: "",
-      exercise_habits: "",
-      diet: "",
-      occupation: "",
-      living_environment: "",
-    },
+    defaultValues: DEFAULT_VALUES,
   });
+
+  const formData = watch();
+
+  // Load existing draft on mount
+  useEffect(() => {
+    const loadDraft = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: drafts } = await (supabase as any)
+          .from("patient_drafts")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("updated_at", { ascending: false })
+          .limit(1);
+
+        if (drafts && drafts.length > 0) {
+          setDraftId(drafts[0].id);
+          setHasDraft(true);
+          setShowDraftDialog(true);
+        }
+      } catch (error) {
+        console.error("Error loading draft:", error);
+      }
+    };
+
+    loadDraft();
+  }, []);
+
+  const restoreDraft = async () => {
+    if (!draftId) return;
+    
+    try {
+      const { data: draft } = await (supabase as any)
+        .from("patient_drafts")
+        .select("*")
+        .eq("id", draftId)
+        .single();
+
+      if (draft) {
+        const draftData = draft.draft_data as PatientFormData;
+        reset(draftData);
+        setCurrentStep(draft.current_step || 1);
+        setLastSaved(new Date(draft.updated_at));
+        toast.success("Draft restored successfully");
+      }
+    } catch (error) {
+      console.error("Error restoring draft:", error);
+    }
+    setShowDraftDialog(false);
+  };
+
+  const discardDraft = async () => {
+    if (draftId) {
+      try {
+        await (supabase as any)
+          .from("patient_drafts")
+          .delete()
+          .eq("id", draftId);
+        setDraftId(null);
+        setHasDraft(false);
+      } catch (error) {
+        console.error("Error discarding draft:", error);
+      }
+    }
+    setShowDraftDialog(false);
+  };
+
+  // Auto-save functionality
+  const saveDraft = useCallback(async (data: PatientFormData, step: number) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      setIsSaving(true);
+
+      if (draftId) {
+        await (supabase as any)
+          .from("patient_drafts")
+          .update({
+            draft_data: data,
+            current_step: step,
+          })
+          .eq("id", draftId);
+      } else {
+        const { data: newDraft } = await (supabase as any)
+          .from("patient_drafts")
+          .insert({
+            user_id: user.id,
+            draft_data: data,
+            current_step: step,
+          })
+          .select()
+          .single();
+
+        if (newDraft) {
+          setDraftId(newDraft.id);
+        }
+      }
+
+      setLastSaved(new Date());
+      setHasDraft(true);
+    } catch (error) {
+      console.error("Error saving draft:", error);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [draftId]);
+
+  // Debounced auto-save on form changes
+  useEffect(() => {
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+
+    autoSaveTimeoutRef.current = setTimeout(() => {
+      const hasAnyData = formData.first_name || formData.last_name || formData.contact_number;
+      if (hasAnyData) {
+        saveDraft(formData, currentStep);
+      }
+    }, 3000); // Auto-save after 3 seconds of inactivity
+
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, [formData, currentStep, saveDraft]);
+
+  const handleManualSave = async () => {
+    await saveDraft(formData, currentStep);
+    toast.success("Draft saved");
+  };
 
   const calculateCompletionStatus = (data: PatientFormData): string => {
     let filledCount = 0;
@@ -201,6 +351,14 @@ const AddPatient = () => {
 
       if (error) throw error;
 
+      // Delete draft after successful submission
+      if (draftId) {
+        await (supabase as any)
+          .from("patient_drafts")
+          .delete()
+          .eq("id", draftId);
+      }
+
       toast.success("Patient added successfully!");
       navigate("/dashboard/patients");
     } catch (error: any) {
@@ -231,19 +389,60 @@ const AddPatient = () => {
   };
 
   const handleSkipToReview = async () => {
-    // Validate required demographics first
     const fieldsToValidate: (keyof PatientFormData)[] = ["first_name", "last_name", "date_of_birth", "gender", "contact_number"];
     const isValid = await trigger(fieldsToValidate);
     
     if (isValid) {
-      setCurrentStep(WIZARD_STEPS.length); // Jump to review step
+      setCurrentStep(WIZARD_STEPS.length);
     }
   };
 
-  const handleStepClick = (step: number) => {
-    if (step < currentStep) {
-      setCurrentStep(step);
+  const handleStepClick = async (step: number) => {
+    // Validate demographics if trying to skip past step 1
+    if (currentStep === 1 && step > 1) {
+      const fieldsToValidate: (keyof PatientFormData)[] = ["first_name", "last_name", "date_of_birth", "gender", "contact_number"];
+      const isValid = await trigger(fieldsToValidate);
+      if (!isValid) return;
     }
+    setCurrentStep(step);
+  };
+
+  const handlePrint = () => {
+    const printContent = printRef.current;
+    if (!printContent) return;
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast.error("Please allow popups to print");
+      return;
+    }
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Patient Intake Form</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+            .print-form { max-width: 800px; margin: 0 auto; }
+            h1 { font-size: 18px; text-align: center; }
+            h2 { font-size: 14px; border-bottom: 1px solid #ccc; padding-bottom: 4px; margin-top: 16px; }
+            .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+            .col-span-2 { grid-column: span 2; }
+            .field { display: flex; gap: 8px; align-items: baseline; }
+            .field span:first-child { font-weight: bold; white-space: nowrap; }
+            .field span:last-child { flex: 1; border-bottom: 1px dotted #999; }
+            .box { border: 1px solid #ccc; min-height: 40px; padding: 8px; margin-top: 4px; }
+            .signature-section { margin-top: 40px; padding-top: 20px; border-top: 2px solid #000; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+            .signature-line { border-bottom: 1px solid #000; margin-top: 40px; }
+            @media print { @page { margin: 0.5in; } }
+          </style>
+        </head>
+        <body>${printContent.innerHTML}</body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
   };
 
   const renderCurrentStep = () => {
@@ -275,6 +474,32 @@ const AddPatient = () => {
 
   return (
     <div className="min-h-screen bg-background pt-[72px]">
+      {/* Draft Restore Dialog */}
+      <AlertDialog open={showDraftDialog} onOpenChange={setShowDraftDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Resume Previous Draft?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have an unfinished patient intake form. Would you like to continue where you left off?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={discardDraft}>
+              <Trash2 className="h-4 w-4 mr-2" />
+              Discard Draft
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={restoreDraft}>
+              Continue Editing
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Hidden Printable Form */}
+      <div className="hidden">
+        <PrintablePatientForm ref={printRef} data={formData} />
+      </div>
+
       {/* Sticky Header */}
       <div className="fixed top-[72px] left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/95 border-b shadow-sm">
         <div className="max-w-5xl mx-auto px-6 py-4">
@@ -289,13 +514,39 @@ const AddPatient = () => {
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div>
-                <h1 className="text-2xl font-bold text-foreground">Add New Patient</h1>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-2xl font-bold text-foreground">Add New Patient</h1>
+                  {hasDraft && (
+                    <Badge variant="secondary" className="text-xs">
+                      {isSaving ? "Saving..." : lastSaved ? `Saved ${lastSaved.toLocaleTimeString()}` : "Draft"}
+                    </Badge>
+                  )}
+                </div>
                 <p className="text-sm text-muted-foreground">
                   Step {currentStep} of {WIZARD_STEPS.length}: {WIZARD_STEPS[currentStep - 1].title}
                 </p>
               </div>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={handlePrint}
+                title="Print Form"
+              >
+                <Printer className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={handleManualSave}
+                disabled={isSaving}
+                title="Save Draft"
+              >
+                <Save className="h-4 w-4" />
+              </Button>
               <Button
                 type="button"
                 variant="outline"
