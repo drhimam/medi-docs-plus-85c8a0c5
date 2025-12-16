@@ -345,6 +345,33 @@ export type Database = {
         }
         Relationships: []
       }
+      patient_drafts: {
+        Row: {
+          created_at: string
+          current_step: number
+          draft_data: Json
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_step?: number
+          draft_data?: Json
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_step?: number
+          draft_data?: Json
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       patients: {
         Row: {
           accidents_injuries: string | null
