@@ -96,6 +96,7 @@ interface Document {
   document_type: string;
   visit_id: string;
   file_name: string;
+  file_path: string;
 }
 
 const PatientDetail = () => {
@@ -149,13 +150,50 @@ const PatientDetail = () => {
     try {
       const { data, error } = await (supabase as any)
         .from("documents")
-        .select("id, document_date, description, upload_date, document_type, visit_id, file_name")
+        .select("id, document_date, description, upload_date, document_type, visit_id, file_name, file_path")
         .eq("patient_id", patientId)
         .order("document_date", { ascending: false });
 
       if (error) throw error;
       setDocuments(data || []);
     } catch (error: any) {
+      console.error(error);
+    }
+  };
+
+  const handleViewDocument = async (filePath: string) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('visit-documents')
+        .createSignedUrl(filePath, 3600);
+
+      if (error) throw error;
+      window.open(data.signedUrl, '_blank');
+    } catch (error: any) {
+      toast.error("Failed to view document");
+      console.error(error);
+    }
+  };
+
+  const handleDownloadDocument = async (filePath: string, fileName: string) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('visit-documents')
+        .download(filePath);
+
+      if (error) throw error;
+
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("Document downloaded");
+    } catch (error: any) {
+      toast.error("Failed to download document");
       console.error(error);
     }
   };
@@ -1051,11 +1089,11 @@ ${
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleViewDocument(doc.file_path)}>
                           <Eye className="mr-2 h-4 w-4" />
                           View Document
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDownloadDocument(doc.file_path, doc.file_name)}>
                           <FileDown className="mr-2 h-4 w-4" />
                           Download
                         </DropdownMenuItem>
