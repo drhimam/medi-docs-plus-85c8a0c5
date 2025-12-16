@@ -130,7 +130,7 @@ export function SupplementsDialog({ open, onOpenChange, onInsert, currentValue }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[85vh]">
+      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Select Supplements</DialogTitle>
           <DialogDescription>
@@ -138,7 +138,7 @@ export function SupplementsDialog({ open, onOpenChange, onInsert, currentValue }
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="flex-1 overflow-hidden flex flex-col gap-4">
           <Input
             placeholder="Search supplements..."
             value={searchTerm}
@@ -203,7 +203,7 @@ export function SupplementsDialog({ open, onOpenChange, onInsert, currentValue }
           </div>
 
           {/* Common Supplements List */}
-          <ScrollArea className="h-[300px] border rounded-lg p-3">
+          <ScrollArea className="flex-1 border rounded-lg p-3">
             {filteredCategories.map((category) => (
               <div key={category.category} className="mb-4">
                 <Label className="text-sm font-semibold text-primary mb-2 block">{category.category}</Label>

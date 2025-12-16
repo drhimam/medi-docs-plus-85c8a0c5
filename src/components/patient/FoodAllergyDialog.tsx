@@ -136,7 +136,7 @@ export function FoodAllergyDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh]">
+      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Add Food Allergies</DialogTitle>
         </DialogHeader>
@@ -151,7 +151,7 @@ export function FoodAllergyDialog({
           />
         </div>
 
-        <ScrollArea className="h-[350px] pr-4">
+        <ScrollArea className="flex-1 pr-4">
           <div className="space-y-3">
             {filteredAllergies.map((allergy, index) => {
               const originalIndex = allergies.findIndex(
