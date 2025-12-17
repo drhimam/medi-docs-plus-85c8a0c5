@@ -7,7 +7,8 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Settings as SettingsIcon, Bell, Globe, Clock, Loader2, ArrowLeft, Moon, Sun, Monitor } from "lucide-react";
+import { Settings as SettingsIcon, Bell, Globe, Clock, Loader2, ArrowLeft, Moon, Sun, Monitor, Smartphone } from "lucide-react";
+import { usePresetMobilePresentation } from "@/hooks/usePresetMobilePresentation";
 
 interface UserSettings {
   id?: string;
@@ -26,6 +27,7 @@ const Settings = () => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const { presentation, setPresentation } = usePresetMobilePresentation();
   const [settings, setSettings] = useState<UserSettings>({
     user_id: "",
     theme: "system",
@@ -195,6 +197,31 @@ const Settings = () => {
           </CardContent>
         </Card>
 
+        {/* Preset Dialogs (Mobile) */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Smartphone className="h-5 w-5" />
+              Preset Dialogs (Mobile)
+            </CardTitle>
+            <CardDescription>Choose how long preset lists open on small screens</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <Label>Full-screen drawer on mobile</Label>
+                <p className="text-sm text-muted-foreground">
+                  Makes long lists easier to scroll and keeps actions always reachable.
+                </p>
+              </div>
+              <Switch
+                checked={presentation === "drawer"}
+                onCheckedChange={(checked) => setPresentation(checked ? "drawer" : "modal")}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Notifications Card */}
         <Card>
           <CardHeader>
@@ -352,12 +379,16 @@ const Settings = () => {
                 <p className="font-medium">Password</p>
                 <p className="text-sm text-muted-foreground">Last changed: Unknown</p>
               </div>
-              <Button variant="outline" size="sm" onClick={() => {
-                supabase.auth.resetPasswordForEmail(user?.email || "", {
-                  redirectTo: `${window.location.origin}/login`,
-                });
-                toast.success("Password reset email sent");
-              }}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  supabase.auth.resetPasswordForEmail(user?.email || "", {
+                    redirectTo: `${window.location.origin}/login`,
+                  });
+                  toast.success("Password reset email sent");
+                }}
+              >
                 Reset Password
               </Button>
             </div>
@@ -379,3 +410,4 @@ const Settings = () => {
 };
 
 export default Settings;
+
