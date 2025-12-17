@@ -132,7 +132,7 @@ export function EnvironmentalAllergyDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <PresetDialogLayout
         title="Add Environmental Allergies"
-        maxHeightClassName="max-h-[80vh]"
+        maxHeightClassName="h-[80vh]"
         footer={
           <>
             <Button variant="outline" onClick={() => onOpenChange(false)}>

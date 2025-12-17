@@ -1,17 +1,11 @@
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { PresetDialogLayout } from "@/components/patient/preset/PresetDialogLayout";
 
 interface InjuryEntry {
   name: string;
@@ -167,126 +161,128 @@ export function AccidentsInjuriesDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Insert Accidents or Injuries</DialogTitle>
-        </DialogHeader>
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => {
+        if (!isOpen) handleClose();
+      }}
+    >
+      <PresetDialogLayout
+        title="Insert Accidents or Injuries"
+        footer={
+          <>
+            <Button type="button" variant="outline" onClick={handleClose}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={handleInsert}>
+              Insert Selected
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          {/* Other Injuries - At Top */}
+          <div className="space-y-2 border-b pb-4">
+            <Label className="text-sm font-medium">Add Other Injury</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder="Enter other injury..."
+                value={newCustomName}
+                onChange={(e) => setNewCustomName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAddCustom();
+                  }
+                }}
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={handleAddCustom}
+                disabled={!newCustomName.trim()}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
 
-        <ScrollArea className="flex-1 pr-4">
-          <div className="space-y-4">
-            {/* Other Injuries - At Top */}
-            <div className="space-y-2 border-b pb-4">
-              <Label className="text-sm font-medium">Add Other Injury</Label>
-              <div className="flex items-center gap-2">
+            {customInjuries.map((injury, index) => (
+              <div
+                key={index}
+                className="flex items-center gap-2 p-2 rounded-md bg-muted/30"
+              >
+                <span className="flex-1 text-sm">{injury.name}</span>
                 <Input
-                  placeholder="Enter other injury..."
-                  value={newCustomName}
-                  onChange={(e) => setNewCustomName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddCustom();
-                    }
-                  }}
-                  className="flex-1"
+                  placeholder="Year"
+                  value={injury.year}
+                  onChange={(e) => handleCustomYearChange(index, e.target.value)}
+                  className="w-20 h-8 text-sm"
+                />
+                <Input
+                  placeholder="Details"
+                  value={injury.details}
+                  onChange={(e) => handleCustomDetailsChange(index, e.target.value)}
+                  className="w-28 h-8 text-sm"
                 />
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="ghost"
                   size="icon"
-                  onClick={handleAddCustom}
-                  disabled={!newCustomName.trim()}
+                  className="h-8 w-8"
+                  onClick={() => handleRemoveCustom(index)}
                 >
-                  <Plus className="h-4 w-4" />
+                  <X className="h-4 w-4" />
                 </Button>
               </div>
+            ))}
+          </div>
 
-              {customInjuries.map((injury, index) => (
+          {/* Common Injuries */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Common Accidents/Injuries</Label>
+            <div className="grid grid-cols-1 gap-2">
+              {injuries.map((injury, index) => (
                 <div
-                  key={index}
-                  className="flex items-center gap-2 p-2 rounded-md bg-muted/30"
+                  key={injury.name}
+                  className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50"
                 >
-                  <span className="flex-1 text-sm">{injury.name}</span>
-                  <Input
-                    placeholder="Year"
-                    value={injury.year}
-                    onChange={(e) => handleCustomYearChange(index, e.target.value)}
-                    className="w-20 h-8 text-sm"
+                  <Checkbox
+                    id={`injury-${index}`}
+                    checked={injury.checked}
+                    onCheckedChange={(checked) =>
+                      handleInjuryToggle(index, checked as boolean)
+                    }
                   />
-                  <Input
-                    placeholder="Details"
-                    value={injury.details}
-                    onChange={(e) => handleCustomDetailsChange(index, e.target.value)}
-                    className="w-28 h-8 text-sm"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => handleRemoveCustom(index)}
+                  <Label
+                    htmlFor={`injury-${index}`}
+                    className="flex-1 cursor-pointer text-sm"
                   >
-                    <X className="h-4 w-4" />
-                  </Button>
+                    {injury.name}
+                  </Label>
+                  {injury.checked && (
+                    <>
+                      <Input
+                        placeholder="Year"
+                        value={injury.year}
+                        onChange={(e) => handleYearChange(index, e.target.value)}
+                        className="w-20 h-8 text-sm"
+                      />
+                      <Input
+                        placeholder="Details"
+                        value={injury.details}
+                        onChange={(e) => handleDetailsChange(index, e.target.value)}
+                        className="w-28 h-8 text-sm"
+                      />
+                    </>
+                  )}
                 </div>
               ))}
             </div>
-
-            {/* Common Injuries */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Common Accidents/Injuries</Label>
-              <div className="grid grid-cols-1 gap-2">
-                {injuries.map((injury, index) => (
-                  <div
-                    key={injury.name}
-                    className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50"
-                  >
-                    <Checkbox
-                      id={`injury-${index}`}
-                      checked={injury.checked}
-                      onCheckedChange={(checked) =>
-                        handleInjuryToggle(index, checked as boolean)
-                      }
-                    />
-                    <Label
-                      htmlFor={`injury-${index}`}
-                      className="flex-1 cursor-pointer text-sm"
-                    >
-                      {injury.name}
-                    </Label>
-                    {injury.checked && (
-                      <>
-                        <Input
-                          placeholder="Year"
-                          value={injury.year}
-                          onChange={(e) => handleYearChange(index, e.target.value)}
-                          className="w-20 h-8 text-sm"
-                        />
-                        <Input
-                          placeholder="Details"
-                          value={injury.details}
-                          onChange={(e) => handleDetailsChange(index, e.target.value)}
-                          className="w-28 h-8 text-sm"
-                        />
-                      </>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
-        </ScrollArea>
-
-        <DialogFooter className="mt-4">
-          <Button type="button" variant="outline" onClick={handleClose}>
-            Cancel
-          </Button>
-          <Button type="button" onClick={handleInsert}>
-            Insert Selected
-          </Button>
-        </DialogFooter>
-      </DialogContent>
+        </div>
+      </PresetDialogLayout>
     </Dialog>
   );
 }
