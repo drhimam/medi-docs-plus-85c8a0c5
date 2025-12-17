@@ -1,17 +1,12 @@
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { PresetDialogLayout } from "@/components/patient/preset/PresetDialogLayout";
+import { SelectedItemsAccordion } from "@/components/patient/preset/SelectedItemsAccordion";
 
 interface SurgeryEntry {
   name: string;
@@ -153,116 +148,134 @@ export function SurgicalHistoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Insert Surgical History</DialogTitle>
-        </DialogHeader>
-
-        <ScrollArea className="flex-1 pr-4">
-          <div className="space-y-4">
-            {/* Other Surgeries - At Top */}
-            <div className="space-y-2 border-b pb-4">
-              <Label className="text-sm font-medium">Add Other Surgery</Label>
-              
-              <div className="flex items-center gap-2">
+      <PresetDialogLayout
+        title="Insert Surgical History"
+        contentClassName="max-w-2xl"
+        footer={
+          <>
+            <Button type="button" variant="outline" onClick={handleClose}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={handleInsert}>
+              Insert Selected
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          {/* Selected + custom entries */}
+          <SelectedItemsAccordion
+            title="Selected / Other Surgeries"
+            count={
+              surgeries.filter((s) => s.checked).length +
+              customSurgeries.filter((s) => s.name.trim()).length
+            }
+            defaultOpen
+            maxHeightClassName="max-h-[28vh]"
+          >
+            {customSurgeries.map((surgery, index) => (
+              <div
+                key={`custom-${index}`}
+                className="flex items-center gap-2 p-2 rounded-md bg-background"
+              >
+                <span className="flex-1 text-sm">{surgery.name}</span>
                 <Input
-                  placeholder="Enter other surgery..."
-                  value={newCustomName}
-                  onChange={(e) => setNewCustomName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddCustom();
-                    }
-                  }}
-                  className="flex-1"
+                  placeholder="Year (e.g., 2020)"
+                  value={surgery.year}
+                  onChange={(e) => handleCustomYearChange(index, e.target.value)}
+                  className="w-40 h-8 text-sm"
                 />
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="ghost"
                   size="icon"
-                  onClick={handleAddCustom}
-                  disabled={!newCustomName.trim()}
+                  className="h-8 w-8"
+                  onClick={() => handleRemoveCustom(index)}
                 >
-                  <Plus className="h-4 w-4" />
+                  <X className="h-4 w-4" />
                 </Button>
               </div>
+            ))}
 
-              {customSurgeries.map((surgery, index) => (
+            {surgeries
+              .filter((s) => s.checked)
+              .map((surgery) => (
                 <div
-                  key={index}
-                  className="flex items-center gap-2 p-2 rounded-md bg-muted/30"
+                  key={`selected-${surgery.name}`}
+                  className="flex items-center gap-2 p-2 rounded-md bg-background"
                 >
                   <span className="flex-1 text-sm">{surgery.name}</span>
                   <Input
                     placeholder="Year (e.g., 2020)"
                     value={surgery.year}
                     onChange={(e) =>
-                      handleCustomYearChange(index, e.target.value)
+                      handleYearChange(
+                        surgeries.findIndex((x) => x.name === surgery.name),
+                        e.target.value
+                      )
                     }
                     className="w-40 h-8 text-sm"
                   />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => handleRemoveCustom(index)}
+                </div>
+              ))}
+          </SelectedItemsAccordion>
+
+          {/* Add Other Surgery */}
+          <div className="space-y-2 border rounded-lg p-3">
+            <Label className="text-sm font-medium">Add Other Surgery</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder="Enter other surgery..."
+                value={newCustomName}
+                onChange={(e) => setNewCustomName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAddCustom();
+                  }
+                }}
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={handleAddCustom}
+                disabled={!newCustomName.trim()}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Common Surgeries */}
+          <div className="space-y-2 border rounded-lg p-3">
+            <Label className="text-sm font-medium">Common Surgeries</Label>
+            <div className="grid grid-cols-1 gap-2">
+              {surgeries.map((surgery, index) => (
+                <div
+                  key={surgery.name}
+                  className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50"
+                >
+                  <Checkbox
+                    id={`surgery-${index}`}
+                    checked={surgery.checked}
+                    onCheckedChange={(checked) =>
+                      handleSurgeryToggle(index, checked as boolean)
+                    }
+                  />
+                  <Label
+                    htmlFor={`surgery-${index}`}
+                    className="flex-1 cursor-pointer text-sm"
                   >
-                    <X className="h-4 w-4" />
-                  </Button>
+                    {surgery.name}
+                  </Label>
                 </div>
               ))}
             </div>
-
-            {/* Common Surgeries */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Common Surgeries</Label>
-              <div className="grid grid-cols-1 gap-2">
-                {surgeries.map((surgery, index) => (
-                  <div
-                    key={surgery.name}
-                    className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50"
-                  >
-                    <Checkbox
-                      id={`surgery-${index}`}
-                      checked={surgery.checked}
-                      onCheckedChange={(checked) =>
-                        handleSurgeryToggle(index, checked as boolean)
-                      }
-                    />
-                    <Label
-                      htmlFor={`surgery-${index}`}
-                      className="flex-1 cursor-pointer text-sm"
-                    >
-                      {surgery.name}
-                    </Label>
-                    {surgery.checked && (
-                      <Input
-                        placeholder="Year (e.g., 2020)"
-                        value={surgery.year}
-                        onChange={(e) =>
-                          handleYearChange(index, e.target.value)
-                        }
-                        className="w-40 h-8 text-sm"
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
-        </ScrollArea>
-
-        <DialogFooter className="mt-4">
-          <Button type="button" variant="outline" onClick={handleClose}>
-            Cancel
-          </Button>
-          <Button type="button" onClick={handleInsert}>
-            Insert Selected
-          </Button>
-        </DialogFooter>
-      </DialogContent>
+        </div>
+      </PresetDialogLayout>
     </Dialog>
   );
 }

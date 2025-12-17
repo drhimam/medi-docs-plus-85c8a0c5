@@ -1,18 +1,12 @@
 import { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Plus, Trash2 } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { PresetDialogLayout } from "@/components/patient/preset/PresetDialogLayout";
 
 interface FamilyHistoryDialogProps {
   open: boolean;
@@ -96,12 +90,14 @@ const FamilyHistoryDialog = ({
   };
 
   const updateMember = (id: string, updates: Partial<FamilyMember>) => {
-    setMembers(
-      members.map((m) => (m.id === id ? { ...m, ...updates } : m))
-    );
+    setMembers(members.map((m) => (m.id === id ? { ...m, ...updates } : m)));
   };
 
-  const toggleCondition = (id: string, condition: string, type: "chronic" | "death") => {
+  const toggleCondition = (
+    id: string,
+    condition: string,
+    type: "chronic" | "death"
+  ) => {
     const member = members.find((m) => m.id === id);
     if (!member) return;
 
@@ -157,9 +153,7 @@ const FamilyHistoryDialog = ({
     });
 
     const newValue = entries.join("\n");
-    const finalValue = currentValue
-      ? `${currentValue}\n${newValue}`
-      : newValue;
+    const finalValue = currentValue ? `${currentValue}\n${newValue}` : newValue;
 
     onInsert(finalValue);
     onOpenChange(false);
@@ -174,183 +168,172 @@ const FamilyHistoryDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
-        <DialogHeader>
-          <DialogTitle>Family History</DialogTitle>
-        </DialogHeader>
+      <PresetDialogLayout
+        title="Family History"
+        maxHeightClassName="max-h-[90vh]"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleInsert}>Insert</Button>
+          </>
+        }
+      >
+        <div className="space-y-6">
+          {members.map((member) => (
+            <div key={member.id} className="border rounded-lg p-4 space-y-4 bg-muted/30">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-semibold">{member.relation}</Label>
+                {member.id.startsWith("sibling") && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeMember(member.id)}
+                    className="h-8 w-8 text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
 
-        <ScrollArea className="flex-1 min-h-0 pr-4 pb-6">
-          <div className="space-y-6">
-            {members.map((member) => (
-              <div
-                key={member.id}
-                className="border rounded-lg p-4 space-y-4 bg-muted/30"
+              <RadioGroup
+                value={member.status}
+                onValueChange={(value: "alive" | "deceased") =>
+                  updateMember(member.id, { status: value })
+                }
+                className="flex gap-4"
               >
-                <div className="flex items-center justify-between">
-                  <Label className="text-base font-semibold">
-                    {member.relation}
-                  </Label>
-                  {member.id.startsWith("sibling") && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeMember(member.id)}
-                      className="h-8 w-8 text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="alive" id={`${member.id}-alive`} />
+                  <Label htmlFor={`${member.id}-alive`}>Alive</Label>
                 </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="deceased" id={`${member.id}-deceased`} />
+                  <Label htmlFor={`${member.id}-deceased`}>Deceased</Label>
+                </div>
+              </RadioGroup>
 
-                <RadioGroup
-                  value={member.status}
-                  onValueChange={(value: "alive" | "deceased") =>
-                    updateMember(member.id, { status: value })
-                  }
-                  className="flex gap-4"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="alive" id={`${member.id}-alive`} />
-                    <Label htmlFor={`${member.id}-alive`}>Alive</Label>
+              {member.status === "deceased" ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Label className="w-24 text-sm">Age at death:</Label>
+                    <Input
+                      type="number"
+                      placeholder="Age"
+                      className="w-24"
+                      value={member.ageAtDeath || ""}
+                      onChange={(e) =>
+                        updateMember(member.id, { ageAtDeath: e.target.value })
+                      }
+                    />
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="deceased" id={`${member.id}-deceased`} />
-                    <Label htmlFor={`${member.id}-deceased`}>Deceased</Label>
-                  </div>
-                </RadioGroup>
-
-                {member.status === "deceased" ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Label className="w-24 text-sm">Age at death:</Label>
-                      <Input
-                        type="number"
-                        placeholder="Age"
-                        className="w-24"
-                        value={member.ageAtDeath || ""}
-                        onChange={(e) =>
-                          updateMember(member.id, { ageAtDeath: e.target.value })
-                        }
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-sm">Cause of death:</Label>
-                      <div className="grid grid-cols-2 gap-2 mt-2">
-                        {DEATH_CAUSES.map((cause) => (
-                          <div key={cause} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={`${member.id}-death-${cause}`}
-                              checked={(member.causeOfDeath || []).includes(cause)}
-                              onCheckedChange={() =>
-                                toggleCondition(member.id, cause, "death")
-                              }
-                            />
-                            <Label
-                              htmlFor={`${member.id}-death-${cause}`}
-                              className="text-sm font-normal"
-                            >
-                              {cause}
-                            </Label>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="mt-2">
-                        <Input
-                          placeholder="Other cause..."
-                          value={member.otherCauseOfDeath || ""}
-                          onChange={(e) =>
-                            updateMember(member.id, {
-                              otherCauseOfDeath: e.target.value,
-                            })
-                          }
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <Label className="text-sm">History of chronic conditions:</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {CHRONIC_CONDITIONS.map((condition) => (
-                        <div key={condition} className="flex items-center space-x-2">
+                  <div>
+                    <Label className="text-sm">Cause of death:</Label>
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      {DEATH_CAUSES.map((cause) => (
+                        <div key={cause} className="flex items-center space-x-2">
                           <Checkbox
-                            id={`${member.id}-chronic-${condition}`}
-                            checked={(member.chronicConditions || []).includes(
-                              condition
-                            )}
+                            id={`${member.id}-death-${cause}`}
+                            checked={(member.causeOfDeath || []).includes(cause)}
                             onCheckedChange={() =>
-                              toggleCondition(member.id, condition, "chronic")
+                              toggleCondition(member.id, cause, "death")
                             }
                           />
                           <Label
-                            htmlFor={`${member.id}-chronic-${condition}`}
+                            htmlFor={`${member.id}-death-${cause}`}
                             className="text-sm font-normal"
                           >
-                            {condition}
+                            {cause}
                           </Label>
                         </div>
                       ))}
                     </div>
-                    {(member.chronicConditions || []).includes("Cancer") && (
-                      <div className="flex items-center gap-2 mt-2">
-                        <Label className="text-sm whitespace-nowrap">
-                          Cancer type:
-                        </Label>
-                        <Input
-                          placeholder="e.g., Lung, Breast, Colon..."
-                          value={member.cancerType || ""}
-                          onChange={(e) =>
-                            updateMember(member.id, { cancerType: e.target.value })
-                          }
-                        />
-                      </div>
-                    )}
                     <div className="mt-2">
                       <Input
-                        placeholder="Other condition..."
-                        value={member.otherChronicCondition || ""}
+                        placeholder="Other cause..."
+                        value={member.otherCauseOfDeath || ""}
                         onChange={(e) =>
                           updateMember(member.id, {
-                            otherChronicCondition: e.target.value,
+                            otherCauseOfDeath: e.target.value,
                           })
                         }
                       />
                     </div>
                   </div>
-                )}
-              </div>
-            ))}
-
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => addSibling("male")}
-                className="flex-1"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Brother
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => addSibling("female")}
-                className="flex-1"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Sister
-              </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <Label className="text-sm">History of chronic conditions:</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {CHRONIC_CONDITIONS.map((condition) => (
+                      <div key={condition} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`${member.id}-chronic-${condition}`}
+                          checked={(member.chronicConditions || []).includes(condition)}
+                          onCheckedChange={() =>
+                            toggleCondition(member.id, condition, "chronic")
+                          }
+                        />
+                        <Label
+                          htmlFor={`${member.id}-chronic-${condition}`}
+                          className="text-sm font-normal"
+                        >
+                          {condition}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                  {(member.chronicConditions || []).includes("Cancer") && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <Label className="text-sm whitespace-nowrap">Cancer type:</Label>
+                      <Input
+                        placeholder="e.g., Lung, Breast, Colon..."
+                        value={member.cancerType || ""}
+                        onChange={(e) =>
+                          updateMember(member.id, { cancerType: e.target.value })
+                        }
+                      />
+                    </div>
+                  )}
+                  <div className="mt-2">
+                    <Input
+                      placeholder="Other condition..."
+                      value={member.otherChronicCondition || ""}
+                      onChange={(e) =>
+                        updateMember(member.id, {
+                          otherChronicCondition: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        </ScrollArea>
+          ))}
 
-        <DialogFooter className="sticky bottom-0 bg-background pt-4 border-t -mx-6 px-6">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleInsert}>Insert</Button>
-        </DialogFooter>
-      </DialogContent>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => addSibling("male")}
+              className="flex-1"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Brother
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => addSibling("female")}
+              className="flex-1"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Sister
+            </Button>
+          </div>
+        </div>
+      </PresetDialogLayout>
     </Dialog>
   );
 };
