@@ -1,17 +1,11 @@
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { PresetDialog } from "@/components/patient/preset/PresetDialog";
 
 interface HospitalizationEntry {
   name: string;
@@ -86,27 +80,19 @@ export function HospitalizationHistoryDialog({
   const [newCustomName, setNewCustomName] = useState("");
 
   const handleToggle = (index: number, checked: boolean) => {
-    setHospitalizations((prev) =>
-      prev.map((h, i) => (i === index ? { ...h, checked } : h))
-    );
+    setHospitalizations((prev) => prev.map((h, i) => (i === index ? { ...h, checked } : h)));
   };
 
   const handleYearChange = (index: number, year: string) => {
-    setHospitalizations((prev) =>
-      prev.map((h, i) => (i === index ? { ...h, year } : h))
-    );
+    setHospitalizations((prev) => prev.map((h, i) => (i === index ? { ...h, year } : h)));
   };
 
   const handleDurationChange = (index: number, duration: string) => {
-    setHospitalizations((prev) =>
-      prev.map((h, i) => (i === index ? { ...h, duration } : h))
-    );
+    setHospitalizations((prev) => prev.map((h, i) => (i === index ? { ...h, duration } : h)));
   };
 
   const handleCustomYearChange = (index: number, year: string) => {
-    setCustomHospitalizations((prev) =>
-      prev.map((h, i) => (i === index ? { ...h, year } : h))
-    );
+    setCustomHospitalizations((prev) => prev.map((h, i) => (i === index ? { ...h, year } : h)));
   };
 
   const handleCustomDurationChange = (index: number, duration: string) => {
@@ -153,9 +139,7 @@ export function HospitalizationHistoryDialog({
     }
 
     const newText = allEntries.join("; ");
-    const finalText = currentValue
-      ? `${currentValue}; ${newText}`
-      : newText;
+    const finalText = currentValue ? `${currentValue}; ${newText}` : newText;
 
     onInsert(finalText);
     handleReset();
@@ -181,127 +165,117 @@ export function HospitalizationHistoryDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Insert Hospitalization History</DialogTitle>
-        </DialogHeader>
-
-        <ScrollArea className="flex-1 pr-4">
-          <div className="space-y-4">
-            {/* Custom Entry - At Top */}
-            <div className="space-y-2 border-b pb-4">
-              <Label className="text-sm font-medium">Add Other Hospitalization</Label>
-              
-              <div className="flex items-center gap-2">
-                <Input
-                  placeholder="Enter reason for hospitalization..."
-                  value={newCustomName}
-                  onChange={(e) => setNewCustomName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddCustom();
-                    }
-                  }}
-                  className="flex-1"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={handleAddCustom}
-                  disabled={!newCustomName.trim()}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-
-              {customHospitalizations.map((entry, index) => (
-                <div
-                  key={index}
-                  className="flex items-center gap-2 p-2 rounded-md bg-muted/30"
-                >
-                  <span className="flex-1 text-sm">{entry.name}</span>
-                  <Input
-                    placeholder="Year"
-                    value={entry.year}
-                    onChange={(e) => handleCustomYearChange(index, e.target.value)}
-                    className="w-24 h-8 text-sm"
-                  />
-                  <Input
-                    placeholder="Duration (e.g., 5 days)"
-                    value={entry.duration}
-                    onChange={(e) => handleCustomDurationChange(index, e.target.value)}
-                    className="w-32 h-8 text-sm"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => handleRemoveCustom(index)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-
-            {/* Common Hospitalizations */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Common Reasons for Hospitalization</Label>
-              <div className="grid grid-cols-1 gap-2">
-                {hospitalizations.map((entry, index) => (
-                  <div
-                    key={entry.name}
-                    className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50"
-                  >
-                    <Checkbox
-                      id={`hospitalization-${index}`}
-                      checked={entry.checked}
-                      onCheckedChange={(checked) =>
-                        handleToggle(index, checked as boolean)
-                      }
-                    />
-                    <Label
-                      htmlFor={`hospitalization-${index}`}
-                      className="flex-1 cursor-pointer text-sm"
-                    >
-                      {entry.name}
-                    </Label>
-                    {entry.checked && (
-                      <>
-                        <Input
-                          placeholder="Year"
-                          value={entry.year}
-                          onChange={(e) => handleYearChange(index, e.target.value)}
-                          className="w-24 h-8 text-sm"
-                        />
-                        <Input
-                          placeholder="Duration"
-                          value={entry.duration}
-                          onChange={(e) => handleDurationChange(index, e.target.value)}
-                          className="w-28 h-8 text-sm"
-                        />
-                      </>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </ScrollArea>
-
-        <DialogFooter className="mt-4">
+    <PresetDialog
+      open={open}
+      onOpenChange={(isOpen) => {
+        if (!isOpen) handleClose();
+        else onOpenChange(true);
+      }}
+      title="Insert Hospitalization History"
+      footer={
+        <>
           <Button type="button" variant="outline" onClick={handleClose}>
             Cancel
           </Button>
           <Button type="button" onClick={handleInsert}>
             Insert Selected
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {/* Custom Entry - At Top */}
+        <div className="space-y-2 border-b pb-4">
+          <Label className="text-sm font-medium">Add Other Hospitalization</Label>
+
+          <div className="flex items-center gap-2">
+            <Input
+              placeholder="Enter reason for hospitalization..."
+              value={newCustomName}
+              onChange={(e) => setNewCustomName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleAddCustom();
+                }
+              }}
+              className="flex-1"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={handleAddCustom}
+              disabled={!newCustomName.trim()}
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {customHospitalizations.map((entry, index) => (
+            <div key={index} className="flex items-center gap-2 p-2 rounded-md bg-muted/30">
+              <span className="flex-1 text-sm">{entry.name}</span>
+              <Input
+                placeholder="Year"
+                value={entry.year}
+                onChange={(e) => handleCustomYearChange(index, e.target.value)}
+                className="w-24 h-8 text-sm"
+              />
+              <Input
+                placeholder="Duration (e.g., 5 days)"
+                value={entry.duration}
+                onChange={(e) => handleCustomDurationChange(index, e.target.value)}
+                className="w-32 h-8 text-sm"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => handleRemoveCustom(index)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
+
+        {/* Common Hospitalizations */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Common Reasons for Hospitalization</Label>
+          <div className="grid grid-cols-1 gap-2">
+            {hospitalizations.map((entry, index) => (
+              <div key={entry.name} className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50">
+                <Checkbox
+                  id={`hospitalization-${index}`}
+                  checked={entry.checked}
+                  onCheckedChange={(checked) => handleToggle(index, checked as boolean)}
+                />
+                <Label htmlFor={`hospitalization-${index}`} className="flex-1 cursor-pointer text-sm">
+                  {entry.name}
+                </Label>
+                {entry.checked && (
+                  <>
+                    <Input
+                      placeholder="Year"
+                      value={entry.year}
+                      onChange={(e) => handleYearChange(index, e.target.value)}
+                      className="w-24 h-8 text-sm"
+                    />
+                    <Input
+                      placeholder="Duration"
+                      value={entry.duration}
+                      onChange={(e) => handleDurationChange(index, e.target.value)}
+                      className="w-28 h-8 text-sm"
+                    />
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </PresetDialog>
   );
 }
+
