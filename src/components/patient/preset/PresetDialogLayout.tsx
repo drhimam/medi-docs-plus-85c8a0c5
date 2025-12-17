@@ -14,7 +14,7 @@ type PresetDialogLayoutProps = {
   description?: React.ReactNode;
   /** Use max-w-* here if needed */
   contentClassName?: string;
-  /** Defaults to 85vh */
+  /** Defaults to a fixed 85vh so internal scrolling always works */
   maxHeightClassName?: string;
   /** Dialog body content (will scroll) */
   children: React.ReactNode;
@@ -26,7 +26,7 @@ export function PresetDialogLayout({
   title,
   description,
   contentClassName,
-  maxHeightClassName = "max-h-[85vh]",
+  maxHeightClassName = "h-[85vh]",
   children,
   footer,
 }: PresetDialogLayoutProps) {
