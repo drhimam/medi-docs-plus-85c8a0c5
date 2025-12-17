@@ -1,17 +1,10 @@
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -19,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PresetDialogLayout } from "@/components/patient/preset/PresetDialogLayout";
 
 interface DevelopmentalHistoryDialogProps {
   open: boolean;
@@ -187,245 +181,247 @@ export function DevelopmentalHistoryDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Insert Developmental History</DialogTitle>
-        </DialogHeader>
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => {
+        if (!isOpen) handleClose();
+      }}
+    >
+      <PresetDialogLayout
+        title="Insert Developmental History"
+        footer={
+          <>
+            <Button type="button" variant="outline" onClick={handleClose}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={handleInsert}>
+              Insert Selected
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          {/* Overall Development */}
+          <div className="space-y-2 border-b pb-4">
+            <Label className="text-sm font-medium">Overall Development</Label>
+            <Select value={overallDevelopment} onValueChange={setOverallDevelopment}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select overall development status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Normal for age">Normal for age</SelectItem>
+                <SelectItem value="Mildly delayed">Mildly delayed</SelectItem>
+                <SelectItem value="Moderately delayed">Moderately delayed</SelectItem>
+                <SelectItem value="Severely delayed">Severely delayed</SelectItem>
+                <SelectItem value="Advanced for age">Advanced for age</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-        <ScrollArea className="flex-1 pr-4">
-          <div className="space-y-4">
-            {/* Overall Development */}
-            <div className="space-y-2 border-b pb-4">
-              <Label className="text-sm font-medium">Overall Development</Label>
-              <Select value={overallDevelopment} onValueChange={setOverallDevelopment}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select overall development status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Normal for age">Normal for age</SelectItem>
-                  <SelectItem value="Mildly delayed">Mildly delayed</SelectItem>
-                  <SelectItem value="Moderately delayed">Moderately delayed</SelectItem>
-                  <SelectItem value="Severely delayed">Severely delayed</SelectItem>
-                  <SelectItem value="Advanced for age">Advanced for age</SelectItem>
-                </SelectContent>
-              </Select>
+          {/* Other Concerns */}
+          <div className="space-y-2 border-b pb-4">
+            <Label className="text-sm font-medium">Add Other Concern</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder="Enter other concern..."
+                value={newCustom}
+                onChange={(e) => setNewCustom(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAddCustom();
+                  }
+                }}
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={handleAddCustom}
+                disabled={!newCustom.trim()}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
             </div>
 
-            {/* Other Concerns */}
-            <div className="space-y-2 border-b pb-4">
-              <Label className="text-sm font-medium">Add Other Concern</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  placeholder="Enter other concern..."
-                  value={newCustom}
-                  onChange={(e) => setNewCustom(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddCustom();
-                    }
-                  }}
-                  className="flex-1"
-                />
+            {customConcerns.map((concern, index) => (
+              <div
+                key={index}
+                className="flex items-center gap-2 p-2 rounded-md bg-muted/30"
+              >
+                <span className="flex-1 text-sm">{concern}</span>
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="ghost"
                   size="icon"
-                  onClick={handleAddCustom}
-                  disabled={!newCustom.trim()}
+                  className="h-8 w-8"
+                  onClick={() => handleRemoveCustom(index)}
                 >
-                  <Plus className="h-4 w-4" />
+                  <X className="h-4 w-4" />
                 </Button>
               </div>
+            ))}
+          </div>
 
-              {customConcerns.map((concern, index) => (
+          {/* Motor Milestones */}
+          <div className="space-y-2 border-b pb-4">
+            <Label className="text-sm font-medium">Motor Milestones</Label>
+            <div className="grid grid-cols-1 gap-2">
+              {motorMilestones.map((milestone, index) => (
                 <div
-                  key={index}
-                  className="flex items-center gap-2 p-2 rounded-md bg-muted/30"
+                  key={milestone.name}
+                  className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50"
                 >
-                  <span className="flex-1 text-sm">{concern}</span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => handleRemoveCustom(index)}
+                  <Checkbox
+                    id={`motor-${index}`}
+                    checked={milestone.checked}
+                    onCheckedChange={(checked) =>
+                      updateMilestone(setMotorMilestones, index, {
+                        checked: checked as boolean,
+                      })
+                    }
+                  />
+                  <Label
+                    htmlFor={`motor-${index}`}
+                    className="flex-1 cursor-pointer text-sm"
                   >
-                    <X className="h-4 w-4" />
-                  </Button>
+                    {milestone.name}
+                    <span className="text-xs text-muted-foreground ml-2">
+                      (typical: {MOTOR_MILESTONES[index].typical})
+                    </span>
+                  </Label>
+                  {milestone.checked && (
+                    <Input
+                      placeholder="Age achieved"
+                      value={milestone.age}
+                      onChange={(e) =>
+                        updateMilestone(setMotorMilestones, index, {
+                          age: e.target.value,
+                        })
+                      }
+                      className="w-32 h-8 text-sm"
+                    />
+                  )}
                 </div>
               ))}
             </div>
+          </div>
 
-            {/* Motor Milestones */}
-            <div className="space-y-2 border-b pb-4">
-              <Label className="text-sm font-medium">Motor Milestones</Label>
-              <div className="grid grid-cols-1 gap-2">
-                {motorMilestones.map((milestone, index) => (
-                  <div
-                    key={milestone.name}
-                    className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50"
+          {/* Speech Milestones */}
+          <div className="space-y-2 border-b pb-4">
+            <Label className="text-sm font-medium">Speech/Language Milestones</Label>
+            <div className="grid grid-cols-1 gap-2">
+              {speechMilestones.map((milestone, index) => (
+                <div
+                  key={milestone.name}
+                  className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50"
+                >
+                  <Checkbox
+                    id={`speech-${index}`}
+                    checked={milestone.checked}
+                    onCheckedChange={(checked) =>
+                      updateMilestone(setSpeechMilestones, index, {
+                        checked: checked as boolean,
+                      })
+                    }
+                  />
+                  <Label
+                    htmlFor={`speech-${index}`}
+                    className="flex-1 cursor-pointer text-sm"
                   >
-                    <Checkbox
-                      id={`motor-${index}`}
-                      checked={milestone.checked}
-                      onCheckedChange={(checked) =>
-                        updateMilestone(setMotorMilestones, index, {
-                          checked: checked as boolean,
-                        })
-                      }
-                    />
-                    <Label
-                      htmlFor={`motor-${index}`}
-                      className="flex-1 cursor-pointer text-sm"
-                    >
-                      {milestone.name}
-                      <span className="text-xs text-muted-foreground ml-2">
-                        (typical: {MOTOR_MILESTONES[index].typical})
-                      </span>
-                    </Label>
-                    {milestone.checked && (
-                      <Input
-                        placeholder="Age achieved"
-                        value={milestone.age}
-                        onChange={(e) =>
-                          updateMilestone(setMotorMilestones, index, {
-                            age: e.target.value,
-                          })
-                        }
-                        className="w-32 h-8 text-sm"
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Speech Milestones */}
-            <div className="space-y-2 border-b pb-4">
-              <Label className="text-sm font-medium">Speech/Language Milestones</Label>
-              <div className="grid grid-cols-1 gap-2">
-                {speechMilestones.map((milestone, index) => (
-                  <div
-                    key={milestone.name}
-                    className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50"
-                  >
-                    <Checkbox
-                      id={`speech-${index}`}
-                      checked={milestone.checked}
-                      onCheckedChange={(checked) =>
+                    {milestone.name}
+                    <span className="text-xs text-muted-foreground ml-2">
+                      (typical: {SPEECH_MILESTONES[index].typical})
+                    </span>
+                  </Label>
+                  {milestone.checked && (
+                    <Input
+                      placeholder="Age achieved"
+                      value={milestone.age}
+                      onChange={(e) =>
                         updateMilestone(setSpeechMilestones, index, {
-                          checked: checked as boolean,
+                          age: e.target.value,
                         })
                       }
+                      className="w-32 h-8 text-sm"
                     />
-                    <Label
-                      htmlFor={`speech-${index}`}
-                      className="flex-1 cursor-pointer text-sm"
-                    >
-                      {milestone.name}
-                      <span className="text-xs text-muted-foreground ml-2">
-                        (typical: {SPEECH_MILESTONES[index].typical})
-                      </span>
-                    </Label>
-                    {milestone.checked && (
-                      <Input
-                        placeholder="Age achieved"
-                        value={milestone.age}
-                        onChange={(e) =>
-                          updateMilestone(setSpeechMilestones, index, {
-                            age: e.target.value,
-                          })
-                        }
-                        className="w-32 h-8 text-sm"
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Social Milestones */}
-            <div className="space-y-2 border-b pb-4">
-              <Label className="text-sm font-medium">Social Milestones</Label>
-              <div className="grid grid-cols-1 gap-2">
-                {socialMilestones.map((milestone, index) => (
-                  <div
-                    key={milestone.name}
-                    className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50"
-                  >
-                    <Checkbox
-                      id={`social-${index}`}
-                      checked={milestone.checked}
-                      onCheckedChange={(checked) =>
-                        updateMilestone(setSocialMilestones, index, {
-                          checked: checked as boolean,
-                        })
-                      }
-                    />
-                    <Label
-                      htmlFor={`social-${index}`}
-                      className="flex-1 cursor-pointer text-sm"
-                    >
-                      {milestone.name}
-                      <span className="text-xs text-muted-foreground ml-2">
-                        (typical: {SOCIAL_MILESTONES[index].typical})
-                      </span>
-                    </Label>
-                    {milestone.checked && (
-                      <Input
-                        placeholder="Age achieved"
-                        value={milestone.age}
-                        onChange={(e) =>
-                          updateMilestone(setSocialMilestones, index, {
-                            age: e.target.value,
-                          })
-                        }
-                        className="w-32 h-8 text-sm"
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Developmental Concerns */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Developmental Concerns</Label>
-              <div className="grid grid-cols-1 gap-2">
-                {DEVELOPMENTAL_CONCERNS.map((concern) => (
-                  <div
-                    key={concern}
-                    className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50"
-                  >
-                    <Checkbox
-                      id={`concern-${concern}`}
-                      checked={concerns.includes(concern)}
-                      onCheckedChange={() => toggleConcern(concern)}
-                    />
-                    <Label
-                      htmlFor={`concern-${concern}`}
-                      className="flex-1 cursor-pointer text-sm"
-                    >
-                      {concern}
-                    </Label>
-                  </div>
-                ))}
-              </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
-        </ScrollArea>
 
-        <DialogFooter className="mt-4">
-          <Button type="button" variant="outline" onClick={handleClose}>
-            Cancel
-          </Button>
-          <Button type="button" onClick={handleInsert}>
-            Insert Selected
-          </Button>
-        </DialogFooter>
-      </DialogContent>
+          {/* Social Milestones */}
+          <div className="space-y-2 border-b pb-4">
+            <Label className="text-sm font-medium">Social Milestones</Label>
+            <div className="grid grid-cols-1 gap-2">
+              {socialMilestones.map((milestone, index) => (
+                <div
+                  key={milestone.name}
+                  className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50"
+                >
+                  <Checkbox
+                    id={`social-${index}`}
+                    checked={milestone.checked}
+                    onCheckedChange={(checked) =>
+                      updateMilestone(setSocialMilestones, index, {
+                        checked: checked as boolean,
+                      })
+                    }
+                  />
+                  <Label
+                    htmlFor={`social-${index}`}
+                    className="flex-1 cursor-pointer text-sm"
+                  >
+                    {milestone.name}
+                    <span className="text-xs text-muted-foreground ml-2">
+                      (typical: {SOCIAL_MILESTONES[index].typical})
+                    </span>
+                  </Label>
+                  {milestone.checked && (
+                    <Input
+                      placeholder="Age achieved"
+                      value={milestone.age}
+                      onChange={(e) =>
+                        updateMilestone(setSocialMilestones, index, {
+                          age: e.target.value,
+                        })
+                      }
+                      className="w-32 h-8 text-sm"
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Developmental Concerns */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Developmental Concerns</Label>
+            <div className="grid grid-cols-1 gap-2">
+              {DEVELOPMENTAL_CONCERNS.map((concern) => (
+                <div
+                  key={concern}
+                  className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50"
+                >
+                  <Checkbox
+                    id={`concern-${concern}`}
+                    checked={concerns.includes(concern)}
+                    onCheckedChange={() => toggleConcern(concern)}
+                  />
+                  <Label
+                    htmlFor={`concern-${concern}`}
+                    className="flex-1 cursor-pointer text-sm"
+                  >
+                    {concern}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </PresetDialogLayout>
     </Dialog>
   );
 }

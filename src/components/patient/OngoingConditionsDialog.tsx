@@ -1,17 +1,11 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Plus, X } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { PresetDialogLayout } from "@/components/patient/preset/PresetDialogLayout";
 
 interface ConditionEntry {
   name: string;
@@ -162,117 +156,119 @@ export function OngoingConditionsDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Insert Ongoing Medical Conditions</DialogTitle>
-        </DialogHeader>
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => {
+        if (!isOpen) handleClose();
+      }}
+    >
+      <PresetDialogLayout
+        title="Insert Ongoing Medical Conditions"
+        footer={
+          <>
+            <Button type="button" variant="outline" onClick={handleClose}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={handleInsert}>
+              Insert Selected
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          {/* Other Conditions - At Top */}
+          <div className="space-y-2 border-b pb-4">
+            <Label className="text-sm font-medium">Add Other Condition</Label>
 
-        <ScrollArea className="flex-1 pr-4">
-          <div className="space-y-4">
-            {/* Other Conditions - At Top */}
-            <div className="space-y-2 border-b pb-4">
-              <Label className="text-sm font-medium">Add Other Condition</Label>
-              
-              <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder="Enter other condition..."
+                value={newCustomName}
+                onChange={(e) => setNewCustomName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAddCustom();
+                  }
+                }}
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={handleAddCustom}
+                disabled={!newCustomName.trim()}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {customConditions.map((condition, index) => (
+              <div
+                key={index}
+                className="flex items-center gap-2 p-2 rounded-md bg-muted/30"
+              >
+                <span className="flex-1 text-sm">{condition.name}</span>
                 <Input
-                  placeholder="Enter other condition..."
-                  value={newCustomName}
-                  onChange={(e) => setNewCustomName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddCustom();
-                    }
-                  }}
-                  className="flex-1"
+                  placeholder="Duration"
+                  value={condition.duration}
+                  onChange={(e) =>
+                    handleCustomDurationChange(index, e.target.value)
+                  }
+                  className="w-40 h-8 text-sm"
                 />
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="ghost"
                   size="icon"
-                  onClick={handleAddCustom}
-                  disabled={!newCustomName.trim()}
+                  className="h-8 w-8"
+                  onClick={() => handleRemoveCustom(index)}
                 >
-                  <Plus className="h-4 w-4" />
+                  <X className="h-4 w-4" />
                 </Button>
               </div>
+            ))}
+          </div>
 
-              {customConditions.map((condition, index) => (
+          {/* Common Conditions */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Common Conditions</Label>
+            <div className="grid grid-cols-1 gap-2">
+              {conditions.map((condition, index) => (
                 <div
-                  key={index}
-                  className="flex items-center gap-2 p-2 rounded-md bg-muted/30"
+                  key={condition.name}
+                  className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50"
                 >
-                  <span className="flex-1 text-sm">{condition.name}</span>
-                  <Input
-                    placeholder="Duration"
-                    value={condition.duration}
-                    onChange={(e) =>
-                      handleCustomDurationChange(index, e.target.value)
+                  <Checkbox
+                    id={`condition-${index}`}
+                    checked={condition.checked}
+                    onCheckedChange={(checked) =>
+                      handleConditionToggle(index, checked as boolean)
                     }
-                    className="w-40 h-8 text-sm"
                   />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => handleRemoveCustom(index)}
+                  <Label
+                    htmlFor={`condition-${index}`}
+                    className="flex-1 cursor-pointer text-sm"
                   >
-                    <X className="h-4 w-4" />
-                  </Button>
+                    {condition.name}
+                  </Label>
+                  {condition.checked && (
+                    <Input
+                      placeholder="Duration (e.g., 5 years)"
+                      value={condition.duration}
+                      onChange={(e) =>
+                        handleDurationChange(index, e.target.value)
+                      }
+                      className="w-40 h-8 text-sm"
+                    />
+                  )}
                 </div>
               ))}
             </div>
-
-            {/* Common Conditions */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Common Conditions</Label>
-              <div className="grid grid-cols-1 gap-2">
-                {conditions.map((condition, index) => (
-                  <div
-                    key={condition.name}
-                    className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50"
-                  >
-                    <Checkbox
-                      id={`condition-${index}`}
-                      checked={condition.checked}
-                      onCheckedChange={(checked) =>
-                        handleConditionToggle(index, checked as boolean)
-                      }
-                    />
-                    <Label
-                      htmlFor={`condition-${index}`}
-                      className="flex-1 cursor-pointer text-sm"
-                    >
-                      {condition.name}
-                    </Label>
-                    {condition.checked && (
-                      <Input
-                        placeholder="Duration (e.g., 5 years)"
-                        value={condition.duration}
-                        onChange={(e) =>
-                          handleDurationChange(index, e.target.value)
-                        }
-                        className="w-40 h-8 text-sm"
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
-        </ScrollArea>
-
-        <DialogFooter className="mt-4">
-          <Button type="button" variant="outline" onClick={handleClose}>
-            Cancel
-          </Button>
-          <Button type="button" onClick={handleInsert}>
-            Insert Selected
-          </Button>
-        </DialogFooter>
-      </DialogContent>
+        </div>
+      </PresetDialogLayout>
     </Dialog>
   );
 }

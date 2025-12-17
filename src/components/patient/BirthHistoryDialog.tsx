@@ -1,17 +1,10 @@
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -19,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PresetDialogLayout } from "@/components/patient/preset/PresetDialogLayout";
 
 interface BirthHistoryDialogProps {
   open: boolean;
@@ -148,159 +142,161 @@ export function BirthHistoryDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Insert Birth History</DialogTitle>
-        </DialogHeader>
-
-        <ScrollArea className="flex-1 pr-4">
-          <div className="space-y-4">
-            {/* Basic Info */}
-            <div className="space-y-3 border-b pb-4">
-              <Label className="text-sm font-medium">Delivery Details</Label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs text-muted-foreground">Type of Delivery</Label>
-                  <Select value={deliveryType} onValueChange={setDeliveryType}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select delivery type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {DELIVERY_TYPES.map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Gestational Age (weeks)</Label>
-                  <Input
-                    placeholder="e.g., 38"
-                    value={gestationalAge}
-                    onChange={(e) => setGestationalAge(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Birth Weight</Label>
-                  <Input
-                    placeholder="e.g., 3.2 kg"
-                    value={birthWeight}
-                    onChange={(e) => setBirthWeight(e.target.value)}
-                  />
-                </div>
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => {
+        if (!isOpen) handleClose();
+      }}
+    >
+      <PresetDialogLayout
+        title="Insert Birth History"
+        footer={
+          <>
+            <Button type="button" variant="outline" onClick={handleClose}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={handleInsert}>
+              Insert Selected
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          {/* Basic Info */}
+          <div className="space-y-3 border-b pb-4">
+            <Label className="text-sm font-medium">Delivery Details</Label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs text-muted-foreground">Type of Delivery</Label>
+                <Select value={deliveryType} onValueChange={setDeliveryType}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select delivery type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DELIVERY_TYPES.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            </div>
-
-            {/* Other Complications */}
-            <div className="space-y-2 border-b pb-4">
-              <Label className="text-sm font-medium">Add Other Complication</Label>
-              <div className="flex items-center gap-2">
+              <div>
+                <Label className="text-xs text-muted-foreground">Gestational Age (weeks)</Label>
                 <Input
-                  placeholder="Enter other complication..."
-                  value={newCustom}
-                  onChange={(e) => setNewCustom(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddCustom();
-                    }
-                  }}
-                  className="flex-1"
+                  placeholder="e.g., 38"
+                  value={gestationalAge}
+                  onChange={(e) => setGestationalAge(e.target.value)}
                 />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={handleAddCustom}
-                  disabled={!newCustom.trim()}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
               </div>
-
-              {customComplications.map((complication, index) => (
-                <div
-                  key={index}
-                  className="flex items-center gap-2 p-2 rounded-md bg-muted/30"
-                >
-                  <span className="flex-1 text-sm">{complication}</span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => handleRemoveCustom(index)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-
-            {/* Neonatal Complications */}
-            <div className="space-y-2 border-b pb-4">
-              <Label className="text-sm font-medium">Neonatal Complications</Label>
-              <div className="grid grid-cols-1 gap-2">
-                {BIRTH_COMPLICATIONS.map((complication) => (
-                  <div
-                    key={complication}
-                    className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50"
-                  >
-                    <Checkbox
-                      id={`birth-${complication}`}
-                      checked={birthComplications.includes(complication)}
-                      onCheckedChange={() => toggleBirthComplication(complication)}
-                    />
-                    <Label
-                      htmlFor={`birth-${complication}`}
-                      className="flex-1 cursor-pointer text-sm"
-                    >
-                      {complication}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Maternal Complications */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Maternal Complications During Pregnancy</Label>
-              <div className="grid grid-cols-1 gap-2">
-                {MATERNAL_COMPLICATIONS.map((complication) => (
-                  <div
-                    key={complication}
-                    className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50"
-                  >
-                    <Checkbox
-                      id={`maternal-${complication}`}
-                      checked={maternalComplications.includes(complication)}
-                      onCheckedChange={() => toggleMaternalComplication(complication)}
-                    />
-                    <Label
-                      htmlFor={`maternal-${complication}`}
-                      className="flex-1 cursor-pointer text-sm"
-                    >
-                      {complication}
-                    </Label>
-                  </div>
-                ))}
+              <div>
+                <Label className="text-xs text-muted-foreground">Birth Weight</Label>
+                <Input
+                  placeholder="e.g., 3.2 kg"
+                  value={birthWeight}
+                  onChange={(e) => setBirthWeight(e.target.value)}
+                />
               </div>
             </div>
           </div>
-        </ScrollArea>
 
-        <DialogFooter className="mt-4">
-          <Button type="button" variant="outline" onClick={handleClose}>
-            Cancel
-          </Button>
-          <Button type="button" onClick={handleInsert}>
-            Insert Selected
-          </Button>
-        </DialogFooter>
-      </DialogContent>
+          {/* Other Complications */}
+          <div className="space-y-2 border-b pb-4">
+            <Label className="text-sm font-medium">Add Other Complication</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder="Enter other complication..."
+                value={newCustom}
+                onChange={(e) => setNewCustom(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAddCustom();
+                  }
+                }}
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={handleAddCustom}
+                disabled={!newCustom.trim()}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {customComplications.map((complication, index) => (
+              <div
+                key={index}
+                className="flex items-center gap-2 p-2 rounded-md bg-muted/30"
+              >
+                <span className="flex-1 text-sm">{complication}</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => handleRemoveCustom(index)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+
+          {/* Neonatal Complications */}
+          <div className="space-y-2 border-b pb-4">
+            <Label className="text-sm font-medium">Neonatal Complications</Label>
+            <div className="grid grid-cols-1 gap-2">
+              {BIRTH_COMPLICATIONS.map((complication) => (
+                <div
+                  key={complication}
+                  className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50"
+                >
+                  <Checkbox
+                    id={`birth-${complication}`}
+                    checked={birthComplications.includes(complication)}
+                    onCheckedChange={() => toggleBirthComplication(complication)}
+                  />
+                  <Label
+                    htmlFor={`birth-${complication}`}
+                    className="flex-1 cursor-pointer text-sm"
+                  >
+                    {complication}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Maternal Complications */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Maternal Complications During Pregnancy</Label>
+            <div className="grid grid-cols-1 gap-2">
+              {MATERNAL_COMPLICATIONS.map((complication) => (
+                <div
+                  key={complication}
+                  className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50"
+                >
+                  <Checkbox
+                    id={`maternal-${complication}`}
+                    checked={maternalComplications.includes(complication)}
+                    onCheckedChange={() => toggleMaternalComplication(complication)}
+                  />
+                  <Label
+                    htmlFor={`maternal-${complication}`}
+                    className="flex-1 cursor-pointer text-sm"
+                  >
+                    {complication}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </PresetDialogLayout>
     </Dialog>
   );
 }

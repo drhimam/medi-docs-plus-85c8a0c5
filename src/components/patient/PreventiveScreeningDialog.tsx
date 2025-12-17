@@ -1,17 +1,11 @@
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { PresetDialogLayout } from "@/components/patient/preset/PresetDialogLayout";
 
 interface ScreeningEntry {
   name: string;
@@ -175,126 +169,128 @@ export function PreventiveScreeningDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Insert Preventive Screening History</DialogTitle>
-        </DialogHeader>
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => {
+        if (!isOpen) handleClose();
+      }}
+    >
+      <PresetDialogLayout
+        title="Insert Preventive Screening History"
+        footer={
+          <>
+            <Button type="button" variant="outline" onClick={handleClose}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={handleInsert}>
+              Insert Selected
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          {/* Other Screenings - At Top */}
+          <div className="space-y-2 border-b pb-4">
+            <Label className="text-sm font-medium">Add Other Screening</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder="Enter other screening..."
+                value={newCustomName}
+                onChange={(e) => setNewCustomName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAddCustom();
+                  }
+                }}
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={handleAddCustom}
+                disabled={!newCustomName.trim()}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
 
-        <ScrollArea className="flex-1 pr-4">
-          <div className="space-y-4">
-            {/* Other Screenings - At Top */}
-            <div className="space-y-2 border-b pb-4">
-              <Label className="text-sm font-medium">Add Other Screening</Label>
-              <div className="flex items-center gap-2">
+            {customScreenings.map((screening, index) => (
+              <div
+                key={index}
+                className="flex items-center gap-2 p-2 rounded-md bg-muted/30"
+              >
+                <span className="flex-1 text-sm">{screening.name}</span>
                 <Input
-                  placeholder="Enter other screening..."
-                  value={newCustomName}
-                  onChange={(e) => setNewCustomName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddCustom();
-                    }
-                  }}
-                  className="flex-1"
+                  placeholder="Date/Year"
+                  value={screening.date}
+                  onChange={(e) => handleCustomDateChange(index, e.target.value)}
+                  className="w-24 h-8 text-sm"
+                />
+                <Input
+                  placeholder="Result"
+                  value={screening.result}
+                  onChange={(e) => handleCustomResultChange(index, e.target.value)}
+                  className="w-24 h-8 text-sm"
                 />
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="ghost"
                   size="icon"
-                  onClick={handleAddCustom}
-                  disabled={!newCustomName.trim()}
+                  className="h-8 w-8"
+                  onClick={() => handleRemoveCustom(index)}
                 >
-                  <Plus className="h-4 w-4" />
+                  <X className="h-4 w-4" />
                 </Button>
               </div>
+            ))}
+          </div>
 
-              {customScreenings.map((screening, index) => (
+          {/* Common Screenings */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Common Preventive Screenings</Label>
+            <div className="grid grid-cols-1 gap-2">
+              {screenings.map((screening, index) => (
                 <div
-                  key={index}
-                  className="flex items-center gap-2 p-2 rounded-md bg-muted/30"
+                  key={screening.name}
+                  className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50"
                 >
-                  <span className="flex-1 text-sm">{screening.name}</span>
-                  <Input
-                    placeholder="Date/Year"
-                    value={screening.date}
-                    onChange={(e) => handleCustomDateChange(index, e.target.value)}
-                    className="w-24 h-8 text-sm"
+                  <Checkbox
+                    id={`screening-${index}`}
+                    checked={screening.checked}
+                    onCheckedChange={(checked) =>
+                      handleScreeningToggle(index, checked as boolean)
+                    }
                   />
-                  <Input
-                    placeholder="Result"
-                    value={screening.result}
-                    onChange={(e) => handleCustomResultChange(index, e.target.value)}
-                    className="w-24 h-8 text-sm"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => handleRemoveCustom(index)}
+                  <Label
+                    htmlFor={`screening-${index}`}
+                    className="flex-1 cursor-pointer text-sm"
                   >
-                    <X className="h-4 w-4" />
-                  </Button>
+                    {screening.name}
+                  </Label>
+                  {screening.checked && (
+                    <>
+                      <Input
+                        placeholder="Date/Year"
+                        value={screening.date}
+                        onChange={(e) => handleDateChange(index, e.target.value)}
+                        className="w-24 h-8 text-sm"
+                      />
+                      <Input
+                        placeholder="Result"
+                        value={screening.result}
+                        onChange={(e) => handleResultChange(index, e.target.value)}
+                        className="w-24 h-8 text-sm"
+                      />
+                    </>
+                  )}
                 </div>
               ))}
             </div>
-
-            {/* Common Screenings */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Common Preventive Screenings</Label>
-              <div className="grid grid-cols-1 gap-2">
-                {screenings.map((screening, index) => (
-                  <div
-                    key={screening.name}
-                    className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50"
-                  >
-                    <Checkbox
-                      id={`screening-${index}`}
-                      checked={screening.checked}
-                      onCheckedChange={(checked) =>
-                        handleScreeningToggle(index, checked as boolean)
-                      }
-                    />
-                    <Label
-                      htmlFor={`screening-${index}`}
-                      className="flex-1 cursor-pointer text-sm"
-                    >
-                      {screening.name}
-                    </Label>
-                    {screening.checked && (
-                      <>
-                        <Input
-                          placeholder="Date/Year"
-                          value={screening.date}
-                          onChange={(e) => handleDateChange(index, e.target.value)}
-                          className="w-24 h-8 text-sm"
-                        />
-                        <Input
-                          placeholder="Result"
-                          value={screening.result}
-                          onChange={(e) => handleResultChange(index, e.target.value)}
-                          className="w-24 h-8 text-sm"
-                        />
-                      </>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
-        </ScrollArea>
-
-        <DialogFooter className="mt-4">
-          <Button type="button" variant="outline" onClick={handleClose}>
-            Cancel
-          </Button>
-          <Button type="button" onClick={handleInsert}>
-            Insert Selected
-          </Button>
-        </DialogFooter>
-      </DialogContent>
+        </div>
+      </PresetDialogLayout>
     </Dialog>
   );
 }

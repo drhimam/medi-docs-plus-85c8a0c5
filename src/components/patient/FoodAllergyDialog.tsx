@@ -128,7 +128,7 @@ export function FoodAllergyDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <PresetDialogLayout
         title="Add Food Allergies"
-        maxHeightClassName="max-h-[80vh]"
+        maxHeightClassName="h-[80vh]"
         footer={
           <>
             <Button variant="outline" onClick={() => onOpenChange(false)}>

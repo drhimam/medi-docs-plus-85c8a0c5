@@ -170,7 +170,7 @@ const FamilyHistoryDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <PresetDialogLayout
         title="Family History"
-        maxHeightClassName="max-h-[90vh]"
+        maxHeightClassName="h-[85vh]"
         footer={
           <>
             <Button variant="outline" onClick={() => onOpenChange(false)}>
