@@ -5,12 +5,18 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
 
 interface ROSBuilderProps {
   open: boolean;
   onClose: () => void;
   currentROS: string;
   onUpdate: (newROS: string) => void;
+}
+
+interface SymptomEntry {
+  symptom: string;
+  description: string;
 }
 
 const rosCategories = {
@@ -73,7 +79,7 @@ const rosCategories = {
 };
 
 export default function ROSBuilder({ open, onClose, currentROS, onUpdate }: ROSBuilderProps) {
-  const [selectedSymptoms, setSelectedSymptoms] = useState<Record<string, string[]>>({});
+  const [selectedSymptoms, setSelectedSymptoms] = useState<Record<string, SymptomEntry[]>>({});
 
   useEffect(() => {
     // Reset when dialog opens
@@ -82,22 +88,43 @@ export default function ROSBuilder({ open, onClose, currentROS, onUpdate }: ROSB
     }
   }, [open]);
 
+  const isSymptomSelected = (category: string, symptom: string) => {
+    return (selectedSymptoms[category] || []).some((entry) => entry.symptom === symptom);
+  };
+
+  const getSymptomDescription = (category: string, symptom: string) => {
+    const entry = (selectedSymptoms[category] || []).find((e) => e.symptom === symptom);
+    return entry?.description || "";
+  };
+
   const handleSymptomToggle = (category: string, symptom: string) => {
     setSelectedSymptoms((prev) => {
       const categorySymptoms = prev[category] || [];
-      const isSelected = categorySymptoms.includes(symptom);
-      
+      const isSelected = categorySymptoms.some((entry) => entry.symptom === symptom);
+
       if (isSelected) {
         return {
           ...prev,
-          [category]: categorySymptoms.filter((s) => s !== symptom),
+          [category]: categorySymptoms.filter((entry) => entry.symptom !== symptom),
         };
       } else {
         return {
           ...prev,
-          [category]: [...categorySymptoms, symptom],
+          [category]: [...categorySymptoms, { symptom, description: "" }],
         };
       }
+    });
+  };
+
+  const handleDescriptionChange = (category: string, symptom: string, description: string) => {
+    setSelectedSymptoms((prev) => {
+      const categorySymptoms = prev[category] || [];
+      return {
+        ...prev,
+        [category]: categorySymptoms.map((entry) =>
+          entry.symptom === symptom ? { ...entry, description } : entry
+        ),
+      };
     });
   };
 
@@ -107,7 +134,15 @@ export default function ROSBuilder({ open, onClose, currentROS, onUpdate }: ROSB
     Object.entries(rosCategories).forEach(([categoryKey, category]) => {
       const symptoms = selectedSymptoms[categoryKey] || [];
       if (symptoms.length > 0) {
-        rosParts.push(`- ${category.title}: Patient reports ${symptoms.join(", ").toLowerCase()}.`);
+        const symptomDescriptions = symptoms
+          .map((entry) => {
+            if (entry.description.trim()) {
+              return `${entry.symptom.toLowerCase()} (${entry.description.trim()})`;
+            }
+            return entry.symptom.toLowerCase();
+          })
+          .join(", ");
+        rosParts.push(`- ${category.title}: Patient reports ${symptomDescriptions}.`);
       } else {
         rosParts.push(`- ${category.title}: No symptoms reported.`);
       }
@@ -135,21 +170,36 @@ export default function ROSBuilder({ open, onClose, currentROS, onUpdate }: ROSB
                 {index > 0 && <Separator className="my-4" />}
                 <h4 className="font-semibold mb-3">{category.title}</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {category.symptoms.map((symptom) => (
-                    <div key={symptom} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`${categoryKey}-${symptom}`}
-                        checked={(selectedSymptoms[categoryKey] || []).includes(symptom)}
-                        onCheckedChange={() => handleSymptomToggle(categoryKey, symptom)}
-                      />
-                      <Label
-                        htmlFor={`${categoryKey}-${symptom}`}
-                        className="text-sm font-normal cursor-pointer"
-                      >
-                        {symptom}
-                      </Label>
-                    </div>
-                  ))}
+                  {category.symptoms.map((symptom) => {
+                    const isSelected = isSymptomSelected(categoryKey, symptom);
+                    return (
+                      <div key={symptom} className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`${categoryKey}-${symptom}`}
+                            checked={isSelected}
+                            onCheckedChange={() => handleSymptomToggle(categoryKey, symptom)}
+                          />
+                          <Label
+                            htmlFor={`${categoryKey}-${symptom}`}
+                            className="text-sm font-normal cursor-pointer"
+                          >
+                            {symptom}
+                          </Label>
+                        </div>
+                        {isSelected && (
+                          <Input
+                            placeholder="Add description (e.g., duration, severity)"
+                            value={getSymptomDescription(categoryKey, symptom)}
+                            onChange={(e) =>
+                              handleDescriptionChange(categoryKey, symptom, e.target.value)
+                            }
+                            className="ml-6 text-sm"
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ))}
