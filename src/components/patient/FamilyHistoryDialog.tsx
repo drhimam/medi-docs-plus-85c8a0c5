@@ -67,6 +67,23 @@ const FamilyHistoryDialog = ({
     { id: "mother", relation: "Mother", status: "alive", chronicConditions: [], causeOfDeath: [] },
   ]);
   const [siblingCount, setSiblingCount] = useState(0);
+  const [childCount, setChildCount] = useState(0);
+  const [hasSpouse, setHasSpouse] = useState(false);
+
+  const addSpouse = () => {
+    if (hasSpouse) return;
+    setMembers([
+      ...members,
+      {
+        id: "spouse",
+        relation: "Spouse",
+        status: "alive",
+        chronicConditions: [],
+        causeOfDeath: [],
+      },
+    ]);
+    setHasSpouse(true);
+  };
 
   const addSibling = (gender: "male" | "female") => {
     const newId = `sibling-${siblingCount + 1}`;
@@ -85,7 +102,27 @@ const FamilyHistoryDialog = ({
     setSiblingCount(siblingCount + 1);
   };
 
+  const addChild = (gender: "male" | "female") => {
+    const newId = `child-${childCount + 1}`;
+    const genderLabel = gender === "male" ? "Son" : "Daughter";
+    setMembers([
+      ...members,
+      {
+        id: newId,
+        relation: `${genderLabel} ${childCount + 1}`,
+        gender,
+        status: "alive",
+        chronicConditions: [],
+        causeOfDeath: [],
+      },
+    ]);
+    setChildCount(childCount + 1);
+  };
+
   const removeMember = (id: string) => {
+    if (id === "spouse") {
+      setHasSpouse(false);
+    }
     setMembers(members.filter((m) => m.id !== id));
   };
 
@@ -164,6 +201,8 @@ const FamilyHistoryDialog = ({
       { id: "mother", relation: "Mother", status: "alive", chronicConditions: [], causeOfDeath: [] },
     ]);
     setSiblingCount(0);
+    setChildCount(0);
+    setHasSpouse(false);
   };
 
   return (
@@ -185,7 +224,7 @@ const FamilyHistoryDialog = ({
             <div key={member.id} className="border rounded-lg p-4 space-y-4 bg-muted/30">
               <div className="flex items-center justify-between">
                 <Label className="text-base font-semibold">{member.relation}</Label>
-                {member.id.startsWith("sibling") && (
+                {(member.id.startsWith("sibling") || member.id.startsWith("child") || member.id === "spouse") && (
                   <Button
                     variant="ghost"
                     size="icon"
@@ -312,25 +351,59 @@ const FamilyHistoryDialog = ({
             </div>
           ))}
 
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => addSibling("male")}
-              className="flex-1"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Brother
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => addSibling("female")}
-              className="flex-1"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Sister
-            </Button>
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={addSpouse}
+                className="flex-1"
+                disabled={hasSpouse}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Spouse
+              </Button>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => addSibling("male")}
+                className="flex-1"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Brother
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => addSibling("female")}
+                className="flex-1"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Sister
+              </Button>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => addChild("male")}
+                className="flex-1"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Son
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => addChild("female")}
+                className="flex-1"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Daughter
+              </Button>
+            </div>
           </div>
         </div>
       </PresetDialogLayout>
