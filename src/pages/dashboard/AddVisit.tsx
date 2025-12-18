@@ -12,6 +12,7 @@ import { Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import HPIBuilder from "@/components/visit/HPIBuilder";
 import ROSBuilder from "@/components/visit/ROSBuilder";
+import PhysicalExaminationDialog from "@/components/visit/PhysicalExaminationDialog";
 import DocumentUploadDialog from "@/components/visit/DocumentUploadDialog";
 
 export default function AddVisit() {
@@ -24,6 +25,7 @@ export default function AddVisit() {
   const [visitId, setVisitId] = useState<string | null>(null);
   const [showHPIBuilder, setShowHPIBuilder] = useState(false);
   const [showROSBuilder, setShowROSBuilder] = useState(false);
+  const [showPhysicalExamDialog, setShowPhysicalExamDialog] = useState(false);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [documents, setDocuments] = useState<any[]>([]);
 
@@ -434,7 +436,17 @@ export default function AddVisit() {
               </div>
             </div>
             <div>
-              <Label htmlFor="physicalExamination">Physical Examination</Label>
+              <div className="flex items-center justify-between mb-2">
+                <Label htmlFor="physicalExamination">Physical Examination</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowPhysicalExamDialog(true)}
+                >
+                  Exam Builder
+                </Button>
+              </div>
               <Textarea
                 id="physicalExamination"
                 value={formData.physicalExamination}
@@ -500,6 +512,16 @@ export default function AddVisit() {
         onClose={() => setShowROSBuilder(false)}
         currentROS={formData.ros}
         onUpdate={(newROS) => handleInputChange("ros", newROS)}
+      />
+      <PhysicalExaminationDialog
+        open={showPhysicalExamDialog}
+        onOpenChange={setShowPhysicalExamDialog}
+        onInsert={(text) => {
+          const newValue = formData.physicalExamination
+            ? `${formData.physicalExamination}\n\n${text}`
+            : text;
+          handleInputChange("physicalExamination", newValue);
+        }}
       />
       {visitId && patient && (
         <DocumentUploadDialog
