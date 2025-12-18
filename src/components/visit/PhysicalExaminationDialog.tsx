@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PresetDialog } from "@/components/patient/preset/PresetDialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { CheckCheck, Eye, EyeOff } from "lucide-react";
+import { CheckCheck, Eye, EyeOff, Copy, Check } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 interface PhysicalExaminationDialogProps {
   open: boolean;
@@ -119,6 +120,34 @@ const ENDOCRINE_ITEMS = {
   "Eyes": ["Normal", "Exophthalmos", "No Lid Lag", "Lid Lag", "No Lid Retraction", "Lid Retraction"],
 };
 
+const PEDIATRICS_NEONATE_ITEMS = {
+  "General Appearance": ["Well Appearing", "Unwell Appearing", "Normal Skin Color", "Jaundiced", "Cyanotic", "Pale", "Alert", "Lethargic", "No Anomalies", "Anomalies Present"],
+  "Growth Status": ["Head Circumference Normal", "Head Circumference Large", "Head Circumference Small", "Weight Appropriate", "Weight Low", "Weight High", "Length Normal"],
+  "Head/Face": ["Normal Shape", "Caput Succedaneum", "Cephalhaematoma", "Fontanelle Flat", "Fontanelle Bulging", "Fontanelle Sunken", "Sutures Normal", "Sutures Overriding", "Eyes Normal", "Red Reflex Present", "Ears Normal Position", "Nose Patent", "Mouth Normal", "Palate Intact", "Cleft Palate", "Tongue Normal", "Jaw Normal"],
+  "Neck": ["Normal", "Torticollis", "Mass Present", "No Clavicle Fracture", "Clavicle Fracture"],
+  "Arms/Hands": ["Symmetrical", "Normal Length", "Normal Proportion", "Digits Normal", "Polydactyly", "Syndactyly", "Normal Grip Reflex"],
+  "Chest/Cardiorespiratory": ["Normal Chest Shape", "Normal Chest Size", "Nipples Normal", "Heart Sounds Normal", "Heart Murmur Present", "Heart Rate Normal", "Tachycardia", "Bradycardia", "Pulses Normal", "Femoral Pulses Present", "Breath Sounds Normal", "Grunting", "Stridor", "Respiratory Rate Normal", "Tachypnea", "Retractions"],
+  "Abdomen": ["Normal Size", "Distended", "Soft", "Firm", "No Organomegaly", "Hepatomegaly", "Splenomegaly", "Umbilicus Normal", "Umbilical Hernia", "Umbilicus Dry", "Umbilicus Red/Inflamed"],
+  "Genitourinary - Male": ["Penis Normal", "Foreskin Normal", "Phimosis", "Hypospadias", "Epispadias", "Testes Descended Bilateral", "Undescended Testis", "Hydrocele", "Anus Normal Position", "Anus Patent"],
+  "Genitourinary - Female": ["Labia Normal", "Clitoris Normal", "Hymen Normal", "Anus Normal Position", "Anus Patent"],
+  "Back/Spine": ["Spine Straight", "Scoliosis", "Sacral Dimple", "Hair Tuft", "Skin Normal", "Spina Bifida", "Scapulae Symmetrical", "Buttocks Symmetrical"],
+  "Hips/Legs/Feet": ["Ortolani Negative", "Ortolani Positive", "Barlow Negative", "Barlow Positive", "Leg Length Equal", "Legs Symmetrical", "Digits Normal", "Clubfoot", "Talipes Equinovarus", "Metatarsus Adductus"],
+  "Neurological": ["Normal Posture", "Normal Behaviour", "Movements Normal", "Movements Abnormal", "Tone Normal", "Hypotonia", "Hypertonia", "Cry Normal", "Weak Cry", "High-pitched Cry", "Moro Reflex Present", "Rooting Reflex Present", "Suck Reflex Present", "Grasp Reflex Present", "Stepping Reflex Present"],
+};
+
+const PEDIATRICS_ENT_ITEMS = {
+  "Ears": ["Pinnae Normal Shape", "Pinnae Normal Size", "Pinnae Normal Position", "Low-Set Ears", "Preauricular Tags", "Preauricular Pits", "External Canal Clear", "External Canal Debris", "Tympanic Membrane Normal", "Tympanic Membrane Bulging", "Tympanic Membrane Retracted", "Tympanic Membrane Red", "Effusion Present"],
+  "Nose": ["Normal Shape", "Normal Size", "Normal Position", "Deviated Septum", "Turbinates Normal", "Turbinates Swollen", "Discharge Clear", "Discharge Purulent", "Nasal Patency Confirmed"],
+  "Mouth/Throat": ["Lips Normal", "Gingiva Normal", "Teeth Normal", "Mucosa Normal", "Mucosa Dry", "Tongue Normal", "Geographic Tongue", "Palate Intact", "Pharynx Normal", "Pharynx Red", "Tonsils Normal", "Tonsils Enlarged", "Tonsils Exudate", "Uvula Central"],
+  "Neck": ["Normal Shape", "Normal Height", "Neck Vessels Normal", "No Masses", "Mass Present", "No Lymphadenopathy", "Cervical Lymphadenopathy", "Thyroid Normal"],
+};
+
+const PEDIATRICS_CHEST_ITEMS = {
+  "General Appearance": ["Chest Wall Normal", "Symmetrical", "Asymmetrical", "Normal Shape", "Pectus Excavatum", "Pectus Carinatum", "Nipples Aligned", "Breathing Pattern Normal", "Intercostal Retractions", "Subcostal Retractions"],
+  "Heart": ["Peripheral Pulses Normal", "Peripheral Pulses Weak", "Palpation Normal", "Precordial Impulse Normal", "Heart Sounds Normal", "Murmur Present", "S1 S2 Normal", "Split S2"],
+  "Lungs": ["Auscultation Clear", "Wheeze", "Crackles", "Rhonchi", "Stridor", "Diminished Breath Sounds", "Breath Sounds Equal Bilateral"],
+};
+
 const SYSTEMS = [
   { id: "respiratory", label: "Respiratory", items: RESPIRATORY_ITEMS },
   { id: "cardiovascular", label: "Cardiovascular", items: CARDIOVASCULAR_ITEMS },
@@ -127,6 +156,9 @@ const SYSTEMS = [
   { id: "musculoskeletal", label: "MSK", items: MUSCULOSKELETAL_ITEMS },
   { id: "skin", label: "Skin", items: SKIN_ITEMS },
   { id: "endocrine", label: "Endocrine", items: ENDOCRINE_ITEMS },
+  { id: "pediatrics_neonate", label: "Neonate", items: PEDIATRICS_NEONATE_ITEMS },
+  { id: "pediatrics_ent", label: "Peds ENT", items: PEDIATRICS_ENT_ITEMS },
+  { id: "pediatrics_chest", label: "Peds Chest", items: PEDIATRICS_CHEST_ITEMS },
 ];
 
 // Normal findings for each system
@@ -220,6 +252,31 @@ const NORMAL_FINDINGS: { [systemId: string]: { [category: string]: string[] } } 
     "Skin": ["Normal", "No Striae", "No Acanthosis Nigricans"],
     "Eyes": ["Normal", "No Lid Lag", "No Lid Retraction"],
   },
+  pediatrics_neonate: {
+    "General Appearance": ["Well Appearing", "Normal Skin Color", "Alert", "No Anomalies"],
+    "Growth Status": ["Head Circumference Normal", "Weight Appropriate", "Length Normal"],
+    "Head/Face": ["Normal Shape", "Fontanelle Flat", "Sutures Normal", "Eyes Normal", "Red Reflex Present", "Ears Normal Position", "Nose Patent", "Mouth Normal", "Palate Intact", "Tongue Normal", "Jaw Normal"],
+    "Neck": ["Normal", "No Clavicle Fracture"],
+    "Arms/Hands": ["Symmetrical", "Normal Length", "Digits Normal", "Normal Grip Reflex"],
+    "Chest/Cardiorespiratory": ["Normal Chest Shape", "Heart Sounds Normal", "Heart Rate Normal", "Pulses Normal", "Femoral Pulses Present", "Breath Sounds Normal", "Respiratory Rate Normal"],
+    "Abdomen": ["Normal Size", "Soft", "No Organomegaly", "Umbilicus Normal", "Umbilicus Dry"],
+    "Genitourinary - Male": ["Penis Normal", "Testes Descended Bilateral", "Anus Normal Position", "Anus Patent"],
+    "Genitourinary - Female": ["Labia Normal", "Clitoris Normal", "Anus Normal Position", "Anus Patent"],
+    "Back/Spine": ["Spine Straight", "Skin Normal", "Scapulae Symmetrical", "Buttocks Symmetrical"],
+    "Hips/Legs/Feet": ["Ortolani Negative", "Barlow Negative", "Leg Length Equal", "Legs Symmetrical", "Digits Normal"],
+    "Neurological": ["Normal Posture", "Normal Behaviour", "Movements Normal", "Tone Normal", "Cry Normal", "Moro Reflex Present", "Rooting Reflex Present", "Suck Reflex Present", "Grasp Reflex Present"],
+  },
+  pediatrics_ent: {
+    "Ears": ["Pinnae Normal Shape", "Pinnae Normal Position", "External Canal Clear", "Tympanic Membrane Normal"],
+    "Nose": ["Normal Shape", "Normal Size", "Turbinates Normal", "Nasal Patency Confirmed"],
+    "Mouth/Throat": ["Lips Normal", "Gingiva Normal", "Teeth Normal", "Mucosa Normal", "Tongue Normal", "Palate Intact", "Pharynx Normal", "Tonsils Normal", "Uvula Central"],
+    "Neck": ["Normal Shape", "No Masses", "No Lymphadenopathy", "Thyroid Normal"],
+  },
+  pediatrics_chest: {
+    "General Appearance": ["Chest Wall Normal", "Symmetrical", "Normal Shape", "Nipples Aligned", "Breathing Pattern Normal"],
+    "Heart": ["Peripheral Pulses Normal", "Palpation Normal", "Heart Sounds Normal", "S1 S2 Normal"],
+    "Lungs": ["Auscultation Clear", "Breath Sounds Equal Bilateral"],
+  },
 };
 
 export default function PhysicalExaminationDialog({
@@ -230,6 +287,7 @@ export default function PhysicalExaminationDialog({
   const [selectedFindings, setSelectedFindings] = useState<SystemFindings>({});
   const [activeTab, setActiveTab] = useState("respiratory");
   const [showPreview, setShowPreview] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const handleFindingToggle = (system: string, category: string, finding: string, checked: boolean) => {
     setSelectedFindings((prev) => {
@@ -310,6 +368,25 @@ export default function PhysicalExaminationDialog({
     setSelectedFindings({});
     setActiveTab("respiratory");
     setShowPreview(false);
+    setCopied(false);
+  };
+
+  const handleCopyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(generateExamText);
+      setCopied(true);
+      toast({
+        title: "Copied!",
+        description: "Physical examination text copied to clipboard.",
+      });
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to copy to clipboard.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleOpenChange = (isOpen: boolean) => {
@@ -331,8 +408,8 @@ export default function PhysicalExaminationDialog({
     <PresetDialog
       open={open}
       onOpenChange={handleOpenChange}
-      title="Physical Examination"
-      description="Select findings from each body system"
+      title="Physical Exam Builder"
+      description="Select findings from each body system (Adults & Pediatrics)"
       contentClassName="max-w-4xl"
       footer={
         <div className="flex items-center justify-between w-full">
@@ -383,7 +460,18 @@ export default function PhysicalExaminationDialog({
 
       {showPreview && getTotalSelectedCount() > 0 && (
         <div className="mb-4 p-4 bg-muted rounded-lg border">
-          <h4 className="text-sm font-medium mb-2">Preview</h4>
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-sm font-medium">Preview</h4>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleCopyToClipboard}
+              className="gap-1 h-7 px-2"
+            >
+              {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+              {copied ? "Copied" : "Copy"}
+            </Button>
+          </div>
           <ScrollArea className="h-[200px]">
             <pre className="text-sm whitespace-pre-wrap font-sans text-foreground">
               {generateExamText}
