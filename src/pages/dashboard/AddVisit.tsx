@@ -444,7 +444,7 @@ export default function AddVisit() {
                   size="sm"
                   onClick={() => setShowPhysicalExamDialog(true)}
                 >
-                  Exam Builder
+                  Physical Exam Builder
                 </Button>
               </div>
               <Textarea
