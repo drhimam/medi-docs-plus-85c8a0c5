@@ -148,6 +148,90 @@ const PEDIATRICS_CHEST_ITEMS = {
   "Lungs": ["Auscultation Clear", "Wheeze", "Crackles", "Rhonchi", "Stridor", "Diminished Breath Sounds", "Breath Sounds Equal Bilateral"],
 };
 
+const PEDIATRICS_NEURO_ITEMS = {
+  "Mental Status": ["Alert", "Responsive to Voice", "Responsive to Pain", "Unresponsive", "Age-Appropriate Behavior", "Irritable", "Inconsolable", "Lethargic"],
+  "Fontanelle (Infant)": ["Anterior Fontanelle Flat", "Anterior Fontanelle Bulging", "Anterior Fontanelle Sunken", "Anterior Fontanelle Closed", "Posterior Fontanelle Flat", "Posterior Fontanelle Closed"],
+  "Head Control": ["Age-Appropriate Head Control", "Head Lag Present", "Steady Head Control"],
+  "Cranial Nerves": ["Pupils Equal Round Reactive", "Pupil Asymmetry", "Eye Movements Normal", "Facial Symmetry Normal", "Facial Asymmetry", "Gag Reflex Present", "Suck Reflex Present", "Rooting Reflex Present"],
+  "Tone": ["Normal Tone", "Hypotonia", "Hypertonia", "Spasticity", "Flaccid", "Opisthotonus"],
+  "Primitive Reflexes (Infant)": ["Moro Reflex Present", "Moro Reflex Absent", "Grasp Reflex Present", "Grasp Reflex Absent", "Stepping Reflex Present", "ATNR Present", "Parachute Reflex Present"],
+  "Deep Tendon Reflexes": ["Reflexes Normal", "Hyperreflexia", "Hyporeflexia", "Areflexia", "Clonus Absent", "Clonus Present", "Babinski Downgoing", "Babinski Upgoing"],
+  "Motor Function": ["Spontaneous Movements Normal", "Asymmetric Movements", "Tremor", "Seizure Activity", "Posturing", "Strength Normal", "Weakness Present"],
+  "Coordination": ["Age-Appropriate Coordination", "Ataxia", "Dysmetria", "Poor Fine Motor"],
+  "Gait (Ambulatory Child)": ["Normal Gait", "Ataxic Gait", "Toe Walking", "Wide-Based Gait", "Limping", "Refuses to Walk"],
+  "Meningeal Signs": ["Neck Supple", "Nuchal Rigidity", "Kernig Sign Negative", "Kernig Sign Positive", "Brudzinski Sign Negative", "Brudzinski Sign Positive"],
+};
+
+const PEDIATRICS_ABDOMEN_ITEMS = {
+  "Inspection": ["Abdomen Flat", "Abdomen Rounded", "Abdomen Scaphoid", "Distended", "Umbilicus Normal", "Umbilical Hernia", "Visible Peristalsis", "No Visible Masses"],
+  "Auscultation": ["Bowel Sounds Normal", "Bowel Sounds Hyperactive", "Bowel Sounds Hypoactive", "Bowel Sounds Absent", "No Bruits"],
+  "Percussion": ["Tympanic", "Dull", "Shifting Dullness Absent", "Shifting Dullness Present"],
+  "Palpation": ["Soft", "Non-Tender", "Tender", "Guarding", "Rebound Tenderness", "No Masses", "Mass Palpable", "No Rigidity", "Rigidity"],
+  "Liver": ["Liver Not Palpable", "Liver Palpable Below Costal Margin", "Hepatomegaly"],
+  "Spleen": ["Spleen Not Palpable", "Splenomegaly"],
+  "Kidneys": ["Kidneys Not Palpable", "Kidney Palpable"],
+  "Inguinal Region": ["No Hernia", "Inguinal Hernia Present", "Lymph Nodes Not Palpable", "Inguinal Lymphadenopathy"],
+  "Genitalia - Male": ["Penis Normal", "Circumcised", "Uncircumcised", "Foreskin Retractable", "Phimosis", "Hypospadias", "Testes Descended", "Undescended Testis", "Hydrocele", "Scrotal Swelling"],
+  "Genitalia - Female": ["External Genitalia Normal", "Labial Adhesions", "Vaginal Discharge", "No Vaginal Discharge"],
+  "Anus/Rectum": ["Anus Normal Position", "Anus Patent", "Perianal Erythema", "Fissure", "Skin Tags"],
+};
+
+const PEDIATRICS_GROWTH_ITEMS = {
+  "Growth Parameters": ["Weight Normal for Age", "Weight Below 5th Percentile", "Weight Above 95th Percentile", "Height Normal for Age", "Height Below 5th Percentile", "Height Above 95th Percentile", "Head Circumference Normal", "Microcephaly", "Macrocephaly", "BMI Normal", "Underweight", "Overweight", "Obese"],
+  "Nutrition Status": ["Well-Nourished", "Malnourished", "Failure to Thrive", "Adequate Subcutaneous Fat", "Reduced Subcutaneous Fat", "No Muscle Wasting", "Muscle Wasting"],
+  "Gross Motor (Infant)": ["Lifts Head Prone", "Rolls Over", "Sits Unsupported", "Crawls", "Pulls to Stand", "Cruises", "Walks Independently", "Delayed Gross Motor"],
+  "Gross Motor (Toddler/Child)": ["Runs", "Climbs Stairs", "Jumps", "Hops", "Balances on One Foot", "Age-Appropriate Gross Motor", "Delayed Gross Motor"],
+  "Fine Motor": ["Reaches for Objects", "Transfers Objects", "Pincer Grasp Present", "Scribbles", "Draws Circle", "Copies Shapes", "Age-Appropriate Fine Motor", "Delayed Fine Motor"],
+  "Language (Infant)": ["Coos", "Babbles", "Says Mama/Dada", "First Words Present", "Delayed Language"],
+  "Language (Toddler/Child)": ["Two-Word Phrases", "Sentences", "Speech Intelligible", "Speech Unclear", "Vocabulary Appropriate", "Age-Appropriate Language", "Delayed Language"],
+  "Social/Emotional": ["Social Smile Present", "Stranger Anxiety Present", "Parallel Play", "Cooperative Play", "Age-Appropriate Social Skills", "Delayed Social Development", "Attachment Normal"],
+  "Cognitive": ["Follows Objects", "Recognizes Caregiver", "Object Permanence", "Follows Commands", "Age-Appropriate Cognitive", "Cognitive Delay"],
+};
+
+const PEDIATRICS_EYES_ITEMS = {
+  "External Eye": ["Eyes Symmetrical", "Eyes Asymmetrical", "No Ptosis", "Ptosis Present", "Eyelids Normal", "Blepharitis", "Periorbital Swelling", "Periorbital Erythema"],
+  "Conjunctiva": ["Conjunctiva Clear", "Conjunctival Injection", "Conjunctival Discharge", "Purulent Discharge", "Subconjunctival Hemorrhage"],
+  "Sclera": ["Sclera White", "Scleral Icterus", "Blue Sclera"],
+  "Cornea": ["Cornea Clear", "Corneal Opacity", "Corneal Abrasion"],
+  "Pupils": ["Pupils Equal Round Reactive", "Anisocoria", "Pupils Dilated", "Pupils Constricted", "Sluggish Pupil Response", "No Red Reflex", "Red Reflex Present Bilateral"],
+  "Eye Movement": ["Full Extraocular Movements", "Restricted Eye Movements", "Nystagmus", "Strabismus", "Esotropia", "Exotropia", "Sunset Sign"],
+  "Vision Assessment": ["Fixes and Follows", "Blink to Threat Present", "Vision Appears Normal", "Possible Visual Impairment"],
+  "Fundoscopy": ["Fundoscopy Normal", "Papilledema", "Retinal Hemorrhage", "Unable to Visualize"],
+};
+
+const PEDIATRICS_SKIN_ITEMS = {
+  "Color": ["Normal Skin Color", "Pallor", "Jaundice", "Cyanosis", "Mottled", "Flushed", "Erythema"],
+  "Hydration": ["Well Hydrated", "Dry Skin", "Decreased Turgor", "Severely Dehydrated Skin"],
+  "Rashes": ["No Rash", "Macular Rash", "Papular Rash", "Maculopapular Rash", "Vesicular Rash", "Pustular Rash", "Petechial Rash", "Purpuric Rash", "Urticarial Rash", "Eczematous Rash"],
+  "Birthmarks": ["No Birthmarks", "Mongolian Spot", "Café-au-lait Spots", "Hemangioma", "Port Wine Stain", "Salmon Patch"],
+  "Lesions": ["No Lesions", "Impetigo", "Cellulitis", "Abscess", "Insect Bites", "Bruising", "Burn", "Laceration"],
+  "Hair": ["Hair Normal", "Alopecia", "Cradle Cap", "Lice", "Nits Present"],
+  "Nails": ["Nails Normal", "Nail Clubbing", "Nail Pitting", "Paronychia", "Koilonychia"],
+};
+
+const PEDIATRICS_LYMPH_ITEMS = {
+  "Cervical": ["Cervical Nodes Not Palpable", "Anterior Cervical Lymphadenopathy", "Posterior Cervical Lymphadenopathy", "Nodes Mobile", "Nodes Fixed", "Nodes Non-Tender", "Nodes Tender"],
+  "Submandibular/Submental": ["Submandibular Nodes Not Palpable", "Submandibular Lymphadenopathy", "Submental Nodes Not Palpable", "Submental Lymphadenopathy"],
+  "Preauricular/Postauricular": ["Preauricular Nodes Not Palpable", "Preauricular Lymphadenopathy", "Postauricular Nodes Not Palpable", "Postauricular Lymphadenopathy"],
+  "Supraclavicular": ["Supraclavicular Nodes Not Palpable", "Supraclavicular Lymphadenopathy"],
+  "Axillary": ["Axillary Nodes Not Palpable", "Axillary Lymphadenopathy"],
+  "Epitrochlear": ["Epitrochlear Nodes Not Palpable", "Epitrochlear Lymphadenopathy"],
+  "Inguinal": ["Inguinal Nodes Not Palpable", "Inguinal Lymphadenopathy"],
+  "Node Characteristics": ["Nodes < 1cm", "Nodes 1-2cm", "Nodes > 2cm", "Nodes Soft", "Nodes Firm", "Nodes Rubbery", "Nodes Matted", "Overlying Skin Normal", "Overlying Skin Erythematous"],
+};
+
+const PEDIATRICS_MSK_ITEMS = {
+  "General": ["Normal Posture", "Abnormal Posture", "No Deformities", "Deformity Present", "No Asymmetry", "Asymmetry Present"],
+  "Spine": ["Spine Straight", "Scoliosis", "Kyphosis", "Lordosis", "Sacral Dimple", "No Tenderness", "Spinal Tenderness"],
+  "Upper Limbs": ["Full Range of Motion Arms", "Limited ROM Arms", "No Swelling Arms", "Swelling Present Arms", "Normal Strength Arms", "Weakness Arms", "No Tenderness Arms", "Tenderness Present Arms"],
+  "Lower Limbs": ["Full Range of Motion Legs", "Limited ROM Legs", "No Swelling Legs", "Swelling Present Legs", "Normal Strength Legs", "Weakness Legs", "No Tenderness Legs", "Tenderness Present Legs"],
+  "Hips": ["Ortolani Negative", "Ortolani Positive", "Barlow Negative", "Barlow Positive", "Galeazzi Sign Negative", "Galeazzi Sign Positive", "Full Hip ROM", "Limited Hip ROM", "No Hip Click", "Hip Click Present"],
+  "Knees": ["Knees Normal Alignment", "Genu Varum", "Genu Valgum", "Full Knee ROM", "Limited Knee ROM", "No Knee Effusion", "Knee Effusion"],
+  "Feet/Ankles": ["Feet Normal", "Flat Feet", "High Arches", "Clubfoot", "Metatarsus Adductus", "Talipes Equinovarus", "Full Ankle ROM", "Limited Ankle ROM"],
+  "Joints": ["No Joint Swelling", "Joint Swelling", "No Joint Warmth", "Joint Warmth", "No Joint Erythema", "Joint Erythema", "No Crepitus", "Crepitus Present"],
+  "Gait": ["Normal Gait for Age", "Antalgic Gait", "Trendelenburg Gait", "Toe Walking", "In-Toeing", "Out-Toeing", "Waddling Gait"],
+};
+
 const SYSTEMS = [
   { id: "respiratory", label: "Respiratory", items: RESPIRATORY_ITEMS },
   { id: "cardiovascular", label: "Cardiovascular", items: CARDIOVASCULAR_ITEMS },
@@ -159,6 +243,13 @@ const SYSTEMS = [
   { id: "pediatrics_neonate", label: "Neonate", items: PEDIATRICS_NEONATE_ITEMS },
   { id: "pediatrics_ent", label: "Peds ENT", items: PEDIATRICS_ENT_ITEMS },
   { id: "pediatrics_chest", label: "Peds Chest", items: PEDIATRICS_CHEST_ITEMS },
+  { id: "pediatrics_neuro", label: "Peds Neuro", items: PEDIATRICS_NEURO_ITEMS },
+  { id: "pediatrics_abdomen", label: "Peds Abdomen", items: PEDIATRICS_ABDOMEN_ITEMS },
+  { id: "pediatrics_growth", label: "Peds Growth", items: PEDIATRICS_GROWTH_ITEMS },
+  { id: "pediatrics_eyes", label: "Peds Eyes", items: PEDIATRICS_EYES_ITEMS },
+  { id: "pediatrics_skin", label: "Peds Skin", items: PEDIATRICS_SKIN_ITEMS },
+  { id: "pediatrics_lymph", label: "Peds Lymph", items: PEDIATRICS_LYMPH_ITEMS },
+  { id: "pediatrics_msk", label: "Peds MSK", items: PEDIATRICS_MSK_ITEMS },
 ];
 
 // Normal findings for each system
@@ -276,6 +367,82 @@ const NORMAL_FINDINGS: { [systemId: string]: { [category: string]: string[] } } 
     "General Appearance": ["Chest Wall Normal", "Symmetrical", "Normal Shape", "Nipples Aligned", "Breathing Pattern Normal"],
     "Heart": ["Peripheral Pulses Normal", "Palpation Normal", "Heart Sounds Normal", "S1 S2 Normal"],
     "Lungs": ["Auscultation Clear", "Breath Sounds Equal Bilateral"],
+  },
+  pediatrics_neuro: {
+    "Mental Status": ["Alert", "Age-Appropriate Behavior"],
+    "Fontanelle (Infant)": ["Anterior Fontanelle Flat"],
+    "Head Control": ["Age-Appropriate Head Control"],
+    "Cranial Nerves": ["Pupils Equal Round Reactive", "Eye Movements Normal", "Facial Symmetry Normal", "Gag Reflex Present"],
+    "Tone": ["Normal Tone"],
+    "Primitive Reflexes (Infant)": ["Moro Reflex Present", "Grasp Reflex Present"],
+    "Deep Tendon Reflexes": ["Reflexes Normal", "Clonus Absent", "Babinski Downgoing"],
+    "Motor Function": ["Spontaneous Movements Normal", "Strength Normal"],
+    "Coordination": ["Age-Appropriate Coordination"],
+    "Gait (Ambulatory Child)": ["Normal Gait"],
+    "Meningeal Signs": ["Neck Supple", "Kernig Sign Negative", "Brudzinski Sign Negative"],
+  },
+  pediatrics_abdomen: {
+    "Inspection": ["Abdomen Flat", "Umbilicus Normal", "No Visible Masses"],
+    "Auscultation": ["Bowel Sounds Normal", "No Bruits"],
+    "Percussion": ["Tympanic", "Shifting Dullness Absent"],
+    "Palpation": ["Soft", "Non-Tender", "No Masses", "No Rigidity"],
+    "Liver": ["Liver Not Palpable"],
+    "Spleen": ["Spleen Not Palpable"],
+    "Kidneys": ["Kidneys Not Palpable"],
+    "Inguinal Region": ["No Hernia", "Lymph Nodes Not Palpable"],
+    "Genitalia - Male": ["Penis Normal", "Testes Descended"],
+    "Genitalia - Female": ["External Genitalia Normal", "No Vaginal Discharge"],
+    "Anus/Rectum": ["Anus Normal Position", "Anus Patent"],
+  },
+  pediatrics_growth: {
+    "Growth Parameters": ["Weight Normal for Age", "Height Normal for Age", "Head Circumference Normal", "BMI Normal"],
+    "Nutrition Status": ["Well-Nourished", "Adequate Subcutaneous Fat", "No Muscle Wasting"],
+    "Gross Motor (Infant)": ["Age-Appropriate Gross Motor"],
+    "Gross Motor (Toddler/Child)": ["Age-Appropriate Gross Motor"],
+    "Fine Motor": ["Age-Appropriate Fine Motor"],
+    "Language (Infant)": ["Coos", "Babbles"],
+    "Language (Toddler/Child)": ["Age-Appropriate Language"],
+    "Social/Emotional": ["Age-Appropriate Social Skills", "Attachment Normal"],
+    "Cognitive": ["Age-Appropriate Cognitive"],
+  },
+  pediatrics_eyes: {
+    "External Eye": ["Eyes Symmetrical", "No Ptosis", "Eyelids Normal"],
+    "Conjunctiva": ["Conjunctiva Clear"],
+    "Sclera": ["Sclera White"],
+    "Cornea": ["Cornea Clear"],
+    "Pupils": ["Pupils Equal Round Reactive", "Red Reflex Present Bilateral"],
+    "Eye Movement": ["Full Extraocular Movements"],
+    "Vision Assessment": ["Fixes and Follows", "Vision Appears Normal"],
+    "Fundoscopy": ["Fundoscopy Normal"],
+  },
+  pediatrics_skin: {
+    "Color": ["Normal Skin Color"],
+    "Hydration": ["Well Hydrated"],
+    "Rashes": ["No Rash"],
+    "Birthmarks": ["No Birthmarks"],
+    "Lesions": ["No Lesions"],
+    "Hair": ["Hair Normal"],
+    "Nails": ["Nails Normal"],
+  },
+  pediatrics_lymph: {
+    "Cervical": ["Cervical Nodes Not Palpable"],
+    "Submandibular/Submental": ["Submandibular Nodes Not Palpable", "Submental Nodes Not Palpable"],
+    "Preauricular/Postauricular": ["Preauricular Nodes Not Palpable", "Postauricular Nodes Not Palpable"],
+    "Supraclavicular": ["Supraclavicular Nodes Not Palpable"],
+    "Axillary": ["Axillary Nodes Not Palpable"],
+    "Epitrochlear": ["Epitrochlear Nodes Not Palpable"],
+    "Inguinal": ["Inguinal Nodes Not Palpable"],
+  },
+  pediatrics_msk: {
+    "General": ["Normal Posture", "No Deformities", "No Asymmetry"],
+    "Spine": ["Spine Straight", "No Tenderness"],
+    "Upper Limbs": ["Full Range of Motion Arms", "No Swelling Arms", "Normal Strength Arms", "No Tenderness Arms"],
+    "Lower Limbs": ["Full Range of Motion Legs", "No Swelling Legs", "Normal Strength Legs", "No Tenderness Legs"],
+    "Hips": ["Ortolani Negative", "Barlow Negative", "Full Hip ROM", "No Hip Click"],
+    "Knees": ["Knees Normal Alignment", "Full Knee ROM", "No Knee Effusion"],
+    "Feet/Ankles": ["Feet Normal", "Full Ankle ROM"],
+    "Joints": ["No Joint Swelling", "No Joint Warmth", "No Joint Erythema", "No Crepitus"],
+    "Gait": ["Normal Gait for Age"],
   },
 };
 
