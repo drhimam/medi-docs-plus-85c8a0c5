@@ -693,14 +693,18 @@ export default function PhysicalExaminationDialog({
           {showPreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           {showPreview ? "Hide Preview" : "Show Preview"}
         </Button>
-        {getTotalSelectedCount() > 0 && (
+        {getSystemSelectedCount(activeTab) > 0 && (
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setSelectedFindings({})}
+            onClick={() => setSelectedFindings(prev => {
+              const newFindings = { ...prev };
+              delete newFindings[activeTab];
+              return newFindings;
+            })}
             className="text-destructive hover:text-destructive"
           >
-            Clear All
+            Clear Tab
           </Button>
         )}
       </div>
