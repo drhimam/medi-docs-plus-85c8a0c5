@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import HPIBuilder from "@/components/visit/HPIBuilder";
 import ROSBuilder from "@/components/visit/ROSBuilder";
 import PhysicalExaminationDialog from "@/components/visit/PhysicalExaminationDialog";
+import InvestigationBuilderDialog from "@/components/visit/InvestigationBuilderDialog";
 import DocumentUploadDialog from "@/components/visit/DocumentUploadDialog";
 
 export default function AddVisit() {
@@ -26,6 +27,7 @@ export default function AddVisit() {
   const [showHPIBuilder, setShowHPIBuilder] = useState(false);
   const [showROSBuilder, setShowROSBuilder] = useState(false);
   const [showPhysicalExamDialog, setShowPhysicalExamDialog] = useState(false);
+  const [showInvestigationDialog, setShowInvestigationDialog] = useState(false);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [documents, setDocuments] = useState<any[]>([]);
 
@@ -456,7 +458,17 @@ export default function AddVisit() {
               />
             </div>
             <div>
-              <Label htmlFor="investigation">Investigation</Label>
+              <div className="flex items-center justify-between mb-2">
+                <Label htmlFor="investigation">Investigation</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowInvestigationDialog(true)}
+                >
+                  Investigation Builder
+                </Button>
+              </div>
               <Textarea
                 id="investigation"
                 value={formData.investigation}
@@ -522,6 +534,17 @@ export default function AddVisit() {
             : text;
           handleInputChange("physicalExamination", newValue);
         }}
+      />
+      <InvestigationBuilderDialog
+        open={showInvestigationDialog}
+        onOpenChange={setShowInvestigationDialog}
+        onInsert={(text) => {
+          const newValue = formData.investigation
+            ? `${formData.investigation}\n\n${text}`
+            : text;
+          handleInputChange("investigation", newValue);
+        }}
+        existingInvestigation={formData.investigation}
       />
       {visitId && patient && (
         <DocumentUploadDialog
