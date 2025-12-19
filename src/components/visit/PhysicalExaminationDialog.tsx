@@ -232,6 +232,45 @@ const PEDIATRICS_MSK_ITEMS = {
   "Gait": ["Normal Gait for Age", "Antalgic Gait", "Trendelenburg Gait", "Toe Walking", "In-Toeing", "Out-Toeing", "Waddling Gait"],
 };
 
+const GYNECOLOGY_ITEMS = {
+  "General Appearance": ["Well Appearing", "Uncomfortable", "Acute Distress", "No Pallor", "Pallor Present"],
+  "Breast Examination": ["Breasts Symmetrical", "Breasts Asymmetrical", "No Masses", "Mass Palpable", "No Tenderness", "Tenderness Present", "No Nipple Discharge", "Nipple Discharge Present", "No Skin Changes", "Skin Dimpling", "Peau d'Orange", "Nipples Normal", "Nipple Retraction", "No Axillary Lymphadenopathy", "Axillary Lymphadenopathy"],
+  "Abdominal Inspection": ["Abdomen Flat", "Abdomen Distended", "No Scars", "Surgical Scars Present", "No Visible Masses", "Visible Mass"],
+  "Abdominal Palpation": ["Soft Non-Tender", "Tender Suprapubic", "Tender Adnexal", "No Masses", "Pelvic Mass Palpable", "No Guarding", "Guarding Present", "No Rebound", "Rebound Tenderness"],
+  "External Genitalia": ["Normal Vulva", "Vulvar Erythema", "Vulvar Edema", "Vulvar Lesions", "Vulvar Ulcers", "Vulvar Atrophy", "Bartholin Gland Normal", "Bartholin Cyst", "Bartholin Abscess", "No Prolapse", "Cystocele", "Rectocele", "Uterine Prolapse"],
+  "Speculum Examination": ["Cervix Normal", "Cervix Nulliparous", "Cervix Parous", "Cervix Erythematous", "Cervical Erosion", "Nabothian Cysts", "Cervical Polyp", "Cervical Lesion", "Os Closed", "Os Open", "No Discharge", "Clear Discharge", "White Discharge", "Yellow Discharge", "Purulent Discharge", "Blood at Os", "Vaginal Walls Normal", "Vaginal Atrophy", "Vaginal Lesions"],
+  "Bimanual Examination": ["Uterus Anteverted", "Uterus Retroverted", "Uterus Normal Size", "Uterus Enlarged", "Uterus Non-Tender", "Uterus Tender", "Uterus Mobile", "Uterus Fixed", "Adnexa Non-Tender", "Adnexa Tender Right", "Adnexa Tender Left", "Adnexa Fullness Right", "Adnexa Fullness Left", "Adnexal Mass Right", "Adnexal Mass Left", "No Cervical Motion Tenderness", "Cervical Motion Tenderness"],
+  "Rectovaginal Examination": ["Rectovaginal Septum Normal", "Rectovaginal Nodularity", "Uterosacral Ligaments Normal", "Uterosacral Nodularity", "Pouch of Douglas Normal", "Pouch of Douglas Fullness", "Rectal Tone Normal", "No Rectal Masses", "Stool Guaiac Negative", "Stool Guaiac Positive"],
+};
+
+const OBSTETRIC_ITEMS = {
+  "General Appearance": ["Well Appearing", "Uncomfortable", "Acute Distress", "No Pallor", "Pallor Present", "No Edema", "Facial Edema", "Pedal Edema", "Generalized Edema"],
+  "Vital Signs": ["BP Normal", "Hypertension", "Hypotension", "Pulse Normal", "Tachycardia", "Bradycardia", "Temperature Normal", "Fever"],
+  "Breast Examination": ["Breasts Symmetrical", "Breast Engorgement", "Nipples Normal", "Nipples Flat", "Nipples Inverted", "Colostrum Present", "No Masses", "No Tenderness"],
+  "Abdominal Inspection": ["Gravid Uterus", "Linea Nigra Present", "Striae Gravidarum", "No Scars", "Previous C-Section Scar", "Umbilicus Everted", "Fetal Movements Visible"],
+  "Fundal Height": ["Fundal Height Appropriate for Dates", "Fundal Height Small for Dates", "Fundal Height Large for Dates", "Symphysis-Fundal Height Measured"],
+  "Leopold Maneuvers": ["Cephalic Presentation", "Breech Presentation", "Transverse Lie", "Oblique Lie", "Back on Left", "Back on Right", "Engaged", "Not Engaged", "Floating"],
+  "Fetal Heart": ["FHR Normal (110-160 bpm)", "FHR Bradycardia", "FHR Tachycardia", "FHR Regular", "FHR Irregular", "Fetal Heart Tones Heard", "Fetal Heart Tones Not Heard"],
+  "Uterine Activity": ["No Contractions", "Irregular Contractions", "Regular Contractions", "Uterus Soft", "Uterus Firm", "Uterus Irritable", "Uterine Tenderness"],
+  "Cervical Examination": ["Cervix Closed", "Cervix 1cm Dilated", "Cervix 2cm Dilated", "Cervix 3cm Dilated", "Cervix 4cm Dilated", "Cervix 5cm Dilated", "Cervix 6-10cm Dilated", "Cervix Fully Dilated", "Cervix Long", "Cervix 50% Effaced", "Cervix 80% Effaced", "Cervix Fully Effaced", "Cervix Posterior", "Cervix Mid", "Cervix Anterior", "Cervix Firm", "Cervix Soft", "Membranes Intact", "Membranes Ruptured", "Station -3", "Station -2", "Station -1", "Station 0", "Station +1", "Station +2", "Station +3"],
+  "Amniotic Fluid": ["Membranes Intact", "Spontaneous Rupture of Membranes", "Artificial Rupture of Membranes", "Liquor Clear", "Liquor Meconium Stained", "Liquor Blood Stained", "Polyhydramnios", "Oligohydramnios", "Normal Amniotic Fluid Volume"],
+  "Lower Limbs": ["No Edema", "Bilateral Pedal Edema", "Unilateral Edema", "No Varicosities", "Varicose Veins", "No Calf Tenderness", "Calf Tenderness", "Reflexes Normal", "Hyperreflexia", "Clonus Absent", "Clonus Present"],
+  "Pelvis Assessment": ["Adequate Pelvis", "Borderline Pelvis", "Contracted Pelvis", "Diagonal Conjugate Adequate", "Ischial Spines Not Prominent", "Ischial Spines Prominent", "Sacral Curve Normal", "Subpubic Angle Adequate"],
+};
+
+const POSTNATAL_ITEMS = {
+  "General Appearance": ["Well Appearing", "Pale", "Fatigued", "Alert", "Drowsy"],
+  "Vital Signs": ["BP Normal", "Hypertension", "Hypotension", "Pulse Normal", "Tachycardia", "Temperature Normal", "Fever"],
+  "Breasts": ["Breasts Soft", "Breast Engorgement", "No Breast Tenderness", "Breast Tenderness", "No Erythema", "Breast Erythema", "Nipples Intact", "Nipple Cracking", "Nipple Bleeding", "Milk Letdown Normal", "Colostrum Present", "Mature Milk Present"],
+  "Uterus": ["Uterus Well Contracted", "Uterus Boggy", "Fundus at Umbilicus", "Fundus Below Umbilicus", "Fundus Involuting Normally", "Uterus Non-Tender", "Uterus Tender"],
+  "Lochia": ["Lochia Rubra", "Lochia Serosa", "Lochia Alba", "Lochia Normal Amount", "Lochia Heavy", "Lochia Foul Smelling", "No Clots", "Clots Present"],
+  "Perineum": ["Perineum Intact", "Episiotomy Healing Well", "Episiotomy Infected", "Laceration Healing Well", "Perineal Edema", "Perineal Hematoma", "Sutures Intact", "No Wound Dehiscence", "Wound Dehiscence"],
+  "C-Section Wound": ["Incision Clean Dry", "Incision Healing Well", "Wound Erythema", "Wound Discharge", "Wound Dehiscence", "No Hematoma", "Wound Hematoma", "Sutures/Staples Intact"],
+  "Lower Limbs": ["No Edema", "Pedal Edema Resolving", "Pedal Edema Persistent", "No Calf Tenderness", "Calf Tenderness", "Homans Sign Negative", "Homans Sign Positive"],
+  "Bladder/Bowels": ["Voiding Normally", "Urinary Retention", "Dysuria", "Bowels Opened", "Constipation", "No Hemorrhoids", "Hemorrhoids Present"],
+  "Emotional Status": ["Mood Appropriate", "Tearful", "Anxious", "Bonding Well", "Difficulty Bonding", "No Suicidal Ideation"],
+};
+
 const SYSTEMS = [
   { id: "respiratory", label: "Respiratory", items: RESPIRATORY_ITEMS },
   { id: "cardiovascular", label: "Cardiovascular", items: CARDIOVASCULAR_ITEMS },
@@ -240,6 +279,9 @@ const SYSTEMS = [
   { id: "musculoskeletal", label: "MSK", items: MUSCULOSKELETAL_ITEMS },
   { id: "skin", label: "Skin", items: SKIN_ITEMS },
   { id: "endocrine", label: "Endocrine", items: ENDOCRINE_ITEMS },
+  { id: "gynecology", label: "Gynecology", items: GYNECOLOGY_ITEMS },
+  { id: "obstetric", label: "Obstetric", items: OBSTETRIC_ITEMS },
+  { id: "postnatal", label: "Postnatal", items: POSTNATAL_ITEMS },
   { id: "pediatrics_neonate", label: "Neonate", items: PEDIATRICS_NEONATE_ITEMS },
   { id: "pediatrics_ent", label: "Peds ENT", items: PEDIATRICS_ENT_ITEMS },
   { id: "pediatrics_chest", label: "Peds Chest", items: PEDIATRICS_CHEST_ITEMS },
@@ -443,6 +485,42 @@ const NORMAL_FINDINGS: { [systemId: string]: { [category: string]: string[] } } 
     "Feet/Ankles": ["Feet Normal", "Full Ankle ROM"],
     "Joints": ["No Joint Swelling", "No Joint Warmth", "No Joint Erythema", "No Crepitus"],
     "Gait": ["Normal Gait for Age"],
+  },
+  gynecology: {
+    "General Appearance": ["Well Appearing", "No Pallor"],
+    "Breast Examination": ["Breasts Symmetrical", "No Masses", "No Tenderness", "No Nipple Discharge", "No Skin Changes", "Nipples Normal", "No Axillary Lymphadenopathy"],
+    "Abdominal Inspection": ["Abdomen Flat", "No Scars", "No Visible Masses"],
+    "Abdominal Palpation": ["Soft Non-Tender", "No Masses", "No Guarding", "No Rebound"],
+    "External Genitalia": ["Normal Vulva", "Bartholin Gland Normal", "No Prolapse"],
+    "Speculum Examination": ["Cervix Normal", "Os Closed", "No Discharge", "Vaginal Walls Normal"],
+    "Bimanual Examination": ["Uterus Anteverted", "Uterus Normal Size", "Uterus Non-Tender", "Uterus Mobile", "Adnexa Non-Tender", "No Cervical Motion Tenderness"],
+    "Rectovaginal Examination": ["Rectovaginal Septum Normal", "Uterosacral Ligaments Normal", "Pouch of Douglas Normal", "Rectal Tone Normal", "No Rectal Masses"],
+  },
+  obstetric: {
+    "General Appearance": ["Well Appearing", "No Pallor", "No Edema"],
+    "Vital Signs": ["BP Normal", "Pulse Normal", "Temperature Normal"],
+    "Breast Examination": ["Breasts Symmetrical", "Nipples Normal", "No Masses", "No Tenderness"],
+    "Abdominal Inspection": ["Gravid Uterus", "No Scars"],
+    "Fundal Height": ["Fundal Height Appropriate for Dates"],
+    "Leopold Maneuvers": ["Cephalic Presentation", "Back on Left"],
+    "Fetal Heart": ["FHR Normal (110-160 bpm)", "FHR Regular", "Fetal Heart Tones Heard"],
+    "Uterine Activity": ["No Contractions", "Uterus Soft"],
+    "Cervical Examination": ["Cervix Closed", "Membranes Intact"],
+    "Amniotic Fluid": ["Membranes Intact", "Normal Amniotic Fluid Volume"],
+    "Lower Limbs": ["No Edema", "No Varicosities", "No Calf Tenderness", "Reflexes Normal", "Clonus Absent"],
+    "Pelvis Assessment": ["Adequate Pelvis"],
+  },
+  postnatal: {
+    "General Appearance": ["Well Appearing", "Alert"],
+    "Vital Signs": ["BP Normal", "Pulse Normal", "Temperature Normal"],
+    "Breasts": ["Breasts Soft", "No Breast Tenderness", "No Erythema", "Nipples Intact", "Milk Letdown Normal"],
+    "Uterus": ["Uterus Well Contracted", "Fundus Below Umbilicus", "Fundus Involuting Normally", "Uterus Non-Tender"],
+    "Lochia": ["Lochia Normal Amount", "No Clots"],
+    "Perineum": ["Perineum Intact"],
+    "C-Section Wound": ["Incision Clean Dry", "Incision Healing Well", "No Hematoma", "Sutures/Staples Intact"],
+    "Lower Limbs": ["No Edema", "No Calf Tenderness", "Homans Sign Negative"],
+    "Bladder/Bowels": ["Voiding Normally", "Bowels Opened", "No Hemorrhoids"],
+    "Emotional Status": ["Mood Appropriate", "Bonding Well", "No Suicidal Ideation"],
   },
 };
 
