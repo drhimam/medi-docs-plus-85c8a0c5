@@ -559,19 +559,21 @@ export default function PhysicalExaminationDialog({
   };
 
   const selectNormalExam = () => {
-    const normalFindings: SystemFindings = {};
+    // Only select normal findings for the currently active tab
+    const currentSystemNormal = NORMAL_FINDINGS[activeTab];
+    if (!currentSystemNormal) return;
     
-    Object.entries(NORMAL_FINDINGS).forEach(([systemId, categories]) => {
-      const findings: Finding[] = [];
-      Object.entries(categories).forEach(([category, items]) => {
-        items.forEach((finding) => {
-          findings.push({ name: `${category}:${finding}`, value: finding });
-        });
+    const findings: Finding[] = [];
+    Object.entries(currentSystemNormal).forEach(([category, items]) => {
+      items.forEach((finding) => {
+        findings.push({ name: `${category}:${finding}`, value: finding });
       });
-      normalFindings[systemId] = findings;
     });
     
-    setSelectedFindings(normalFindings);
+    setSelectedFindings(prev => ({
+      ...prev,
+      [activeTab]: findings,
+    }));
   };
 
   const generateExamText = useMemo(() => {
