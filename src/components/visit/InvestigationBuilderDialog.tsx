@@ -5,8 +5,124 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Check, Eye, EyeOff, Search, X, Beaker, Heart, Droplet, Activity, Brain, Stethoscope, Microscope, Scan, Radio, Baby } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Check, Eye, EyeOff, Search, X, Beaker, Heart, Droplet, Activity, Brain, Stethoscope, Microscope, Scan, Radio, Baby, AlertTriangle, TrendingUp, TrendingDown } from "lucide-react";
 import { PresetDialog } from "@/components/patient/preset/PresetDialog";
+
+type AbnormalStatus = "normal" | "high" | "low" | "abnormal" | "unknown";
+
+// Parse normal range string and check if value is within range
+function checkValueAgainstRange(value: string, normalRange?: string): AbnormalStatus {
+  if (!value || !normalRange) return "unknown";
+  
+  // Clean the value - extract numeric part
+  const numericValue = parseFloat(value.replace(/[,\s]/g, ""));
+  if (isNaN(numericValue)) return "unknown";
+  
+  // Skip non-numeric ranges like "See individual components", "Morphology assessment", etc.
+  if (normalRange.toLowerCase().includes("see") || 
+      normalRange.toLowerCase().includes("assessment") ||
+      normalRange.toLowerCase().includes("negative") ||
+      normalRange.toLowerCase().includes("none") ||
+      normalRange.toLowerCase().includes("few") ||
+      normalRange.toLowerCase().includes("clear")) {
+    return "unknown";
+  }
+  
+  // Handle simple range: "70-100"
+  const simpleRangeMatch = normalRange.match(/^(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)$/);
+  if (simpleRangeMatch) {
+    const min = parseFloat(simpleRangeMatch[1]);
+    const max = parseFloat(simpleRangeMatch[2]);
+    if (numericValue < min) return "low";
+    if (numericValue > max) return "high";
+    return "normal";
+  }
+  
+  // Handle ranges with commas in numbers: "4,500-11,000" or "150,000-400,000"
+  const commaRangeMatch = normalRange.match(/^([\d,]+(?:\.\d+)?)\s*-\s*([\d,]+(?:\.\d+)?)$/);
+  if (commaRangeMatch) {
+    const min = parseFloat(commaRangeMatch[1].replace(/,/g, ""));
+    const max = parseFloat(commaRangeMatch[2].replace(/,/g, ""));
+    if (numericValue < min) return "low";
+    if (numericValue > max) return "high";
+    return "normal";
+  }
+  
+  // Handle "less than" patterns: "<200", "<140", "< 5.7"
+  const lessThanMatch = normalRange.match(/^<\s*(\d+(?:\.\d+)?)/);
+  if (lessThanMatch) {
+    const max = parseFloat(lessThanMatch[1]);
+    if (numericValue >= max) return "high";
+    return "normal";
+  }
+  
+  // Handle "greater than" patterns: ">40", ">90"
+  const greaterThanMatch = normalRange.match(/^>\s*(\d+(?:\.\d+)?)/);
+  if (greaterThanMatch) {
+    const min = parseFloat(greaterThanMatch[1]);
+    if (numericValue <= min) return "low";
+    return "normal";
+  }
+  
+  // Handle "less than or equal" patterns: "≤100", "<=100"
+  const lessThanEqualMatch = normalRange.match(/^[≤<=]+\s*(\d+(?:\.\d+)?)/);
+  if (lessThanEqualMatch) {
+    const max = parseFloat(lessThanEqualMatch[1]);
+    if (numericValue > max) return "high";
+    return "normal";
+  }
+  
+  // Handle "greater than or equal" patterns: "≥90", ">=90"
+  const greaterThanEqualMatch = normalRange.match(/^[≥>=]+\s*(\d+(?:\.\d+)?)/);
+  if (greaterThanEqualMatch) {
+    const min = parseFloat(greaterThanEqualMatch[1]);
+    if (numericValue < min) return "low";
+    return "normal";
+  }
+  
+  // Handle gender-specific ranges: "M: 13.5-17.5, F: 12.0-16.0"
+  // For simplicity, we'll use the widest possible range (min of mins, max of maxes)
+  const genderRangeMatches = normalRange.matchAll(/(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)/g);
+  const ranges = Array.from(genderRangeMatches);
+  if (ranges.length > 0) {
+    const mins = ranges.map(m => parseFloat(m[1]));
+    const maxes = ranges.map(m => parseFloat(m[2]));
+    const overallMin = Math.min(...mins);
+    const overallMax = Math.max(...maxes);
+    if (numericValue < overallMin) return "low";
+    if (numericValue > overallMax) return "high";
+    return "normal";
+  }
+  
+  // Handle single threshold with text: "<200 desirable", "<100 optimal"
+  const thresholdWithTextMatch = normalRange.match(/<\s*(\d+(?:\.\d+)?)\s+\w+/);
+  if (thresholdWithTextMatch) {
+    const max = parseFloat(thresholdWithTextMatch[1]);
+    if (numericValue >= max) return "high";
+    return "normal";
+  }
+  
+  // Handle ">40 M, >50 F" patterns - use lowest threshold
+  const multiGreaterMatch = normalRange.match(/>(\d+(?:\.\d+)?)/g);
+  if (multiGreaterMatch && multiGreaterMatch.length > 0) {
+    const thresholds = multiGreaterMatch.map(m => parseFloat(m.replace(">", "")));
+    const minThreshold = Math.min(...thresholds);
+    if (numericValue <= minThreshold) return "low";
+    return "normal";
+  }
+  
+  return "unknown";
+}
+
+function getStatusLabel(status: AbnormalStatus): string {
+  switch (status) {
+    case "high": return "HIGH";
+    case "low": return "LOW";
+    case "abnormal": return "ABNORMAL";
+    default: return "";
+  }
+}
 
 type InvestigationType = 
   | "hematology"
@@ -543,16 +659,53 @@ export default function InvestigationBuilderDialog({
     return selectedInvestigations[category]?.[testName]?.result || "";
   };
 
+  const getTestAbnormalStatus = (category: InvestigationType, testName: string): AbnormalStatus => {
+    const result = getTestResult(category, testName);
+    if (!result) return "unknown";
+    const testConfig = INVESTIGATION_CATEGORIES[category]?.tests.find((t) => t.name === testName);
+    return checkValueAgainstRange(result, testConfig?.normalRange);
+  };
+
   const getCategorySelectedCount = (category: InvestigationType) => {
     const categoryData = selectedInvestigations[category];
     if (!categoryData) return 0;
     return Object.values(categoryData).filter((t) => t.selected).length;
   };
 
+  const getCategoryAbnormalCount = (category: InvestigationType) => {
+    const categoryData = selectedInvestigations[category];
+    if (!categoryData) return 0;
+    let count = 0;
+    Object.entries(categoryData).forEach(([testName, data]) => {
+      if (data.selected && data.result) {
+        const status = getTestAbnormalStatus(category, testName);
+        if (status === "high" || status === "low" || status === "abnormal") {
+          count++;
+        }
+      }
+    });
+    return count;
+  };
+
   const getTotalSelectedCount = () => {
     let count = 0;
     Object.values(selectedInvestigations).forEach((category) => {
       count += Object.values(category).filter((t) => t.selected).length;
+    });
+    return count;
+  };
+
+  const getTotalAbnormalCount = () => {
+    let count = 0;
+    Object.entries(selectedInvestigations).forEach(([category, tests]) => {
+      Object.entries(tests).forEach(([testName, data]) => {
+        if (data.selected && data.result) {
+          const status = getTestAbnormalStatus(category as InvestigationType, testName);
+          if (status === "high" || status === "low" || status === "abnormal") {
+            count++;
+          }
+        }
+      });
     });
     return count;
   };
@@ -577,9 +730,16 @@ export default function InvestigationBuilderDialog({
         selectedTests.forEach(([testName, data]) => {
           const testConfig = categoryConfig.tests.find((t) => t.name === testName);
           if (data.result) {
+            const status = checkValueAgainstRange(data.result, testConfig?.normalRange);
             let resultLine = `- ${testName}: ${data.result}`;
             if (testConfig?.unit) {
               resultLine += ` ${testConfig.unit}`;
+            }
+            // Add abnormal flag
+            if (status === "high") {
+              resultLine += ` ⬆️ **HIGH**`;
+            } else if (status === "low") {
+              resultLine += ` ⬇️ **LOW**`;
             }
             if (testConfig?.normalRange) {
               resultLine += ` (Normal: ${testConfig.normalRange})`;
@@ -626,9 +786,17 @@ export default function InvestigationBuilderDialog({
       contentClassName="max-w-5xl"
       footer={
         <div className="flex justify-between items-center w-full">
-          <span className="text-sm text-muted-foreground">
-            {getTotalSelectedCount()} investigation(s) selected
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground">
+              {getTotalSelectedCount()} investigation(s) selected
+            </span>
+            {getTotalAbnormalCount() > 0 && (
+              <Badge variant="destructive" className="flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3" />
+                {getTotalAbnormalCount()} abnormal
+              </Badge>
+            )}
+          </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
@@ -686,6 +854,7 @@ export default function InvestigationBuilderDialog({
           {categories.map(([key, config]) => {
             const Icon = config.icon;
             const count = getCategorySelectedCount(key);
+            const abnormalCount = getCategoryAbnormalCount(key);
             return (
               <TabsTrigger
                 key={key}
@@ -695,7 +864,11 @@ export default function InvestigationBuilderDialog({
                 <Icon className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">{config.label}</span>
                 {count > 0 && (
-                  <span className="ml-1 bg-primary text-primary-foreground text-xs px-1.5 py-0.5 rounded-full">
+                  <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full ${
+                    abnormalCount > 0 
+                      ? "bg-destructive text-destructive-foreground" 
+                      : "bg-primary text-primary-foreground"
+                  }`}>
                     {count}
                   </span>
                 )}
@@ -710,13 +883,16 @@ export default function InvestigationBuilderDialog({
               {filterTests(config.tests).map((test) => {
                 const isSelected = isTestSelected(key, test.name);
                 const result = getTestResult(key, test.name);
+                const abnormalStatus = getTestAbnormalStatus(key, test.name);
                 
                 return (
                   <div
                     key={test.name}
                     className={`p-3 rounded-lg border transition-colors ${
                       isSelected
-                        ? "bg-primary/5 border-primary/30"
+                        ? abnormalStatus === "high" || abnormalStatus === "low"
+                          ? "bg-destructive/10 border-destructive/50"
+                          : "bg-primary/5 border-primary/30"
                         : "bg-card hover:bg-accent/50"
                     }`}
                   >
@@ -742,15 +918,37 @@ export default function InvestigationBuilderDialog({
                           )}
                         </div>
                         {isSelected && (
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <Input
                               placeholder={`Enter result${test.unit ? ` (${test.unit})` : ""}`}
                               value={result}
                               onChange={(e) => handleResultChange(key, test.name, e.target.value)}
-                              className="max-w-xs"
+                              className={`max-w-xs ${
+                                abnormalStatus === "high" || abnormalStatus === "low"
+                                  ? "border-destructive focus-visible:ring-destructive"
+                                  : ""
+                              }`}
                             />
                             {test.unit && (
                               <span className="text-sm text-muted-foreground">{test.unit}</span>
+                            )}
+                            {abnormalStatus === "high" && (
+                              <Badge variant="destructive" className="flex items-center gap-1">
+                                <TrendingUp className="h-3 w-3" />
+                                HIGH
+                              </Badge>
+                            )}
+                            {abnormalStatus === "low" && (
+                              <Badge variant="destructive" className="flex items-center gap-1">
+                                <TrendingDown className="h-3 w-3" />
+                                LOW
+                              </Badge>
+                            )}
+                            {abnormalStatus === "normal" && result && (
+                              <Badge variant="secondary" className="flex items-center gap-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                <Check className="h-3 w-3" />
+                                Normal
+                              </Badge>
                             )}
                           </div>
                         )}
