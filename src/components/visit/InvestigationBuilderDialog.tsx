@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Check, Eye, EyeOff, Search, X, Beaker, Heart, Droplet, Activity, Brain, Stethoscope, Microscope, Scan, Radio, Baby, AlertTriangle, TrendingUp, TrendingDown, Save, FolderOpen, Trash2, Plus } from "lucide-react";
+import { Check, Eye, EyeOff, Search, X, Beaker, Heart, Droplet, Activity, Brain, Stethoscope, Microscope, Scan, Radio, Baby, AlertTriangle, TrendingUp, TrendingDown, Save, FolderOpen, Trash2, Plus, Upload, FileText } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { PresetDialog } from "@/components/patient/preset/PresetDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -650,6 +651,11 @@ export default function InvestigationBuilderDialog({
   const [templateName, setTemplateName] = useState("");
   const [templateDescription, setTemplateDescription] = useState("");
   const [loadingTemplates, setLoadingTemplates] = useState(false);
+  
+  // Import state
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [importText, setImportText] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load templates on mount
   useEffect(() => {
@@ -761,6 +767,240 @@ export default function InvestigationBuilderDialog({
       loadTemplates();
     } catch (error: any) {
       toast({ title: "Error", description: error.message || "Failed to delete template", variant: "destructive" });
+    }
+  };
+
+  // Helper function to find a test by name across all categories
+  const findTestByName = (testName: string): { category: InvestigationType; test: InvestigationTest } | null => {
+    const normalizedName = testName.toLowerCase().trim();
+    
+    for (const [category, config] of Object.entries(INVESTIGATION_CATEGORIES)) {
+      for (const test of config.tests) {
+        // Exact match or contains match
+        const testNameNormalized = test.name.toLowerCase();
+        if (testNameNormalized === normalizedName || 
+            testNameNormalized.includes(normalizedName) ||
+            normalizedName.includes(testNameNormalized)) {
+          return { category: category as InvestigationType, test };
+        }
+      }
+    }
+    
+    // Try matching common abbreviations
+    const abbreviations: Record<string, string> = {
+      "hb": "Hemoglobin",
+      "hgb": "Hemoglobin",
+      "rbc": "RBC Count",
+      "wbc": "WBC Count",
+      "plt": "Platelet Count",
+      "hct": "Hematocrit",
+      "mcv": "MCV",
+      "mch": "MCH",
+      "mchc": "MCHC",
+      "rdw": "RDW",
+      "esr": "ESR",
+      "tsh": "TSH",
+      "ft4": "Free T4",
+      "ft3": "Free T3",
+      "t4": "Total T4",
+      "t3": "Total T3",
+      "hba1c": "HbA1c",
+      "a1c": "HbA1c",
+      "fbg": "Fasting Blood Glucose",
+      "fbs": "Fasting Blood Glucose",
+      "rbg": "Random Blood Glucose",
+      "rbs": "Random Blood Glucose",
+      "bun": "Blood Urea Nitrogen",
+      "cr": "Serum Creatinine",
+      "creatinine": "Serum Creatinine",
+      "na": "Sodium",
+      "k": "Potassium",
+      "cl": "Chloride",
+      "ca": "Calcium (Total)",
+      "mg": "Magnesium",
+      "phos": "Phosphorus",
+      "phosphorus": "Phosphorus",
+      "ast": "AST (SGOT)",
+      "sgot": "AST (SGOT)",
+      "alt": "ALT (SGPT)",
+      "sgpt": "ALT (SGPT)",
+      "alp": "ALP (Alkaline Phosphatase)",
+      "ggt": "GGT",
+      "bili": "Total Bilirubin",
+      "bilirubin": "Total Bilirubin",
+      "chol": "Total Cholesterol",
+      "cholesterol": "Total Cholesterol",
+      "ldl": "LDL Cholesterol",
+      "hdl": "HDL Cholesterol",
+      "tg": "Triglycerides",
+      "trigs": "Triglycerides",
+      "triglycerides": "Triglycerides",
+      "pt": "Prothrombin Time",
+      "inr": "INR",
+      "aptt": "aPTT",
+      "ptt": "aPTT",
+      "bnp": "BNP",
+      "troponin": "Troponin I",
+      "crp": "hs-CRP",
+      "egfr": "eGFR",
+    };
+    
+    if (abbreviations[normalizedName]) {
+      return findTestByName(abbreviations[normalizedName]);
+    }
+    
+    return null;
+  };
+
+  // Parse CSV content
+  const parseCSV = (content: string): { testName: string; result: string }[] => {
+    const lines = content.trim().split(/\r?\n/);
+    const results: { testName: string; result: string }[] = [];
+    
+    // Try to detect delimiter (comma, semicolon, tab)
+    const firstLine = lines[0] || "";
+    let delimiter = ",";
+    if (firstLine.includes("\t")) delimiter = "\t";
+    else if (firstLine.includes(";")) delimiter = ";";
+    
+    // Check if first line is a header
+    const firstLineLower = firstLine.toLowerCase();
+    const hasHeader = firstLineLower.includes("test") || 
+                      firstLineLower.includes("name") || 
+                      firstLineLower.includes("parameter") ||
+                      firstLineLower.includes("result") ||
+                      firstLineLower.includes("value");
+    
+    const startIndex = hasHeader ? 1 : 0;
+    
+    for (let i = startIndex; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      
+      const parts = line.split(delimiter).map(p => p.trim().replace(/^["']|["']$/g, ""));
+      if (parts.length >= 2) {
+        const testName = parts[0];
+        const result = parts[1];
+        if (testName && result) {
+          results.push({ testName, result });
+        }
+      }
+    }
+    
+    return results;
+  };
+
+  // Parse plain text lab report
+  const parseLabReport = (content: string): { testName: string; result: string }[] => {
+    const lines = content.trim().split(/\r?\n/);
+    const results: { testName: string; result: string }[] = [];
+    
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      if (!trimmedLine) continue;
+      
+      // Try different patterns:
+      // 1. "Test Name: 123 unit" or "Test Name : 123"
+      // 2. "Test Name    123    unit    normal range"
+      // 3. "Test Name - 123"
+      
+      // Pattern 1: Colon separator
+      const colonMatch = trimmedLine.match(/^(.+?)\s*:\s*([\d.,]+)/);
+      if (colonMatch) {
+        results.push({ testName: colonMatch[1].trim(), result: colonMatch[2].trim() });
+        continue;
+      }
+      
+      // Pattern 2: Dash separator
+      const dashMatch = trimmedLine.match(/^(.+?)\s*-\s*([\d.,]+)/);
+      if (dashMatch && !dashMatch[1].match(/^\d/)) {
+        results.push({ testName: dashMatch[1].trim(), result: dashMatch[2].trim() });
+        continue;
+      }
+      
+      // Pattern 3: Tab or multiple space separator
+      const tabMatch = trimmedLine.match(/^(.+?)\s{2,}([\d.,]+)/);
+      if (tabMatch) {
+        results.push({ testName: tabMatch[1].trim(), result: tabMatch[2].trim() });
+        continue;
+      }
+    }
+    
+    return results;
+  };
+
+  const handleImport = () => {
+    if (!importText.trim()) {
+      toast({ title: "Error", description: "Please paste or enter data to import", variant: "destructive" });
+      return;
+    }
+    
+    // Try CSV first, then lab report format
+    let parsedResults = parseCSV(importText);
+    if (parsedResults.length === 0) {
+      parsedResults = parseLabReport(importText);
+    }
+    
+    if (parsedResults.length === 0) {
+      toast({ 
+        title: "No results found", 
+        description: "Could not parse any investigation results. Please check the format.", 
+        variant: "destructive" 
+      });
+      return;
+    }
+    
+    // Match parsed results to known tests
+    let matchedCount = 0;
+    let unmatchedTests: string[] = [];
+    
+    const newSelections: SelectedInvestigations = { ...selectedInvestigations };
+    
+    for (const { testName, result } of parsedResults) {
+      const match = findTestByName(testName);
+      if (match) {
+        if (!newSelections[match.category]) {
+          newSelections[match.category] = {};
+        }
+        newSelections[match.category][match.test.name] = { selected: true, result };
+        matchedCount++;
+      } else {
+        unmatchedTests.push(testName);
+      }
+    }
+    
+    setSelectedInvestigations(newSelections);
+    setShowImportDialog(false);
+    setImportText("");
+    
+    if (matchedCount > 0) {
+      toast({ 
+        title: "Import successful", 
+        description: `Imported ${matchedCount} result(s)${unmatchedTests.length > 0 ? `. ${unmatchedTests.length} test(s) not matched.` : ""}` 
+      });
+    } else {
+      toast({ 
+        title: "No matches found", 
+        description: "Could not match any tests. Try using standard test names.", 
+        variant: "destructive" 
+      });
+    }
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      setImportText(content);
+    };
+    reader.readAsText(file);
+    
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
@@ -1119,6 +1359,16 @@ export default function InvestigationBuilderDialog({
             </DropdownMenuContent>
           </DropdownMenu>
           
+          {/* Import Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowImportDialog(true)}
+          >
+            <Upload className="h-4 w-4 mr-1" />
+            Import
+          </Button>
+          
           <Button
             variant="outline"
             size="sm"
@@ -1306,6 +1556,82 @@ export default function InvestigationBuilderDialog({
             <Button onClick={saveTemplate}>
               <Save className="h-4 w-4 mr-2" />
               Save Template
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Import Dialog */}
+      <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Import Investigation Results</DialogTitle>
+            <DialogDescription>
+              Import results from a CSV file or paste lab report data directly.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv,.txt"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+              <Button 
+                variant="outline" 
+                onClick={() => fileInputRef.current?.click()}
+                className="flex-1"
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Upload CSV/TXT File
+              </Button>
+            </div>
+            
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">Or paste data</span>
+              </div>
+            </div>
+            
+            <Textarea
+              placeholder={`Paste lab report data here. Supported formats:
+              
+CSV format:
+Test Name,Result
+Hemoglobin,14.5
+WBC Count,8500
+
+Lab report format:
+Hemoglobin: 14.5 g/dL
+WBC Count: 8500 /µL
+Creatinine: 1.2 mg/dL`}
+              value={importText}
+              onChange={(e) => setImportText(e.target.value)}
+              className="min-h-[200px] font-mono text-sm"
+            />
+            
+            <div className="text-xs text-muted-foreground space-y-1">
+              <p><strong>Supported formats:</strong></p>
+              <p>• CSV: "Test Name,Result" or "Test Name;Result"</p>
+              <p>• Lab report: "Test Name: Value" or "Test Name - Value"</p>
+              <p>• Common abbreviations (Hb, RBC, WBC, etc.) are recognized</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowImportDialog(false);
+              setImportText("");
+            }}>
+              Cancel
+            </Button>
+            <Button onClick={handleImport} disabled={!importText.trim()}>
+              <Upload className="h-4 w-4 mr-2" />
+              Import Results
             </Button>
           </DialogFooter>
         </DialogContent>
