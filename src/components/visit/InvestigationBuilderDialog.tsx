@@ -6,8 +6,30 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Check, Eye, EyeOff, Search, X, Beaker, Heart, Droplet, Activity, Brain, Stethoscope, Microscope, Scan, Radio, Baby, AlertTriangle, TrendingUp, TrendingDown } from "lucide-react";
+import { Check, Eye, EyeOff, Search, X, Beaker, Heart, Droplet, Activity, Brain, Stethoscope, Microscope, Scan, Radio, Baby, AlertTriangle, TrendingUp, TrendingDown, Save, FolderOpen, Trash2, Plus } from "lucide-react";
 import { PresetDialog } from "@/components/patient/preset/PresetDialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 type AbnormalStatus = "normal" | "high" | "low" | "abnormal" | "unknown";
 
@@ -601,6 +623,14 @@ type InvestigationBuilderDialogProps = {
   existingInvestigation?: string;
 };
 
+// Template type
+type InvestigationTemplate = {
+  id: string;
+  name: string;
+  description?: string;
+  investigations: { category: string; testName: string }[];
+};
+
 export default function InvestigationBuilderDialog({
   open,
   onOpenChange,
@@ -611,6 +641,128 @@ export default function InvestigationBuilderDialog({
   const [selectedInvestigations, setSelectedInvestigations] = useState<SelectedInvestigations>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [showPreview, setShowPreview] = useState(false);
+  const [showAbnormalSummary, setShowAbnormalSummary] = useState(true);
+  const { toast } = useToast();
+  
+  // Template state
+  const [templates, setTemplates] = useState<InvestigationTemplate[]>([]);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [templateName, setTemplateName] = useState("");
+  const [templateDescription, setTemplateDescription] = useState("");
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+
+  // Load templates on mount
+  useEffect(() => {
+    if (open) {
+      loadTemplates();
+    }
+  }, [open]);
+
+  const loadTemplates = async () => {
+    setLoadingTemplates(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      const { data, error } = await supabase
+        .from("investigation_templates")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("name");
+      
+      if (error) throw error;
+      
+      setTemplates((data || []).map(t => ({
+        id: t.id,
+        name: t.name,
+        description: t.description || undefined,
+        investigations: (t.investigations as any) || []
+      })));
+    } catch (error) {
+      console.error("Error loading templates:", error);
+    } finally {
+      setLoadingTemplates(false);
+    }
+  };
+
+  const saveTemplate = async () => {
+    if (!templateName.trim()) {
+      toast({ title: "Error", description: "Please enter a template name", variant: "destructive" });
+      return;
+    }
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({ title: "Error", description: "You must be logged in", variant: "destructive" });
+        return;
+      }
+      
+      // Collect selected investigations
+      const investigations: { category: string; testName: string }[] = [];
+      Object.entries(selectedInvestigations).forEach(([category, tests]) => {
+        Object.entries(tests).forEach(([testName, data]) => {
+          if (data.selected) {
+            investigations.push({ category, testName });
+          }
+        });
+      });
+      
+      if (investigations.length === 0) {
+        toast({ title: "Error", description: "Select at least one investigation", variant: "destructive" });
+        return;
+      }
+      
+      const { error } = await supabase
+        .from("investigation_templates")
+        .insert({
+          user_id: user.id,
+          name: templateName.trim(),
+          description: templateDescription.trim() || null,
+          investigations: investigations as any
+        });
+      
+      if (error) throw error;
+      
+      toast({ title: "Template saved", description: `"${templateName}" saved successfully` });
+      setShowSaveDialog(false);
+      setTemplateName("");
+      setTemplateDescription("");
+      loadTemplates();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "Failed to save template", variant: "destructive" });
+    }
+  };
+
+  const loadTemplate = (template: InvestigationTemplate) => {
+    const newSelections: SelectedInvestigations = {};
+    
+    template.investigations.forEach(({ category, testName }) => {
+      if (!newSelections[category]) {
+        newSelections[category] = {};
+      }
+      newSelections[category][testName] = { selected: true, result: "" };
+    });
+    
+    setSelectedInvestigations(newSelections);
+    toast({ title: "Template loaded", description: `"${template.name}" applied` });
+  };
+
+  const deleteTemplate = async (template: InvestigationTemplate) => {
+    try {
+      const { error } = await supabase
+        .from("investigation_templates")
+        .delete()
+        .eq("id", template.id);
+      
+      if (error) throw error;
+      
+      toast({ title: "Template deleted", description: `"${template.name}" deleted` });
+      loadTemplates();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "Failed to delete template", variant: "destructive" });
+    }
+  };
 
   // Parse existing investigation text when dialog opens
   useEffect(() => {
@@ -710,6 +862,32 @@ export default function InvestigationBuilderDialog({
     return count;
   };
 
+  // Get all abnormal results for summary
+  const getAbnormalResults = () => {
+    const results: { category: InvestigationType; testName: string; result: string; status: AbnormalStatus; unit?: string; normalRange?: string }[] = [];
+    
+    Object.entries(selectedInvestigations).forEach(([category, tests]) => {
+      Object.entries(tests).forEach(([testName, data]) => {
+        if (data.selected && data.result) {
+          const status = getTestAbnormalStatus(category as InvestigationType, testName);
+          if (status === "high" || status === "low" || status === "abnormal") {
+            const testConfig = INVESTIGATION_CATEGORIES[category as InvestigationType]?.tests.find((t) => t.name === testName);
+            results.push({
+              category: category as InvestigationType,
+              testName,
+              result: data.result,
+              status,
+              unit: testConfig?.unit,
+              normalRange: testConfig?.normalRange
+            });
+          }
+        }
+      });
+    });
+    
+    return results;
+  };
+
   const clearTabSelections = () => {
     setSelectedInvestigations((prev) => {
       const newSelections = { ...prev };
@@ -775,197 +953,363 @@ export default function InvestigationBuilderDialog({
     );
   };
 
+  const abnormalResults = getAbnormalResults();
+
   const categories = Object.entries(INVESTIGATION_CATEGORIES) as [InvestigationType, typeof INVESTIGATION_CATEGORIES[InvestigationType]][];
 
   return (
-    <PresetDialog
-      open={open}
-      onOpenChange={onOpenChange}
-      title="Investigation Builder"
-      description="Select investigations and optionally add results"
-      contentClassName="max-w-5xl"
-      footer={
-        <div className="flex justify-between items-center w-full">
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground">
-              {getTotalSelectedCount()} investigation(s) selected
-            </span>
-            {getTotalAbnormalCount() > 0 && (
-              <Badge variant="destructive" className="flex items-center gap-1">
-                <AlertTriangle className="h-3 w-3" />
-                {getTotalAbnormalCount()} abnormal
-              </Badge>
-            )}
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleInsert} disabled={getTotalSelectedCount() === 0}>
-              <Check className="h-4 w-4 mr-2" />
-              Insert
-            </Button>
-          </div>
-        </div>
-      }
-    >
-      {/* Toolbar */}
-      <div className="flex items-center gap-2 mb-4 flex-wrap">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search investigations..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowPreview(!showPreview)}
-        >
-          {showPreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          {showPreview ? "Hide Preview" : "Show Preview"}
-        </Button>
-        {getCategorySelectedCount(activeTab) > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={clearTabSelections}
-            className="text-destructive hover:text-destructive"
-          >
-            Clear Tab
-          </Button>
-        )}
-      </div>
-
-      {showPreview && getTotalSelectedCount() > 0 && (
-        <div className="mb-4 p-4 bg-muted rounded-lg">
-          <h4 className="font-medium mb-2">Preview:</h4>
-          <pre className="text-sm whitespace-pre-wrap font-mono">
-            {generateInvestigationText()}
-          </pre>
-        </div>
-      )}
-
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as InvestigationType)}>
-        <TabsList className="flex flex-wrap h-auto gap-1 mb-4">
-          {categories.map(([key, config]) => {
-            const Icon = config.icon;
-            const count = getCategorySelectedCount(key);
-            const abnormalCount = getCategoryAbnormalCount(key);
-            return (
-              <TabsTrigger
-                key={key}
-                value={key}
-                className="flex items-center gap-1.5 text-xs px-2 py-1.5"
-              >
-                <Icon className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">{config.label}</span>
-                {count > 0 && (
-                  <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full ${
-                    abnormalCount > 0 
-                      ? "bg-destructive text-destructive-foreground" 
-                      : "bg-primary text-primary-foreground"
-                  }`}>
-                    {count}
-                  </span>
-                )}
-              </TabsTrigger>
-            );
-          })}
-        </TabsList>
-
-        {categories.map(([key, config]) => (
-          <TabsContent key={key} value={key} className="mt-0">
-            <div className="grid gap-2">
-              {filterTests(config.tests).map((test) => {
-                const isSelected = isTestSelected(key, test.name);
-                const result = getTestResult(key, test.name);
-                const abnormalStatus = getTestAbnormalStatus(key, test.name);
-                
-                return (
-                  <div
-                    key={test.name}
-                    className={`p-3 rounded-lg border transition-colors ${
-                      isSelected
-                        ? abnormalStatus === "high" || abnormalStatus === "low"
-                          ? "bg-destructive/10 border-destructive/50"
-                          : "bg-primary/5 border-primary/30"
-                        : "bg-card hover:bg-accent/50"
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <Checkbox
-                        id={`${key}-${test.name}`}
-                        checked={isSelected}
-                        onCheckedChange={() => handleToggleTest(key, test.name)}
-                        className="mt-0.5"
-                      />
-                      <div className="flex-1 space-y-2">
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-                          <Label
-                            htmlFor={`${key}-${test.name}`}
-                            className="font-medium cursor-pointer"
-                          >
-                            {test.name}
-                          </Label>
-                          {test.normalRange && (
-                            <span className="text-xs text-muted-foreground">
-                              Normal: {test.normalRange}
-                            </span>
-                          )}
-                        </div>
-                        {isSelected && (
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Input
-                              placeholder={`Enter result${test.unit ? ` (${test.unit})` : ""}`}
-                              value={result}
-                              onChange={(e) => handleResultChange(key, test.name, e.target.value)}
-                              className={`max-w-xs ${
-                                abnormalStatus === "high" || abnormalStatus === "low"
-                                  ? "border-destructive focus-visible:ring-destructive"
-                                  : ""
-                              }`}
-                            />
-                            {test.unit && (
-                              <span className="text-sm text-muted-foreground">{test.unit}</span>
-                            )}
-                            {abnormalStatus === "high" && (
-                              <Badge variant="destructive" className="flex items-center gap-1">
-                                <TrendingUp className="h-3 w-3" />
-                                HIGH
-                              </Badge>
-                            )}
-                            {abnormalStatus === "low" && (
-                              <Badge variant="destructive" className="flex items-center gap-1">
-                                <TrendingDown className="h-3 w-3" />
-                                LOW
-                              </Badge>
-                            )}
-                            {abnormalStatus === "normal" && result && (
-                              <Badge variant="secondary" className="flex items-center gap-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                                <Check className="h-3 w-3" />
-                                Normal
-                              </Badge>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-              {filterTests(config.tests).length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  No investigations found matching "{searchQuery}"
-                </div>
+    <>
+      <PresetDialog
+        open={open}
+        onOpenChange={onOpenChange}
+        title="Investigation Builder"
+        description="Select investigations and optionally add results"
+        contentClassName="max-w-5xl"
+        footer={
+          <div className="flex justify-between items-center w-full">
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-muted-foreground">
+                {getTotalSelectedCount()} investigation(s) selected
+              </span>
+              {getTotalAbnormalCount() > 0 && (
+                <Badge variant="destructive" className="flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  {getTotalAbnormalCount()} abnormal
+                </Badge>
               )}
             </div>
-          </TabsContent>
-        ))}
-      </Tabs>
-    </PresetDialog>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleInsert} disabled={getTotalSelectedCount() === 0}>
+                <Check className="h-4 w-4 mr-2" />
+                Insert
+              </Button>
+            </div>
+          </div>
+        }
+      >
+        {/* Abnormal Results Summary */}
+        {abnormalResults.length > 0 && showAbnormalSummary && (
+          <Collapsible defaultOpen className="mb-4">
+            <div className="flex items-center justify-between p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
+              <CollapsibleTrigger className="flex items-center gap-2 flex-1">
+                <AlertTriangle className="h-4 w-4 text-destructive" />
+                <span className="font-medium text-destructive">
+                  Abnormal Results Summary ({abnormalResults.length})
+                </span>
+              </CollapsibleTrigger>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowAbnormalSummary(false)}
+                className="h-7 px-2 text-muted-foreground"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <CollapsibleContent className="mt-2">
+              <div className="grid gap-2 p-3 bg-muted/50 rounded-lg border">
+                {abnormalResults.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between py-1 px-2 bg-background rounded border">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">{item.testName}</span>
+                      <span className="text-xs text-muted-foreground">
+                        ({INVESTIGATION_CATEGORIES[item.category].label})
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">
+                        {item.result} {item.unit || ""}
+                      </span>
+                      {item.status === "high" && (
+                        <Badge variant="destructive" className="flex items-center gap-1">
+                          <TrendingUp className="h-3 w-3" />
+                          HIGH
+                        </Badge>
+                      )}
+                      {item.status === "low" && (
+                        <Badge variant="destructive" className="flex items-center gap-1">
+                          <TrendingDown className="h-3 w-3" />
+                          LOW
+                        </Badge>
+                      )}
+                      {item.normalRange && (
+                        <span className="text-xs text-muted-foreground">
+                          (Normal: {item.normalRange})
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        )}
+
+        {/* Toolbar */}
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search investigations..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          
+          {/* Templates Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <FolderOpen className="h-4 w-4 mr-1" />
+                Templates
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              {getTotalSelectedCount() > 0 && (
+                <>
+                  <DropdownMenuItem onClick={() => setShowSaveDialog(true)}>
+                    <Save className="h-4 w-4 mr-2" />
+                    Save Current as Template
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              )}
+              {templates.length === 0 ? (
+                <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                  No saved templates
+                </div>
+              ) : (
+                templates.map((template) => (
+                  <DropdownMenuItem
+                    key={template.id}
+                    className="flex justify-between items-center group"
+                  >
+                    <div 
+                      className="flex-1 cursor-pointer"
+                      onClick={() => loadTemplate(template)}
+                    >
+                      <div className="font-medium">{template.name}</div>
+                      {template.description && (
+                        <div className="text-xs text-muted-foreground truncate max-w-[180px]">
+                          {template.description}
+                        </div>
+                      )}
+                      <div className="text-xs text-muted-foreground">
+                        {template.investigations.length} tests
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteTemplate(template);
+                      }}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </DropdownMenuItem>
+                ))
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowPreview(!showPreview)}
+          >
+            {showPreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            {showPreview ? "Hide Preview" : "Show Preview"}
+          </Button>
+          {getCategorySelectedCount(activeTab) > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearTabSelections}
+              className="text-destructive hover:text-destructive"
+            >
+              Clear Tab
+            </Button>
+          )}
+        </div>
+
+        {showPreview && getTotalSelectedCount() > 0 && (
+          <div className="mb-4 p-4 bg-muted rounded-lg">
+            <h4 className="font-medium mb-2">Preview:</h4>
+            <pre className="text-sm whitespace-pre-wrap font-mono">
+              {generateInvestigationText()}
+            </pre>
+          </div>
+        )}
+
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as InvestigationType)}>
+          <TabsList className="flex flex-wrap h-auto gap-1 mb-4">
+            {categories.map(([key, config]) => {
+              const Icon = config.icon;
+              const count = getCategorySelectedCount(key);
+              const abnormalCount = getCategoryAbnormalCount(key);
+              return (
+                <TabsTrigger
+                  key={key}
+                  value={key}
+                  className="flex items-center gap-1.5 text-xs px-2 py-1.5"
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">{config.label}</span>
+                  {count > 0 && (
+                    <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full ${
+                      abnormalCount > 0 
+                        ? "bg-destructive text-destructive-foreground" 
+                        : "bg-primary text-primary-foreground"
+                    }`}>
+                      {count}
+                    </span>
+                  )}
+                </TabsTrigger>
+              );
+            })}
+          </TabsList>
+
+          {categories.map(([key, config]) => (
+            <TabsContent key={key} value={key} className="mt-0">
+              <div className="grid gap-2">
+                {filterTests(config.tests).map((test) => {
+                  const isSelected = isTestSelected(key, test.name);
+                  const result = getTestResult(key, test.name);
+                  const abnormalStatus = getTestAbnormalStatus(key, test.name);
+                  
+                  return (
+                    <div
+                      key={test.name}
+                      className={`p-3 rounded-lg border transition-colors ${
+                        isSelected
+                          ? abnormalStatus === "high" || abnormalStatus === "low"
+                            ? "bg-destructive/10 border-destructive/50"
+                            : "bg-primary/5 border-primary/30"
+                          : "bg-card hover:bg-accent/50"
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <Checkbox
+                          id={`${key}-${test.name}`}
+                          checked={isSelected}
+                          onCheckedChange={() => handleToggleTest(key, test.name)}
+                          className="mt-0.5"
+                        />
+                        <div className="flex-1 space-y-2">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                            <Label
+                              htmlFor={`${key}-${test.name}`}
+                              className="font-medium cursor-pointer"
+                            >
+                              {test.name}
+                            </Label>
+                            {test.normalRange && (
+                              <span className="text-xs text-muted-foreground">
+                                Normal: {test.normalRange}
+                              </span>
+                            )}
+                          </div>
+                          {isSelected && (
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <Input
+                                placeholder={`Enter result${test.unit ? ` (${test.unit})` : ""}`}
+                                value={result}
+                                onChange={(e) => handleResultChange(key, test.name, e.target.value)}
+                                className={`max-w-xs ${
+                                  abnormalStatus === "high" || abnormalStatus === "low"
+                                    ? "border-destructive focus-visible:ring-destructive"
+                                    : ""
+                                }`}
+                              />
+                              {test.unit && (
+                                <span className="text-sm text-muted-foreground">{test.unit}</span>
+                              )}
+                              {abnormalStatus === "high" && (
+                                <Badge variant="destructive" className="flex items-center gap-1">
+                                  <TrendingUp className="h-3 w-3" />
+                                  HIGH
+                                </Badge>
+                              )}
+                              {abnormalStatus === "low" && (
+                                <Badge variant="destructive" className="flex items-center gap-1">
+                                  <TrendingDown className="h-3 w-3" />
+                                  LOW
+                                </Badge>
+                              )}
+                              {abnormalStatus === "normal" && result && (
+                                <Badge variant="secondary" className="flex items-center gap-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                  <Check className="h-3 w-3" />
+                                  Normal
+                                </Badge>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                {filterTests(config.tests).length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No investigations found matching "{searchQuery}"
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+          ))}
+        </Tabs>
+      </PresetDialog>
+      
+      {/* Save Template Dialog */}
+      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Save Investigation Template</DialogTitle>
+            <DialogDescription>
+              Save the currently selected investigations as a reusable template.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="template-name">Template Name</Label>
+              <Input
+                id="template-name"
+                placeholder="e.g., Basic Metabolic Panel"
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="template-description">Description (optional)</Label>
+              <Input
+                id="template-description"
+                placeholder="e.g., Standard tests for diabetes screening"
+                value={templateDescription}
+                onChange={(e) => setTemplateDescription(e.target.value)}
+              />
+            </div>
+            <div className="text-sm text-muted-foreground">
+              This template will include {getTotalSelectedCount()} investigation(s)
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSaveDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={saveTemplate}>
+              <Save className="h-4 w-4 mr-2" />
+              Save Template
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
