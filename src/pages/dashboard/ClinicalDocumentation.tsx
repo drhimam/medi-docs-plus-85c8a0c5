@@ -26,6 +26,8 @@ import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } 
 import { PrescriptionSnippetsDialog } from "@/components/prescription/PrescriptionSnippetsDialog";
 import PhysicalExaminationDialog from "@/components/visit/PhysicalExaminationDialog";
 import InvestigationBuilderDialog from "@/components/visit/InvestigationBuilderDialog";
+import HPIBuilder from "@/components/visit/HPIBuilder";
+import ROSBuilder from "@/components/visit/ROSBuilder";
 import jsPDF from "jspdf";
 import { format } from "date-fns";
 import DOMPurify from "dompurify";
@@ -108,6 +110,8 @@ export default function ClinicalDocumentation() {
   const [documentToDelete, setDocumentToDelete] = useState<string | null>(null);
   const [showPhysicalExamDialog, setShowPhysicalExamDialog] = useState(false);
   const [showInvestigationDialog, setShowInvestigationDialog] = useState(false);
+  const [showHPIDialog, setShowHPIDialog] = useState(false);
+  const [showROSDialog, setShowROSDialog] = useState(false);
   const assessmentRef = useRef<HTMLTextAreaElement>(null);
   const planRef = useRef<HTMLTextAreaElement>(null);
   const prescriptionEditorRef = useRef<RichTextEditorHandle>(null);
@@ -1095,6 +1099,40 @@ ${cleanPrescription}
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <Label>Subjective</Label>
+                        <div className="flex gap-2">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setShowHPIDialog(true)}
+                                  disabled={isSoapViewMode}
+                                >
+                                  <FileText className="w-4 h-4 mr-2" />
+                                  Add Complaint
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Add Complaint / HPI</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setShowROSDialog(true)}
+                                  disabled={isSoapViewMode}
+                                >
+                                  <Stethoscope className="w-4 h-4 mr-2" />
+                                  ROS
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Review of Systems</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
                       </div>
                       <Textarea
                         value={subjective}
@@ -1646,6 +1684,34 @@ ${cleanPrescription}
             const trimmedPrev = prev.trim();
             return trimmedPrev ? trimmedPrev + dateHeader + text : text;
           });
+        }}
+      />
+
+      <HPIBuilder
+        open={showHPIDialog}
+        onClose={() => setShowHPIDialog(false)}
+        currentHPI=""
+        onUpdate={(text) => {
+          const dateHeader = `\n\n--- COMPLAINT / HPI (${format(new Date(), "yyyy-MM-dd HH:mm")}) ---\n`;
+          setSubjective((prev) => {
+            const trimmedPrev = prev.trim();
+            return trimmedPrev ? trimmedPrev + dateHeader + text : text;
+          });
+          setShowHPIDialog(false);
+        }}
+      />
+
+      <ROSBuilder
+        open={showROSDialog}
+        onClose={() => setShowROSDialog(false)}
+        currentROS=""
+        onUpdate={(text) => {
+          const dateHeader = `\n\n--- REVIEW OF SYSTEMS (${format(new Date(), "yyyy-MM-dd HH:mm")}) ---\n`;
+          setSubjective((prev) => {
+            const trimmedPrev = prev.trim();
+            return trimmedPrev ? trimmedPrev + dateHeader + text : text;
+          });
+          setShowROSDialog(false);
         }}
       />
     </div>
