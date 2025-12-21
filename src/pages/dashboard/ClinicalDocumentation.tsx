@@ -6,9 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Save, X, FileText, Download, Sparkles, Eye, Edit, Loader2, MoreVertical, ArrowUpDown, ExternalLink, Trash2, Settings, CheckCircle, AlertCircle, FileDown, FileSearch, Stethoscope, FlaskConical } from "lucide-react";
-import PhysicalExaminationDialog from "@/components/visit/PhysicalExaminationDialog";
-import InvestigationBuilderDialog from "@/components/visit/InvestigationBuilderDialog";
+import { ArrowLeft, Save, X, FileText, Download, Sparkles, Eye, Edit, Loader2, MoreVertical, ArrowUpDown, ExternalLink, Trash2, Settings, CheckCircle, AlertCircle, FileDown, FileSearch } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import TranscribeButton from "@/components/TranscribeButton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -105,13 +103,9 @@ export default function ClinicalDocumentation() {
   const [translatedLanguage, setTranslatedLanguage] = useState("");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<string | null>(null);
-  const objectiveRef = useRef<HTMLTextAreaElement>(null);
   const assessmentRef = useRef<HTMLTextAreaElement>(null);
   const planRef = useRef<HTMLTextAreaElement>(null);
   const prescriptionEditorRef = useRef<RichTextEditorHandle>(null);
-  const [objectiveCursorPosition, setObjectiveCursorPosition] = useState<number | null>(null);
-  const [isPhysicalExamOpen, setIsPhysicalExamOpen] = useState(false);
-  const [isInvestigationOpen, setIsInvestigationOpen] = useState(false);
 
   const [subjective, setSubjective] = useState("");
   const [objective, setObjective] = useState("");
@@ -589,51 +583,6 @@ export default function ClinicalDocumentation() {
     if (button) button.click();
   };
 
-  const handleOpenPhysicalExam = () => {
-    const textarea = objectiveRef.current;
-    if (textarea) {
-      setObjectiveCursorPosition(textarea.selectionStart);
-    }
-    setIsPhysicalExamOpen(true);
-  };
-
-  const handleOpenInvestigation = () => {
-    const textarea = objectiveRef.current;
-    if (textarea) {
-      setObjectiveCursorPosition(textarea.selectionStart);
-    }
-    setIsInvestigationOpen(true);
-  };
-
-  const handleInsertPhysicalExam = (text: string) => {
-    const cursorPos = objectiveCursorPosition ?? objective.length;
-    const newValue = objective.substring(0, cursorPos) + text + objective.substring(cursorPos);
-    setObjective(newValue);
-    setIsPhysicalExamOpen(false);
-    
-    setTimeout(() => {
-      const textarea = objectiveRef.current;
-      if (textarea) {
-        textarea.focus();
-        textarea.selectionStart = textarea.selectionEnd = cursorPos + text.length;
-      }
-    }, 0);
-  };
-
-  const handleInsertInvestigation = (text: string) => {
-    const cursorPos = objectiveCursorPosition ?? objective.length;
-    const newValue = objective.substring(0, cursorPos) + text + objective.substring(cursorPos);
-    setObjective(newValue);
-    setIsInvestigationOpen(false);
-    
-    setTimeout(() => {
-      const textarea = objectiveRef.current;
-      if (textarea) {
-        textarea.focus();
-        textarea.selectionStart = textarea.selectionEnd = cursorPos + text.length;
-      }
-    }, 0);
-  };
 
   const handleSave = async () => {
     try {
@@ -1152,47 +1101,11 @@ ${cleanPrescription}
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <Label>Objective</Label>
-                        <div className="flex gap-2">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={handleOpenPhysicalExam}
-                                  disabled={isSoapViewMode}
-                                >
-                                  <Stethoscope className="w-4 h-4 mr-2" />
-                                  Physical Exam
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Insert Physical Examination at cursor</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={handleOpenInvestigation}
-                                  disabled={isSoapViewMode}
-                                >
-                                  <FlaskConical className="w-4 h-4 mr-2" />
-                                  Investigation
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Insert Investigation at cursor</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </div>
                       </div>
                       <Textarea
-                        ref={objectiveRef}
                         value={objective}
                         onChange={(e) => setObjective(e.target.value)}
                         className="min-h-[200px] font-mono text-sm"
-                        placeholder="Click Physical Exam or Investigation buttons to insert findings at cursor position"
                       />
                     </div>
 
@@ -1671,18 +1584,6 @@ ${cleanPrescription}
         patientContact={patient.contact_number}
         patientAddress={patient.address}
         patientId={patient.id}
-      />
-
-      <PhysicalExaminationDialog
-        open={isPhysicalExamOpen}
-        onOpenChange={setIsPhysicalExamOpen}
-        onInsert={handleInsertPhysicalExam}
-      />
-
-      <InvestigationBuilderDialog
-        open={isInvestigationOpen}
-        onOpenChange={setIsInvestigationOpen}
-        onInsert={handleInsertInvestigation}
       />
     </div>
   );
