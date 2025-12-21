@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Save, X, FileText, Download, Sparkles, Eye, Edit, Loader2, MoreVertical, ArrowUpDown, ExternalLink, Trash2, Settings, CheckCircle, AlertCircle, FileDown, FileSearch } from "lucide-react";
+import { ArrowLeft, Save, X, FileText, Download, Sparkles, Eye, Edit, Loader2, MoreVertical, ArrowUpDown, ExternalLink, Trash2, Settings, CheckCircle, AlertCircle, FileDown, FileSearch, Stethoscope, FlaskConical } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import TranscribeButton from "@/components/TranscribeButton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -24,7 +24,10 @@ import { TranscribeOutputDialog } from "@/components/transcribe/TranscribeOutput
 import { TranslateOutputDialog } from "@/components/translate/TranslateOutputDialog";
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { PrescriptionSnippetsDialog } from "@/components/prescription/PrescriptionSnippetsDialog";
+import PhysicalExaminationDialog from "@/components/visit/PhysicalExaminationDialog";
+import InvestigationBuilderDialog from "@/components/visit/InvestigationBuilderDialog";
 import jsPDF from "jspdf";
+import { format } from "date-fns";
 import DOMPurify from "dompurify";
 import { exportPrescriptionToPDF as exportPrescriptionWithSettings } from "@/lib/prescriptionExport";
 
@@ -103,6 +106,8 @@ export default function ClinicalDocumentation() {
   const [translatedLanguage, setTranslatedLanguage] = useState("");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<string | null>(null);
+  const [showPhysicalExamDialog, setShowPhysicalExamDialog] = useState(false);
+  const [showInvestigationDialog, setShowInvestigationDialog] = useState(false);
   const assessmentRef = useRef<HTMLTextAreaElement>(null);
   const planRef = useRef<HTMLTextAreaElement>(null);
   const prescriptionEditorRef = useRef<RichTextEditorHandle>(null);
@@ -1101,6 +1106,40 @@ ${cleanPrescription}
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <Label>Objective</Label>
+                        <div className="flex gap-2">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setShowPhysicalExamDialog(true)}
+                                  disabled={isSoapViewMode}
+                                >
+                                  <Stethoscope className="w-4 h-4 mr-2" />
+                                  Physical Exam
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Add Physical Examination Findings</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setShowInvestigationDialog(true)}
+                                  disabled={isSoapViewMode}
+                                >
+                                  <FlaskConical className="w-4 h-4 mr-2" />
+                                  Investigations
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Add Investigation Results</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
                       </div>
                       <Textarea
                         value={objective}
@@ -1584,6 +1623,30 @@ ${cleanPrescription}
         patientContact={patient.contact_number}
         patientAddress={patient.address}
         patientId={patient.id}
+      />
+
+      <PhysicalExaminationDialog
+        open={showPhysicalExamDialog}
+        onOpenChange={setShowPhysicalExamDialog}
+        onInsert={(text) => {
+          const dateHeader = `\n\n--- PHYSICAL EXAMINATION (${format(new Date(), "yyyy-MM-dd HH:mm")}) ---\n`;
+          setObjective((prev) => {
+            const trimmedPrev = prev.trim();
+            return trimmedPrev ? trimmedPrev + dateHeader + text : text;
+          });
+        }}
+      />
+
+      <InvestigationBuilderDialog
+        open={showInvestigationDialog}
+        onOpenChange={setShowInvestigationDialog}
+        onInsert={(text) => {
+          const dateHeader = `\n\n--- INVESTIGATIONS (${format(new Date(), "yyyy-MM-dd HH:mm")}) ---\n`;
+          setObjective((prev) => {
+            const trimmedPrev = prev.trim();
+            return trimmedPrev ? trimmedPrev + dateHeader + text : text;
+          });
+        }}
       />
     </div>
   );
