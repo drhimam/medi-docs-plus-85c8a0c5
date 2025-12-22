@@ -687,37 +687,10 @@ ${plan}
       return false;
     };
 
-    // Clean text - remove markdown syntax and date headers
+    // Clean text - remove date headers for cleaner output
     const cleanText = (text: string) => {
       return text
-        // Remove date headers like --- HEADER (2024-01-01 12:00) ---
         .replace(/\n*---\s*[A-Z\s\/()0-9:-]+\s*---\n*/gi, '\n\n')
-        // Remove markdown headers (# ## ### etc)
-        .replace(/^#{1,6}\s+/gm, '')
-        // Remove bold/italic markers (**text** or __text__ or *text* or _text_)
-        .replace(/\*\*([^*]+)\*\*/g, '$1')
-        .replace(/__([^_]+)__/g, '$1')
-        .replace(/\*([^*]+)\*/g, '$1')
-        .replace(/_([^_]+)_/g, '$1')
-        // Remove strikethrough (~~text~~)
-        .replace(/~~([^~]+)~~/g, '$1')
-        // Remove inline code (`code`)
-        .replace(/`([^`]+)`/g, '$1')
-        // Remove code blocks (```code```)
-        .replace(/```[\s\S]*?```/g, '')
-        // Remove links [text](url) -> text
-        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-        // Remove images ![alt](url)
-        .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')
-        // Remove blockquotes (> text)
-        .replace(/^>\s+/gm, '')
-        // Remove horizontal rules (---, ***, ___)
-        .replace(/^[-*_]{3,}$/gm, '')
-        // Remove list markers (- item, * item, 1. item)
-        .replace(/^[\s]*[-*+]\s+/gm, '• ')
-        .replace(/^[\s]*\d+\.\s+/gm, '')
-        // Clean up extra whitespace
-        .replace(/\n{3,}/g, '\n\n')
         .trim();
     };
 
@@ -746,37 +719,53 @@ ${plan}
       doc.setFillColor(...color);
       doc.rect(margin, yPosition - 4, 3, 14, 'F');
       
-      doc.setFontSize(11);
+      doc.setFontSize(12);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(...color);
       doc.text(title, margin + 6, yPosition + 4);
-      yPosition += 14;
+      yPosition += 12;
       
-      // Set uniform content styling
+      // Content
       doc.setFont("helvetica", "normal");
-      doc.setTextColor(40, 40, 40);
+      doc.setTextColor(60, 60, 60);
       doc.setFontSize(10);
       
       const cleanedContent = cleanText(content || "N/A");
+      const paragraphs = cleanedContent.split(/\n\n+/);
       
-      // Split into lines and render uniformly
-      const allLines = cleanedContent.split('\n');
-      
-      allLines.forEach((line) => {
-        if (!line.trim()) {
-          yPosition += 3; // Small gap for empty lines
-          return;
-        }
-        
-        const wrappedLines = doc.splitTextToSize(line.trim(), contentWidth - 10);
-        wrappedLines.forEach((wrappedLine: string) => {
-          checkPageBreak(6);
-          doc.text(wrappedLine, margin + 6, yPosition);
-          yPosition += 5;
+      paragraphs.forEach((paragraph, pIndex) => {
+        const lines = paragraph.split('\n');
+        lines.forEach((line) => {
+          if (!line.trim()) return;
+          
+          // Check if it's a section header within content
+          const isSubHeader = /^[A-Z][A-Z\s]+:/.test(line) || /^[A-Z][a-z]+:/.test(line.trim());
+          
+          if (isSubHeader) {
+            checkPageBreak(15);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(9);
+            doc.setTextColor(80, 80, 80);
+          } else {
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            doc.setTextColor(60, 60, 60);
+          }
+          
+          const wrappedLines = doc.splitTextToSize(line, contentWidth - 8);
+          wrappedLines.forEach((wrappedLine: string) => {
+            checkPageBreak(6);
+            doc.text(wrappedLine, margin + 6, yPosition);
+            yPosition += 5;
+          });
         });
+        
+        if (pIndex < paragraphs.length - 1) {
+          yPosition += 3;
+        }
       });
       
-      yPosition += 10;
+      yPosition += 8;
     };
 
     // Add all sections with distinct colors
@@ -813,37 +802,10 @@ ${plan}
     
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
     
-    // Clean text - remove markdown syntax and date headers
+    // Clean text - remove date headers for cleaner output
     const cleanText = (text: string) => {
       return text
-        // Remove date headers like --- HEADER (2024-01-01 12:00) ---
-        .replace(/\n*---\s*[A-Z\s\/()0-9:-]+\s*---\n*/gi, '\n\n')
-        // Remove markdown headers (# ## ### etc)
-        .replace(/^#{1,6}\s+/gm, '')
-        // Remove bold/italic markers (**text** or __text__ or *text* or _text_)
-        .replace(/\*\*([^*]+)\*\*/g, '$1')
-        .replace(/__([^_]+)__/g, '$1')
-        .replace(/\*([^*]+)\*/g, '$1')
-        .replace(/_([^_]+)_/g, '$1')
-        // Remove strikethrough (~~text~~)
-        .replace(/~~([^~]+)~~/g, '$1')
-        // Remove inline code (`code`)
-        .replace(/`([^`]+)`/g, '$1')
-        // Remove code blocks (```code```)
-        .replace(/```[\s\S]*?```/g, '')
-        // Remove links [text](url) -> text
-        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-        // Remove images ![alt](url)
-        .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')
-        // Remove blockquotes (> text)
-        .replace(/^>\s+/gm, '')
-        // Remove horizontal rules (---, ***, ___)
-        .replace(/^[-*_]{3,}$/gm, '')
-        // Remove list markers (- item, * item, 1. item)
-        .replace(/^[\s]*[-*+]\s+/gm, '• ')
-        .replace(/^[\s]*\d+\.\s+/gm, '')
-        // Clean up extra whitespace
-        .replace(/\n{3,}/g, '\n\n')
+        .replace(/\n*---\s*[A-Z\s\/()0-9:-]+\s*---\n*/gi, '\n')
         .trim();
     };
 
