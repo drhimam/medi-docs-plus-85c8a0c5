@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Save, X, FileText, Download, Sparkles, Eye, Edit, Loader2, MoreVertical, ArrowUpDown, ExternalLink, Trash2, Settings, CheckCircle, AlertCircle, FileDown, FileSearch, Stethoscope, FlaskConical, Palette } from "lucide-react";
+import { ArrowLeft, Save, X, FileText, Download, Sparkles, Eye, Edit, Loader2, MoreVertical, ArrowUpDown, ExternalLink, Trash2, Settings, CheckCircle, AlertCircle, FileDown, FileSearch, Stethoscope, FlaskConical, Palette, Copy, Mail } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import TranscribeButton from "@/components/TranscribeButton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -29,6 +29,8 @@ import InvestigationBuilderDialog from "@/components/visit/InvestigationBuilderD
 import HPIBuilder from "@/components/visit/HPIBuilder";
 import ROSBuilder from "@/components/visit/ROSBuilder";
 import { SOAPExportSettingsDialog } from "@/components/soap/SOAPExportSettingsDialog";
+import { SOAPLivePreviewDialog } from "@/components/soap/SOAPLivePreviewDialog";
+import { SOAPEmailDialog } from "@/components/soap/SOAPEmailDialog";
 import jsPDF from "jspdf";
 import { format, differenceInYears } from "date-fns";
 import DOMPurify from "dompurify";
@@ -114,6 +116,8 @@ export default function ClinicalDocumentation() {
   const [showHPIDialog, setShowHPIDialog] = useState(false);
   const [showROSDialog, setShowROSDialog] = useState(false);
   const [showSOAPExportSettings, setShowSOAPExportSettings] = useState(false);
+  const [showSOAPPreview, setShowSOAPPreview] = useState(false);
+  const [showSOAPEmail, setShowSOAPEmail] = useState(false);
   const assessmentRef = useRef<HTMLTextAreaElement>(null);
   const planRef = useRef<HTMLTextAreaElement>(null);
   const prescriptionEditorRef = useRef<RichTextEditorHandle>(null);
@@ -594,6 +598,23 @@ export default function ClinicalDocumentation() {
     if (button) button.click();
   };
 
+
+  const copySOAPNote = async () => {
+    const soapText = `SUBJECTIVE:\n${subjective}\n\nOBJECTIVE:\n${objective}\n\nASSESSMENT:\n${assessment}\n\nPLAN:\n${plan}`;
+    try {
+      await navigator.clipboard.writeText(soapText);
+      toast({
+        title: "Copied",
+        description: "SOAP note copied to clipboard",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to copy to clipboard",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleSave = async () => {
     try {
@@ -1286,15 +1307,44 @@ ${cleanPrescription}
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button 
-                            variant="outline" 
-                            size="icon" 
-                            onClick={() => setIsSoapViewMode(!isSoapViewMode)}
-                          >
-                            {isSoapViewMode ? <Edit className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          <Button variant="outline" size="icon" onClick={() => setShowSOAPPreview(true)}>
+                            <Eye className="h-4 w-4" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>{isSoapViewMode ? "Edit Mode" : "View Mode"}</TooltipContent>
+                        <TooltipContent>Preview PDF</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="outline" size="icon" onClick={copySOAPNote}>
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Copy SOAP Note</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="outline" size="icon" onClick={() => setShowSOAPEmail(true)}>
+                            <Mail className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Email SOAP Note</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="outline" size="icon" onClick={() => setShowSOAPExportSettings(true)}>
+                            <Palette className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>PDF Settings</TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
 
@@ -1331,10 +1381,24 @@ ${cleanPrescription}
                           <FileText className="h-4 w-4 mr-2" />
                           Export as Plain Text
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setIsSoapViewMode(!isSoapViewMode)}>
-                          {isSoapViewMode ? <Edit className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
-                          {isSoapViewMode ? "Edit Mode" : "View Mode"}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => setShowSOAPPreview(true)}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          Preview PDF
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={copySOAPNote}>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy SOAP Note
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setShowSOAPEmail(true)}>
+                          <Mail className="h-4 w-4 mr-2" />
+                          Email SOAP Note
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setShowSOAPExportSettings(true)}>
+                          <Palette className="h-4 w-4 mr-2" />
+                          PDF Settings
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={handleSave}>
                           <Save className="h-4 w-4 mr-2" />
                           Save
@@ -1998,6 +2062,23 @@ ${cleanPrescription}
       <SOAPExportSettingsDialog
         open={showSOAPExportSettings}
         onOpenChange={setShowSOAPExportSettings}
+      />
+
+      <SOAPLivePreviewDialog
+        open={showSOAPPreview}
+        onOpenChange={setShowSOAPPreview}
+        patient={patient}
+        subjective={subjective}
+        objective={objective}
+        assessment={assessment}
+        plan={plan}
+      />
+
+      <SOAPEmailDialog
+        open={showSOAPEmail}
+        onOpenChange={setShowSOAPEmail}
+        patientName={patient ? `${patient.first_name} ${patient.last_name}` : ""}
+        soapNote={{ subjective, objective, assessment, plan }}
       />
     </div>
   );

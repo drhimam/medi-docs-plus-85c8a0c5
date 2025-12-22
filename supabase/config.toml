@@ -35,3 +35,6 @@ verify_jwt = true
 
 [functions.send-appointment-reminders]
 verify_jwt = true
+
+[functions.send-soap-email]
+verify_jwt = true
