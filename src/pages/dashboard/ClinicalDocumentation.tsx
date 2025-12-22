@@ -676,9 +676,11 @@ ${plan}
     const margin = 15;
     const contentWidth = pageWidth - 2 * margin;
     let yPosition = margin;
+    const fontSize = 10;
+    const lineHeight = 5;
 
     // Helper to check and add new page if needed
-    const checkPageBreak = (neededHeight: number = 20) => {
+    const checkPageBreak = (neededHeight: number = 10) => {
       if (yPosition + neededHeight > pageHeight - margin) {
         doc.addPage();
         yPosition = margin;
@@ -687,11 +689,87 @@ ${plan}
       return false;
     };
 
-    // Clean text - remove date headers for cleaner output
+    // Clean text - remove date headers
     const cleanText = (text: string) => {
       return text
         .replace(/\n*---\s*[A-Z\s\/()0-9:-]+\s*---\n*/gi, '\n\n')
         .trim();
+    };
+
+    // Parse and render text with markdown support
+    const renderFormattedText = (text: string, xOffset: number = 0) => {
+      // Remove markdown bold/italic and render as plain formatted text
+      let cleanLine = text
+        .replace(/\*\*\*(.+?)\*\*\*/g, '$1')  // Bold+Italic
+        .replace(/\*\*(.+?)\*\*/g, '$1')       // Bold
+        .replace(/\*(.+?)\*/g, '$1')           // Italic
+        .replace(/__(.+?)__/g, '$1')           // Bold alt
+        .replace(/_(.+?)_/g, '$1')             // Italic alt
+        .replace(/`(.+?)`/g, '$1')             // Inline code
+        .trim();
+
+      const wrappedLines = doc.splitTextToSize(cleanLine, contentWidth - xOffset - 4);
+      wrappedLines.forEach((line: string) => {
+        checkPageBreak(lineHeight);
+        doc.text(line, margin + xOffset + 4, yPosition);
+        yPosition += lineHeight;
+      });
+    };
+
+    // Render content section with markdown parsing
+    const renderContent = (content: string) => {
+      const cleanedContent = cleanText(content || "N/A");
+      const lines = cleanedContent.split('\n');
+      
+      lines.forEach((line) => {
+        if (!line.trim()) {
+          yPosition += 2;
+          return;
+        }
+        
+        // Detect section headers (ALL CAPS with colon or Title Case with colon)
+        const isSubHeader = /^[A-Z][A-Z\s\/()-]+:/.test(line.trim()) || 
+                           /^[A-Z][a-z]+(\s+[A-Z][a-z]+)*:/.test(line.trim());
+        
+        // Detect bullet points
+        const bulletMatch = line.match(/^(\s*)[-•*]\s+(.+)/);
+        const numberedMatch = line.match(/^(\s*)(\d+)[.)]\s+(.+)/);
+        
+        if (isSubHeader) {
+          checkPageBreak(10);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(fontSize);
+          doc.setTextColor(50, 50, 50);
+          const headerText = line.replace(/\*\*/g, '').trim();
+          const wrappedLines = doc.splitTextToSize(headerText, contentWidth - 4);
+          wrappedLines.forEach((wrappedLine: string) => {
+            checkPageBreak(lineHeight);
+            doc.text(wrappedLine, margin + 4, yPosition);
+            yPosition += lineHeight;
+          });
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(60, 60, 60);
+        } else if (bulletMatch) {
+          const indent = Math.min(bulletMatch[1].length / 2, 3) * 4;
+          checkPageBreak(lineHeight);
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(fontSize);
+          doc.text("•", margin + 4 + indent, yPosition);
+          renderFormattedText(bulletMatch[2], indent + 4);
+        } else if (numberedMatch) {
+          const indent = Math.min(numberedMatch[1].length / 2, 3) * 4;
+          checkPageBreak(lineHeight);
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(fontSize);
+          doc.text(`${numberedMatch[2]}.`, margin + 4 + indent, yPosition);
+          renderFormattedText(numberedMatch[3], indent + 6);
+        } else {
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(fontSize);
+          doc.setTextColor(60, 60, 60);
+          renderFormattedText(line, 0);
+        }
+      });
     };
 
     // Add header
@@ -713,7 +791,7 @@ ${plan}
 
     // Section rendering helper
     const addSection = (title: string, content: string, color: [number, number, number]) => {
-      checkPageBreak(25);
+      checkPageBreak(20);
       
       // Section header with colored left border
       doc.setFillColor(...color);
@@ -723,56 +801,23 @@ ${plan}
       doc.setFont("helvetica", "bold");
       doc.setTextColor(...color);
       doc.text(title, margin + 6, yPosition + 4);
-      yPosition += 12;
+      yPosition += 14;
       
       // Content
       doc.setFont("helvetica", "normal");
       doc.setTextColor(60, 60, 60);
-      doc.setFontSize(10);
+      doc.setFontSize(fontSize);
       
-      const cleanedContent = cleanText(content || "N/A");
-      const paragraphs = cleanedContent.split(/\n\n+/);
+      renderContent(content);
       
-      paragraphs.forEach((paragraph, pIndex) => {
-        const lines = paragraph.split('\n');
-        lines.forEach((line) => {
-          if (!line.trim()) return;
-          
-          // Check if it's a section header within content
-          const isSubHeader = /^[A-Z][A-Z\s]+:/.test(line) || /^[A-Z][a-z]+:/.test(line.trim());
-          
-          if (isSubHeader) {
-            checkPageBreak(15);
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(9);
-            doc.setTextColor(80, 80, 80);
-          } else {
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(10);
-            doc.setTextColor(60, 60, 60);
-          }
-          
-          const wrappedLines = doc.splitTextToSize(line, contentWidth - 8);
-          wrappedLines.forEach((wrappedLine: string) => {
-            checkPageBreak(6);
-            doc.text(wrappedLine, margin + 6, yPosition);
-            yPosition += 5;
-          });
-        });
-        
-        if (pIndex < paragraphs.length - 1) {
-          yPosition += 3;
-        }
-      });
-      
-      yPosition += 8;
+      yPosition += 6;
     };
 
     // Add all sections with distinct colors
-    addSection("SUBJECTIVE", subjective, [52, 152, 219]); // Blue
-    addSection("OBJECTIVE", objective, [46, 204, 113]); // Green
-    addSection("ASSESSMENT", assessment, [155, 89, 182]); // Purple
-    addSection("PLAN", plan, [230, 126, 34]); // Orange
+    addSection("SUBJECTIVE", subjective, [52, 152, 219]);
+    addSection("OBJECTIVE", objective, [46, 204, 113]);
+    addSection("ASSESSMENT", assessment, [155, 89, 182]);
+    addSection("PLAN", plan, [230, 126, 34]);
 
     // Footer
     const pageCount = doc.getNumberOfPages();
