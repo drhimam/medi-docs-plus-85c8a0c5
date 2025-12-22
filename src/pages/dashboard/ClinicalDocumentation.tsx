@@ -6,11 +6,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Save, X, FileText, Download, Sparkles, Eye, Edit, Loader2, MoreVertical, ArrowUpDown, ExternalLink, Trash2, Settings, CheckCircle, AlertCircle, FileDown, FileSearch, Stethoscope, FlaskConical } from "lucide-react";
+import { ArrowLeft, Save, X, FileText, Download, Sparkles, Eye, Edit, Loader2, MoreVertical, ArrowUpDown, ExternalLink, Trash2, Settings, CheckCircle, AlertCircle, FileDown, FileSearch, Stethoscope, FlaskConical, Palette } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import TranscribeButton from "@/components/TranscribeButton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -28,8 +28,9 @@ import PhysicalExaminationDialog from "@/components/visit/PhysicalExaminationDia
 import InvestigationBuilderDialog from "@/components/visit/InvestigationBuilderDialog";
 import HPIBuilder from "@/components/visit/HPIBuilder";
 import ROSBuilder from "@/components/visit/ROSBuilder";
+import { SOAPExportSettingsDialog } from "@/components/soap/SOAPExportSettingsDialog";
 import jsPDF from "jspdf";
-import { format } from "date-fns";
+import { format, differenceInYears } from "date-fns";
 import DOMPurify from "dompurify";
 import { exportPrescriptionToPDF as exportPrescriptionWithSettings } from "@/lib/prescriptionExport";
 
@@ -112,6 +113,7 @@ export default function ClinicalDocumentation() {
   const [showInvestigationDialog, setShowInvestigationDialog] = useState(false);
   const [showHPIDialog, setShowHPIDialog] = useState(false);
   const [showROSDialog, setShowROSDialog] = useState(false);
+  const [showSOAPExportSettings, setShowSOAPExportSettings] = useState(false);
   const assessmentRef = useRef<HTMLTextAreaElement>(null);
   const planRef = useRef<HTMLTextAreaElement>(null);
   const prescriptionEditorRef = useRef<RichTextEditorHandle>(null);
@@ -666,9 +668,55 @@ ${plan}
     });
   };
 
-  const exportSOAPToPDF = () => {
+  const exportSOAPToPDF = async () => {
     if (!patient) return;
     
+    // Fetch user settings
+    let settings = {
+      header_title: "SOAP NOTE",
+      header_background_color: "#2980b9",
+      header_text_color: "#ffffff",
+      logo_path: null as string | null,
+      logo_width: 50,
+      logo_height: 30,
+      logo_enabled: false,
+      subjective_color: "#3498db",
+      objective_color: "#2ecc71",
+      assessment_color: "#9b59b6",
+      plan_color: "#e67e22",
+      body_font: "helvetica",
+      body_font_size: 10,
+      body_text_color: "#3c3c3c",
+      footer_enabled: true,
+      footer_text: null as string | null,
+      footer_text_color: "#969696",
+    };
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from("soap_export_settings")
+          .select("*")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (data) {
+          settings = { ...settings, ...data };
+        }
+      }
+    } catch (e) {
+      console.error("Error fetching SOAP settings:", e);
+    }
+
+    const hexToRgb = (hex: string): [number, number, number] => {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? [
+        parseInt(result[1], 16),
+        parseInt(result[2], 16),
+        parseInt(result[3], 16)
+      ] : [0, 0, 0];
+    };
+
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -676,10 +724,9 @@ ${plan}
     const margin = 15;
     const contentWidth = pageWidth - 2 * margin;
     let yPosition = margin;
-    const fontSize = 10;
-    const lineHeight = 5;
+    const fontSize = settings.body_font_size;
+    const lineHeight = fontSize * 0.5;
 
-    // Helper to check and add new page if needed
     const checkPageBreak = (neededHeight: number = 10) => {
       if (yPosition + neededHeight > pageHeight - margin) {
         doc.addPage();
@@ -689,23 +736,20 @@ ${plan}
       return false;
     };
 
-    // Clean text - remove date headers
     const cleanText = (text: string) => {
       return text
         .replace(/\n*---\s*[A-Z\s\/()0-9:-]+\s*---\n*/gi, '\n\n')
         .trim();
     };
 
-    // Parse and render text with markdown support
     const renderFormattedText = (text: string, xOffset: number = 0) => {
-      // Remove markdown bold/italic and render as plain formatted text
       let cleanLine = text
-        .replace(/\*\*\*(.+?)\*\*\*/g, '$1')  // Bold+Italic
-        .replace(/\*\*(.+?)\*\*/g, '$1')       // Bold
-        .replace(/\*(.+?)\*/g, '$1')           // Italic
-        .replace(/__(.+?)__/g, '$1')           // Bold alt
-        .replace(/_(.+?)_/g, '$1')             // Italic alt
-        .replace(/`(.+?)`/g, '$1')             // Inline code
+        .replace(/\*\*\*(.+?)\*\*\*/g, '$1')
+        .replace(/\*\*(.+?)\*\*/g, '$1')
+        .replace(/\*(.+?)\*/g, '$1')
+        .replace(/__(.+?)__/g, '$1')
+        .replace(/_(.+?)_/g, '$1')
+        .replace(/`(.+?)`/g, '$1')
         .trim();
 
       const wrappedLines = doc.splitTextToSize(cleanLine, contentWidth - xOffset - 4);
@@ -716,7 +760,6 @@ ${plan}
       });
     };
 
-    // Render content section with markdown parsing
     const renderContent = (content: string) => {
       const cleanedContent = cleanText(content || "N/A");
       const lines = cleanedContent.split('\n');
@@ -727,17 +770,15 @@ ${plan}
           return;
         }
         
-        // Detect section headers (ALL CAPS with colon or Title Case with colon)
         const isSubHeader = /^[A-Z][A-Z\s\/()-]+:/.test(line.trim()) || 
                            /^[A-Z][a-z]+(\s+[A-Z][a-z]+)*:/.test(line.trim());
         
-        // Detect bullet points
         const bulletMatch = line.match(/^(\s*)[-•*]\s+(.+)/);
         const numberedMatch = line.match(/^(\s*)(\d+)[.)]\s+(.+)/);
         
         if (isSubHeader) {
           checkPageBreak(10);
-          doc.setFont("helvetica", "bold");
+          doc.setFont(settings.body_font, "bold");
           doc.setFontSize(fontSize);
           doc.setTextColor(50, 50, 50);
           const headerText = line.replace(/\*\*/g, '').trim();
@@ -747,65 +788,95 @@ ${plan}
             doc.text(wrappedLine, margin + 4, yPosition);
             yPosition += lineHeight;
           });
-          doc.setFont("helvetica", "normal");
-          doc.setTextColor(60, 60, 60);
+          doc.setFont(settings.body_font, "normal");
+          doc.setTextColor(...hexToRgb(settings.body_text_color));
         } else if (bulletMatch) {
           const indent = Math.min(bulletMatch[1].length / 2, 3) * 4;
           checkPageBreak(lineHeight);
-          doc.setFont("helvetica", "normal");
+          doc.setFont(settings.body_font, "normal");
           doc.setFontSize(fontSize);
           doc.text("•", margin + 4 + indent, yPosition);
           renderFormattedText(bulletMatch[2], indent + 4);
         } else if (numberedMatch) {
           const indent = Math.min(numberedMatch[1].length / 2, 3) * 4;
           checkPageBreak(lineHeight);
-          doc.setFont("helvetica", "normal");
+          doc.setFont(settings.body_font, "normal");
           doc.setFontSize(fontSize);
           doc.text(`${numberedMatch[2]}.`, margin + 4 + indent, yPosition);
           renderFormattedText(numberedMatch[3], indent + 6);
         } else {
-          doc.setFont("helvetica", "normal");
+          doc.setFont(settings.body_font, "normal");
           doc.setFontSize(fontSize);
-          doc.setTextColor(60, 60, 60);
+          doc.setTextColor(...hexToRgb(settings.body_text_color));
           renderFormattedText(line, 0);
         }
       });
     };
 
-    // Add header
-    doc.setFillColor(41, 128, 185);
-    doc.rect(0, 0, pageWidth, 28, 'F');
-    
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(18);
-    doc.setFont("helvetica", "bold");
-    doc.text("SOAP NOTE", margin, 12);
-    
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Patient: ${patient.first_name} ${patient.last_name}`, margin, 20);
-    doc.text(`Date: ${format(new Date(), "MMMM dd, yyyy")}`, pageWidth - margin - 50, 20);
+    // Calculate patient age
+    const patientAge = differenceInYears(new Date(), new Date(patient.date_of_birth));
 
-    yPosition = 38;
+    // Add header with logo support
+    const headerRgb = hexToRgb(settings.header_background_color);
+    const headerTextRgb = hexToRgb(settings.header_text_color);
+    doc.setFillColor(...headerRgb);
+    doc.rect(0, 0, pageWidth, 32, 'F');
+    
+    let headerXOffset = margin;
+    
+    // Load logo if enabled
+    if (settings.logo_enabled && settings.logo_path) {
+      try {
+        const { data: logoData } = await supabase.storage
+          .from("prescription-logos")
+          .createSignedUrl(settings.logo_path, 60);
+        
+        if (logoData?.signedUrl) {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          await new Promise<void>((resolve) => {
+            img.onload = () => {
+              doc.addImage(img, "PNG", margin, 4, settings.logo_width / 3, settings.logo_height / 3);
+              resolve();
+            };
+            img.onerror = () => resolve();
+            img.src = logoData.signedUrl;
+          });
+          headerXOffset = margin + (settings.logo_width / 3) + 5;
+        }
+      } catch (e) {
+        console.error("Logo load error:", e);
+      }
+    }
+    
+    doc.setTextColor(...headerTextRgb);
+    doc.setFontSize(16);
+    doc.setFont(settings.body_font, "bold");
+    doc.text(settings.header_title, headerXOffset, 12);
+    
+    doc.setFontSize(9);
+    doc.setFont(settings.body_font, "normal");
+    doc.text(`Patient: ${patient.first_name} ${patient.last_name} | Age: ${patientAge} yrs | ${patient.gender}`, headerXOffset, 20);
+    doc.text(`Contact: ${patient.contact_number} | Date: ${format(new Date(), "MMMM dd, yyyy")}`, headerXOffset, 26);
+
+    yPosition = 42;
     doc.setTextColor(0, 0, 0);
 
-    // Section rendering helper
-    const addSection = (title: string, content: string, color: [number, number, number]) => {
+    const addSection = (title: string, content: string, colorHex: string) => {
+      const color = hexToRgb(colorHex);
       checkPageBreak(20);
       
-      // Section header with colored left border
       doc.setFillColor(...color);
       doc.rect(margin, yPosition - 4, 3, 14, 'F');
       
       doc.setFontSize(12);
-      doc.setFont("helvetica", "bold");
+      doc.setFont(settings.body_font, "bold");
       doc.setTextColor(...color);
       doc.text(title, margin + 6, yPosition + 4);
       yPosition += 14;
       
-      // Content
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(60, 60, 60);
+      doc.setFont(settings.body_font, "normal");
+      doc.setTextColor(...hexToRgb(settings.body_text_color));
       doc.setFontSize(fontSize);
       
       renderContent(content);
@@ -813,25 +884,28 @@ ${plan}
       yPosition += 6;
     };
 
-    // Add all sections with distinct colors
-    addSection("SUBJECTIVE", subjective, [52, 152, 219]);
-    addSection("OBJECTIVE", objective, [46, 204, 113]);
-    addSection("ASSESSMENT", assessment, [155, 89, 182]);
-    addSection("PLAN", plan, [230, 126, 34]);
+    addSection("SUBJECTIVE", subjective, settings.subjective_color);
+    addSection("OBJECTIVE", objective, settings.objective_color);
+    addSection("ASSESSMENT", assessment, settings.assessment_color);
+    addSection("PLAN", plan, settings.plan_color);
 
     // Footer
-    const pageCount = doc.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      doc.setFontSize(8);
-      doc.setTextColor(150, 150, 150);
-      doc.setFont("helvetica", "normal");
-      doc.text(
-        `Page ${i} of ${pageCount} | Generated: ${format(new Date(), "yyyy-MM-dd HH:mm")}`,
-        pageWidth / 2,
-        pageHeight - 8,
-        { align: "center" }
-      );
+    if (settings.footer_enabled) {
+      const footerRgb = hexToRgb(settings.footer_text_color);
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(...footerRgb);
+        doc.setFont(settings.body_font, "normal");
+        const footerText = settings.footer_text || `Page ${i} of ${pageCount} | Generated: ${format(new Date(), "yyyy-MM-dd HH:mm")}`;
+        doc.text(
+          footerText,
+          pageWidth / 2,
+          pageHeight - 8,
+          { align: "center" }
+        );
+      }
     }
 
     doc.save(`SOAP_${patient.last_name}_${visitId}_${timestamp}.pdf`);
@@ -1150,6 +1224,11 @@ ${cleanPrescription}
                   <DropdownMenuItem onClick={exportPrescriptionToPDF}>
                     <FileDown className="w-4 h-4 mr-2" />
                     Export Prescription (PDF)
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setShowSOAPExportSettings(true)}>
+                    <Palette className="w-4 h-4 mr-2" />
+                    SOAP PDF Settings
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setIsSettingsOpen(true)}>
                     <Settings className="w-4 h-4 mr-2" />
@@ -1914,6 +1993,11 @@ ${cleanPrescription}
           });
           setShowROSDialog(false);
         }}
+      />
+
+      <SOAPExportSettingsDialog
+        open={showSOAPExportSettings}
+        onOpenChange={setShowSOAPExportSettings}
       />
     </div>
   );

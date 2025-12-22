@@ -696,6 +696,78 @@ export type Database = {
         }
         Relationships: []
       }
+      soap_export_settings: {
+        Row: {
+          assessment_color: string
+          body_font: string
+          body_font_size: number
+          body_text_color: string
+          created_at: string
+          footer_enabled: boolean
+          footer_text: string | null
+          footer_text_color: string
+          header_background_color: string
+          header_text_color: string
+          header_title: string
+          id: string
+          logo_enabled: boolean
+          logo_height: number | null
+          logo_path: string | null
+          logo_width: number | null
+          objective_color: string
+          plan_color: string
+          subjective_color: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assessment_color?: string
+          body_font?: string
+          body_font_size?: number
+          body_text_color?: string
+          created_at?: string
+          footer_enabled?: boolean
+          footer_text?: string | null
+          footer_text_color?: string
+          header_background_color?: string
+          header_text_color?: string
+          header_title?: string
+          id?: string
+          logo_enabled?: boolean
+          logo_height?: number | null
+          logo_path?: string | null
+          logo_width?: number | null
+          objective_color?: string
+          plan_color?: string
+          subjective_color?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assessment_color?: string
+          body_font?: string
+          body_font_size?: number
+          body_text_color?: string
+          created_at?: string
+          footer_enabled?: boolean
+          footer_text?: string | null
+          footer_text_color?: string
+          header_background_color?: string
+          header_text_color?: string
+          header_title?: string
+          id?: string
+          logo_enabled?: boolean
+          logo_height?: number | null
+          logo_path?: string | null
+          logo_width?: number | null
+          objective_color?: string
+          plan_color?: string
+          subjective_color?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       sticky_notes: {
         Row: {
           color: string
