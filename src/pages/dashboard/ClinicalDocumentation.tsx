@@ -667,50 +667,197 @@ ${plan}
   };
 
   const exportSOAPToPDF = () => {
+    if (!patient) return;
+    
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
-    const margin = 20;
-    const maxWidth = pageWidth - 2 * margin;
-    let yPosition = 20;
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 15;
+    const contentWidth = pageWidth - 2 * margin;
+    let yPosition = margin;
 
-    const addText = (text: string, fontSize: number = 12, isBold: boolean = false) => {
-      doc.setFontSize(fontSize);
-      if (isBold) doc.setFont("helvetica", "bold");
-      else doc.setFont("helvetica", "normal");
-      
-      const lines = doc.splitTextToSize(text, maxWidth);
-      lines.forEach((line: string) => {
-        if (yPosition > 270) {
-          doc.addPage();
-          yPosition = 20;
-        }
-        doc.text(line, margin, yPosition);
-        yPosition += fontSize / 2 + 2;
-      });
-      yPosition += 5;
+    // Helper to check and add new page if needed
+    const checkPageBreak = (neededHeight: number = 20) => {
+      if (yPosition + neededHeight > pageHeight - margin) {
+        doc.addPage();
+        yPosition = margin;
+        return true;
+      }
+      return false;
     };
 
-    addText("SOAP Note", 18, true);
-    yPosition += 5;
+    // Clean text - remove date headers for cleaner output
+    const cleanText = (text: string) => {
+      return text
+        .replace(/\n*---\s*[A-Z\s\/()0-9:-]+\s*---\n*/gi, '\n\n')
+        .trim();
+    };
+
+    // Add header
+    doc.setFillColor(41, 128, 185);
+    doc.rect(0, 0, pageWidth, 28, 'F');
     
-    addText("Subjective:", 14, true);
-    addText(subjective || "N/A");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.text("SOAP NOTE", margin, 12);
     
-    addText("Objective:", 14, true);
-    addText(objective || "N/A");
-    
-    addText("Assessment:", 14, true);
-    addText(assessment || "N/A");
-    
-    addText("Plan:", 14, true);
-    addText(plan || "N/A");
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Patient: ${patient.first_name} ${patient.last_name}`, margin, 20);
+    doc.text(`Date: ${format(new Date(), "MMMM dd, yyyy")}`, pageWidth - margin - 50, 20);
+
+    yPosition = 38;
+    doc.setTextColor(0, 0, 0);
+
+    // Section rendering helper
+    const addSection = (title: string, content: string, color: [number, number, number]) => {
+      checkPageBreak(25);
+      
+      // Section header with colored left border
+      doc.setFillColor(...color);
+      doc.rect(margin, yPosition - 4, 3, 14, 'F');
+      
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...color);
+      doc.text(title, margin + 6, yPosition + 4);
+      yPosition += 12;
+      
+      // Content
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(60, 60, 60);
+      doc.setFontSize(10);
+      
+      const cleanedContent = cleanText(content || "N/A");
+      const paragraphs = cleanedContent.split(/\n\n+/);
+      
+      paragraphs.forEach((paragraph, pIndex) => {
+        const lines = paragraph.split('\n');
+        lines.forEach((line) => {
+          if (!line.trim()) return;
+          
+          // Check if it's a section header within content
+          const isSubHeader = /^[A-Z][A-Z\s]+:/.test(line) || /^[A-Z][a-z]+:/.test(line.trim());
+          
+          if (isSubHeader) {
+            checkPageBreak(15);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(9);
+            doc.setTextColor(80, 80, 80);
+          } else {
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            doc.setTextColor(60, 60, 60);
+          }
+          
+          const wrappedLines = doc.splitTextToSize(line, contentWidth - 8);
+          wrappedLines.forEach((wrappedLine: string) => {
+            checkPageBreak(6);
+            doc.text(wrappedLine, margin + 6, yPosition);
+            yPosition += 5;
+          });
+        });
+        
+        if (pIndex < paragraphs.length - 1) {
+          yPosition += 3;
+        }
+      });
+      
+      yPosition += 8;
+    };
+
+    // Add all sections with distinct colors
+    addSection("SUBJECTIVE", subjective, [52, 152, 219]); // Blue
+    addSection("OBJECTIVE", objective, [46, 204, 113]); // Green
+    addSection("ASSESSMENT", assessment, [155, 89, 182]); // Purple
+    addSection("PLAN", plan, [230, 126, 34]); // Orange
+
+    // Footer
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(150, 150, 150);
+      doc.setFont("helvetica", "normal");
+      doc.text(
+        `Page ${i} of ${pageCount} | Generated: ${format(new Date(), "yyyy-MM-dd HH:mm")}`,
+        pageWidth / 2,
+        pageHeight - 8,
+        { align: "center" }
+      );
+    }
 
     doc.save(`SOAP_${patient.last_name}_${visitId}_${timestamp}.pdf`);
     
     toast({
       title: "Success",
       description: "SOAP note exported as PDF",
+    });
+  };
+
+  const exportSOAPToPlainText = () => {
+    if (!patient) return;
+    
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+    
+    // Clean text - remove date headers for cleaner output
+    const cleanText = (text: string) => {
+      return text
+        .replace(/\n*---\s*[A-Z\s\/()0-9:-]+\s*---\n*/gi, '\n')
+        .trim();
+    };
+
+    const separator = "═".repeat(60);
+    const subSeparator = "─".repeat(40);
+    
+    const content = `${separator}
+                         SOAP NOTE
+${separator}
+
+Patient: ${patient.first_name} ${patient.last_name}
+Date: ${format(new Date(), "MMMM dd, yyyy")}
+Visit ID: ${visitId}
+
+${subSeparator}
+SUBJECTIVE
+${subSeparator}
+${cleanText(subjective) || "N/A"}
+
+${subSeparator}
+OBJECTIVE
+${subSeparator}
+${cleanText(objective) || "N/A"}
+
+${subSeparator}
+ASSESSMENT
+${subSeparator}
+${cleanText(assessment) || "N/A"}
+
+${subSeparator}
+PLAN
+${subSeparator}
+${cleanText(plan) || "N/A"}
+
+${separator}
+Generated: ${format(new Date(), "yyyy-MM-dd HH:mm")}
+${separator}
+`;
+    
+    const blob = new Blob([content], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `SOAP_${patient.last_name}_${visitId}_${timestamp}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Success",
+      description: "SOAP note exported as plain text",
     });
   };
 
@@ -947,6 +1094,10 @@ ${cleanPrescription}
                     <FileDown className="w-4 h-4 mr-2" />
                     Export SOAP Note (PDF)
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportSOAPToPlainText}>
+                    <FileText className="w-4 h-4 mr-2" />
+                    Export SOAP Note (TXT)
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={exportPrescriptionToMarkdown}>
                     <FileDown className="w-4 h-4 mr-2" />
                     Export Prescription (MD)
@@ -1000,6 +1151,7 @@ ${cleanPrescription}
                             <DropdownMenuContent>
                               <DropdownMenuItem onClick={exportSOAPToMarkdown}>Export as Markdown</DropdownMenuItem>
                               <DropdownMenuItem onClick={exportSOAPToPDF}>Export as PDF</DropdownMenuItem>
+                              <DropdownMenuItem onClick={exportSOAPToPlainText}>Export as Plain Text</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TooltipTrigger>
@@ -1050,6 +1202,10 @@ ${cleanPrescription}
                         <DropdownMenuItem onClick={exportSOAPToPDF}>
                           <FileDown className="h-4 w-4 mr-2" />
                           Export as PDF
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={exportSOAPToPlainText}>
+                          <FileText className="h-4 w-4 mr-2" />
+                          Export as Plain Text
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setIsSoapViewMode(!isSoapViewMode)}>
                           {isSoapViewMode ? <Edit className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
