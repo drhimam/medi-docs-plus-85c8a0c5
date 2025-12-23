@@ -7,8 +7,104 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PresetDialog } from "@/components/patient/preset/PresetDialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { CheckCheck, Eye, EyeOff, Copy, Check } from "lucide-react";
+import { CheckCheck, Eye, EyeOff, Copy, Check, Heart } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+
+// Vital signs normal ranges for validation
+const VITAL_RANGES = {
+  bp: {
+    systolic: { min: 90, max: 139 },
+    diastolic: { min: 60, max: 89 },
+  },
+  pulse: { min: 60, max: 100 },
+  temp: { min: 36.1, max: 37.5 },
+  respiratoryRate: { min: 12, max: 20 },
+  spo2: { min: 95, max: 100 },
+  bmi: { min: 18.5, max: 24.9 },
+};
+
+// Normal vital values
+const NORMAL_VITALS = {
+  bp: "120/80",
+  pulse: "72",
+  temp: "37.0",
+  respiratoryRate: "16",
+  spo2: "98",
+  weight: "",
+  height: "",
+  bmi: "",
+  generalAppearance: "Alert, oriented, well-nourished, in no acute distress",
+};
+
+// Check if a vital sign is abnormal
+const isVitalAbnormal = (field: string, value: string): boolean => {
+  if (!value || value.trim() === "") return false;
+  
+  if (field === "bp") {
+    const parts = value.split("/");
+    if (parts.length !== 2) return false;
+    const systolic = parseFloat(parts[0]);
+    const diastolic = parseFloat(parts[1]);
+    if (isNaN(systolic) || isNaN(diastolic)) return false;
+    return systolic < VITAL_RANGES.bp.systolic.min || systolic > VITAL_RANGES.bp.systolic.max ||
+           diastolic < VITAL_RANGES.bp.diastolic.min || diastolic > VITAL_RANGES.bp.diastolic.max;
+  }
+  
+  const numValue = parseFloat(value);
+  if (isNaN(numValue)) return false;
+  
+  const range = VITAL_RANGES[field as keyof typeof VITAL_RANGES];
+  if (!range || typeof range !== 'object' || 'systolic' in range) return false;
+  
+  return numValue < range.min || numValue > range.max;
+};
+
+// Get abnormality description
+const getAbnormalityDescription = (field: string, value: string): string | null => {
+  if (!value || value.trim() === "") return null;
+  
+  if (field === "bp") {
+    const parts = value.split("/");
+    if (parts.length !== 2) return null;
+    const systolic = parseFloat(parts[0]);
+    const diastolic = parseFloat(parts[1]);
+    if (isNaN(systolic) || isNaN(diastolic)) return null;
+    
+    if (systolic >= 180 || diastolic >= 120) return "Hypertensive Crisis";
+    if (systolic >= 140 || diastolic >= 90) return "High";
+    if (systolic < 90 || diastolic < 60) return "Low";
+    return null;
+  }
+  
+  const numValue = parseFloat(value);
+  if (isNaN(numValue)) return null;
+  
+  switch (field) {
+    case "pulse":
+      if (numValue > 100) return "Tachycardia";
+      if (numValue < 60) return "Bradycardia";
+      break;
+    case "temp":
+      if (numValue >= 38) return "Fever";
+      if (numValue < 36) return "Hypothermia";
+      break;
+    case "respiratoryRate":
+      if (numValue > 20) return "Tachypnea";
+      if (numValue < 12) return "Bradypnea";
+      break;
+    case "spo2":
+      if (numValue < 90) return "Severe Hypoxemia";
+      if (numValue < 95) return "Low";
+      break;
+    case "bmi":
+      if (numValue >= 30) return "Obese";
+      if (numValue >= 25) return "Overweight";
+      if (numValue < 18.5) return "Underweight";
+      break;
+  }
+  return null;
+};
 
 interface VitalSigns {
   bp: string;
@@ -609,8 +705,53 @@ export default function PhysicalExaminationDialog({
     }));
   };
 
+  // Fill normal vitals
+  const fillNormalVitals = () => {
+    if (onVitalSignsChange) {
+      Object.entries(NORMAL_VITALS).forEach(([key, value]) => {
+        if (key !== 'bmi') { // BMI is auto-calculated
+          onVitalSignsChange(key as keyof VitalSigns, value);
+        }
+      });
+      toast({
+        title: "Normal Vitals Applied",
+        description: "Common normal vital values have been filled in.",
+      });
+    }
+  };
+
+  // Generate vitals summary text
+  const generateVitalsSummary = useMemo(() => {
+    if (!vitalSigns) return "";
+    const parts: string[] = [];
+    
+    if (vitalSigns.bp) parts.push(`BP: ${vitalSigns.bp} mmHg`);
+    if (vitalSigns.pulse) parts.push(`Pulse: ${vitalSigns.pulse} bpm`);
+    if (vitalSigns.temp) parts.push(`Temp: ${vitalSigns.temp}°C`);
+    if (vitalSigns.respiratoryRate) parts.push(`RR: ${vitalSigns.respiratoryRate}/min`);
+    if (vitalSigns.spo2) parts.push(`SpO2: ${vitalSigns.spo2}%`);
+    if (vitalSigns.weight) parts.push(`Weight: ${vitalSigns.weight} kg`);
+    if (vitalSigns.height) parts.push(`Height: ${vitalSigns.height} cm`);
+    if (vitalSigns.bmi) parts.push(`BMI: ${vitalSigns.bmi}`);
+    if (vitalSigns.generalAppearance) parts.push(`General: ${vitalSigns.generalAppearance}`);
+    
+    return parts.length > 0 ? `**Vital Signs:**\n${parts.join(", ")}` : "";
+  }, [vitalSigns]);
+
+  // Check if any vitals are entered
+  const hasVitalsEntered = useMemo(() => {
+    if (!vitalSigns) return false;
+    return Object.entries(vitalSigns).some(([key, value]) => key !== 'bmi' && value && value.trim() !== '');
+  }, [vitalSigns]);
+
   const generateExamText = useMemo(() => {
     const lines: string[] = [];
+    
+    // Include vitals summary if entered
+    if (hasVitalsEntered && generateVitalsSummary) {
+      lines.push(generateVitalsSummary);
+      lines.push("");
+    }
     
     SYSTEMS.forEach((system) => {
       const findings = selectedFindings[system.id];
@@ -634,7 +775,7 @@ export default function PhysicalExaminationDialog({
     });
     
     return lines.join("\n").trim();
-  }, [selectedFindings]);
+  }, [selectedFindings, hasVitalsEntered, generateVitalsSummary]);
 
   const handleInsert = () => {
     if (generateExamText) {
@@ -707,7 +848,18 @@ export default function PhysicalExaminationDialog({
         </div>
       }
     >
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        {activeTab === "vitals" && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fillNormalVitals}
+            className="gap-2"
+          >
+            <Heart className="h-4 w-4" />
+            Normal Vitals
+          </Button>
+        )}
         <Button
           variant="outline"
           size="sm"
@@ -795,48 +947,98 @@ export default function PhysicalExaminationDialog({
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="vital-bp">BP (mmHg)</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="vital-bp">BP (mmHg)</Label>
+                  {isVitalAbnormal("bp", vitalSigns?.bp || "") && (
+                    <span className="text-xs font-medium text-destructive">
+                      {getAbnormalityDescription("bp", vitalSigns?.bp || "")}
+                    </span>
+                  )}
+                </div>
                 <Input
                   id="vital-bp"
                   value={vitalSigns?.bp || ""}
                   onChange={(e) => onVitalSignsChange?.("bp", e.target.value)}
                   placeholder="e.g., 120/80"
+                  className={cn(
+                    isVitalAbnormal("bp", vitalSigns?.bp || "") && "border-destructive bg-destructive/5 focus-visible:ring-destructive"
+                  )}
                 />
               </div>
               <div>
-                <Label htmlFor="vital-pulse">Pulse (bpm)</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="vital-pulse">Pulse (bpm)</Label>
+                  {isVitalAbnormal("pulse", vitalSigns?.pulse || "") && (
+                    <span className="text-xs font-medium text-destructive">
+                      {getAbnormalityDescription("pulse", vitalSigns?.pulse || "")}
+                    </span>
+                  )}
+                </div>
                 <Input
                   id="vital-pulse"
                   value={vitalSigns?.pulse || ""}
                   onChange={(e) => onVitalSignsChange?.("pulse", e.target.value)}
                   placeholder="e.g., 72"
+                  className={cn(
+                    isVitalAbnormal("pulse", vitalSigns?.pulse || "") && "border-destructive bg-destructive/5 focus-visible:ring-destructive"
+                  )}
                 />
               </div>
               <div>
-                <Label htmlFor="vital-temp">Temperature (°C)</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="vital-temp">Temperature (°C)</Label>
+                  {isVitalAbnormal("temp", vitalSigns?.temp || "") && (
+                    <span className="text-xs font-medium text-destructive">
+                      {getAbnormalityDescription("temp", vitalSigns?.temp || "")}
+                    </span>
+                  )}
+                </div>
                 <Input
                   id="vital-temp"
                   value={vitalSigns?.temp || ""}
                   onChange={(e) => onVitalSignsChange?.("temp", e.target.value)}
                   placeholder="e.g., 37.0"
+                  className={cn(
+                    isVitalAbnormal("temp", vitalSigns?.temp || "") && "border-destructive bg-destructive/5 focus-visible:ring-destructive"
+                  )}
                 />
               </div>
               <div>
-                <Label htmlFor="vital-rr">Respiratory Rate (breaths/min)</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="vital-rr">Respiratory Rate (breaths/min)</Label>
+                  {isVitalAbnormal("respiratoryRate", vitalSigns?.respiratoryRate || "") && (
+                    <span className="text-xs font-medium text-destructive">
+                      {getAbnormalityDescription("respiratoryRate", vitalSigns?.respiratoryRate || "")}
+                    </span>
+                  )}
+                </div>
                 <Input
                   id="vital-rr"
                   value={vitalSigns?.respiratoryRate || ""}
                   onChange={(e) => onVitalSignsChange?.("respiratoryRate", e.target.value)}
                   placeholder="e.g., 16"
+                  className={cn(
+                    isVitalAbnormal("respiratoryRate", vitalSigns?.respiratoryRate || "") && "border-destructive bg-destructive/5 focus-visible:ring-destructive"
+                  )}
                 />
               </div>
               <div>
-                <Label htmlFor="vital-spo2">SpO2 (%)</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="vital-spo2">SpO2 (%)</Label>
+                  {isVitalAbnormal("spo2", vitalSigns?.spo2 || "") && (
+                    <span className="text-xs font-medium text-destructive">
+                      {getAbnormalityDescription("spo2", vitalSigns?.spo2 || "")}
+                    </span>
+                  )}
+                </div>
                 <Input
                   id="vital-spo2"
                   value={vitalSigns?.spo2 || ""}
                   onChange={(e) => onVitalSignsChange?.("spo2", e.target.value)}
                   placeholder="e.g., 98"
+                  className={cn(
+                    isVitalAbnormal("spo2", vitalSigns?.spo2 || "") && "border-destructive bg-destructive/5 focus-visible:ring-destructive"
+                  )}
                 />
               </div>
               <div>
@@ -860,13 +1062,23 @@ export default function PhysicalExaminationDialog({
                 />
               </div>
               <div>
-                <Label htmlFor="vital-bmi">BMI (Auto-calculated)</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="vital-bmi">BMI (Auto-calculated)</Label>
+                  {isVitalAbnormal("bmi", vitalSigns?.bmi || "") && (
+                    <span className="text-xs font-medium text-destructive">
+                      {getAbnormalityDescription("bmi", vitalSigns?.bmi || "")}
+                    </span>
+                  )}
+                </div>
                 <Input
                   id="vital-bmi"
                   value={vitalSigns?.bmi || ""}
                   readOnly
                   placeholder="Auto-calculated"
-                  className="bg-muted"
+                  className={cn(
+                    "bg-muted",
+                    isVitalAbnormal("bmi", vitalSigns?.bmi || "") && "border-destructive bg-destructive/5"
+                  )}
                 />
               </div>
               <div>
