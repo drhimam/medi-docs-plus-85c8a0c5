@@ -1,18 +1,33 @@
 import * as React from "react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PresetDialog } from "@/components/patient/preset/PresetDialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CheckCheck, Eye, EyeOff, Copy, Check } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
+interface VitalSigns {
+  bp: string;
+  pulse: string;
+  temp: string;
+  respiratoryRate: string;
+  spo2: string;
+  weight: string;
+  height: string;
+  bmi: string;
+  generalAppearance: string;
+}
+
 interface PhysicalExaminationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onInsert: (text: string) => void;
+  vitalSigns?: VitalSigns;
+  onVitalSignsChange?: (field: keyof VitalSigns, value: string) => void;
 }
 
 type Finding = {
@@ -272,6 +287,7 @@ const POSTNATAL_ITEMS = {
 };
 
 const SYSTEMS = [
+  { id: "vitals", label: "Vitals", items: {} },
   { id: "respiratory", label: "Respiratory", items: RESPIRATORY_ITEMS },
   { id: "cardiovascular", label: "Cardiovascular", items: CARDIOVASCULAR_ITEMS },
   { id: "gastrointestinal", label: "GI", items: GASTROINTESTINAL_ITEMS },
@@ -528,11 +544,28 @@ export default function PhysicalExaminationDialog({
   open,
   onOpenChange,
   onInsert,
+  vitalSigns,
+  onVitalSignsChange,
 }: PhysicalExaminationDialogProps) {
   const [selectedFindings, setSelectedFindings] = useState<SystemFindings>({});
-  const [activeTab, setActiveTab] = useState("respiratory");
+  const [activeTab, setActiveTab] = useState("vitals");
   const [showPreview, setShowPreview] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // Auto-calculate BMI when weight or height changes
+  useEffect(() => {
+    if (vitalSigns && onVitalSignsChange) {
+      const weight = parseFloat(vitalSigns.weight);
+      const height = parseFloat(vitalSigns.height);
+      if (weight && height && height > 0) {
+        const heightInMeters = height / 100;
+        const bmi = (weight / (heightInMeters * heightInMeters)).toFixed(2);
+        if (bmi !== vitalSigns.bmi) {
+          onVitalSignsChange("bmi", bmi);
+        }
+      }
+    }
+  }, [vitalSigns?.weight, vitalSigns?.height]);
 
   const handleFindingToggle = (system: string, category: string, finding: string, checked: boolean) => {
     setSelectedFindings((prev) => {
@@ -613,7 +646,7 @@ export default function PhysicalExaminationDialog({
 
   const resetState = () => {
     setSelectedFindings({});
-    setActiveTab("respiratory");
+    setActiveTab("vitals");
     setShowPreview(false);
     setCopied(false);
   };
@@ -757,7 +790,100 @@ export default function PhysicalExaminationDialog({
           ))}
         </TabsList>
 
-        {SYSTEMS.map((system) => (
+        {/* Vitals Tab */}
+        <TabsContent value="vitals" className="mt-0">
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="vital-bp">BP (mmHg)</Label>
+                <Input
+                  id="vital-bp"
+                  value={vitalSigns?.bp || ""}
+                  onChange={(e) => onVitalSignsChange?.("bp", e.target.value)}
+                  placeholder="e.g., 120/80"
+                />
+              </div>
+              <div>
+                <Label htmlFor="vital-pulse">Pulse (bpm)</Label>
+                <Input
+                  id="vital-pulse"
+                  value={vitalSigns?.pulse || ""}
+                  onChange={(e) => onVitalSignsChange?.("pulse", e.target.value)}
+                  placeholder="e.g., 72"
+                />
+              </div>
+              <div>
+                <Label htmlFor="vital-temp">Temperature (°C)</Label>
+                <Input
+                  id="vital-temp"
+                  value={vitalSigns?.temp || ""}
+                  onChange={(e) => onVitalSignsChange?.("temp", e.target.value)}
+                  placeholder="e.g., 37.0"
+                />
+              </div>
+              <div>
+                <Label htmlFor="vital-rr">Respiratory Rate (breaths/min)</Label>
+                <Input
+                  id="vital-rr"
+                  value={vitalSigns?.respiratoryRate || ""}
+                  onChange={(e) => onVitalSignsChange?.("respiratoryRate", e.target.value)}
+                  placeholder="e.g., 16"
+                />
+              </div>
+              <div>
+                <Label htmlFor="vital-spo2">SpO2 (%)</Label>
+                <Input
+                  id="vital-spo2"
+                  value={vitalSigns?.spo2 || ""}
+                  onChange={(e) => onVitalSignsChange?.("spo2", e.target.value)}
+                  placeholder="e.g., 98"
+                />
+              </div>
+              <div>
+                <Label htmlFor="vital-weight">Weight (kg)</Label>
+                <Input
+                  id="vital-weight"
+                  type="number"
+                  value={vitalSigns?.weight || ""}
+                  onChange={(e) => onVitalSignsChange?.("weight", e.target.value)}
+                  placeholder="e.g., 70"
+                />
+              </div>
+              <div>
+                <Label htmlFor="vital-height">Height (cm)</Label>
+                <Input
+                  id="vital-height"
+                  type="number"
+                  value={vitalSigns?.height || ""}
+                  onChange={(e) => onVitalSignsChange?.("height", e.target.value)}
+                  placeholder="e.g., 175"
+                />
+              </div>
+              <div>
+                <Label htmlFor="vital-bmi">BMI (Auto-calculated)</Label>
+                <Input
+                  id="vital-bmi"
+                  value={vitalSigns?.bmi || ""}
+                  readOnly
+                  placeholder="Auto-calculated"
+                  className="bg-muted"
+                />
+              </div>
+              <div>
+                <Label htmlFor="vital-appearance">General Appearance</Label>
+                <Input
+                  id="vital-appearance"
+                  value={vitalSigns?.generalAppearance || ""}
+                  onChange={(e) => onVitalSignsChange?.("generalAppearance", e.target.value)}
+                  placeholder="e.g., Well-nourished"
+                />
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* Other System Tabs */}
+        {SYSTEMS.filter(s => s.id !== "vitals").map((system) => (
           <TabsContent key={system.id} value={system.id} className="mt-0">
             <div className="space-y-6">
               {Object.entries(system.items).map(([category, findings]) => (
