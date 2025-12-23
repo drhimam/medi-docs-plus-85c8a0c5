@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PresetDialog } from "@/components/patient/preset/PresetDialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { CheckCheck, Eye, EyeOff, Copy, Check, Heart, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { CheckCheck, Eye, EyeOff, Copy, Check, Heart, TrendingUp, TrendingDown, Minus, ToggleLeft } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
@@ -909,13 +910,17 @@ export default function PhysicalExaminationDialog({
   const [activeTab, setActiveTab] = useState("vitals");
   const [showPreview, setShowPreview] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showAllTabs, setShowAllTabs] = useState(false);
   
   // Get age-appropriate vital ranges
   const vitalRanges = useMemo(() => getVitalRanges(patientDateOfBirth), [patientDateOfBirth]);
   const ageGroupLabel = useMemo(() => getAgeGroupLabel(patientDateOfBirth), [patientDateOfBirth]);
   
-  // Get visible tabs based on patient age and gender
-  const visibleTabs = useMemo(() => getVisibleTabs(patientDateOfBirth, patientGender), [patientDateOfBirth, patientGender]);
+  // Get visible tabs based on patient age and gender (or show all if toggle is on)
+  const visibleTabs = useMemo(() => {
+    if (showAllTabs) return SYSTEMS;
+    return getVisibleTabs(patientDateOfBirth, patientGender);
+  }, [patientDateOfBirth, patientGender, showAllTabs]);
   
   // Calculate growth chart percentiles for pediatric patients
   const growthPercentiles = useMemo(() => {
@@ -1239,6 +1244,22 @@ export default function PhysicalExaminationDialog({
           </p>
         </div>
       )}
+
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-sm text-muted-foreground">
+          {ageGroupLabel} patient • {visibleTabs.length} tabs visible
+        </div>
+        <div className="flex items-center gap-2">
+          <Label htmlFor="show-all-tabs" className="text-sm text-muted-foreground cursor-pointer">
+            Show all tabs
+          </Label>
+          <Switch
+            id="show-all-tabs"
+            checked={showAllTabs}
+            onCheckedChange={setShowAllTabs}
+          />
+        </div>
+      </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="w-full flex flex-wrap h-auto gap-1 bg-transparent p-0 mb-4">
