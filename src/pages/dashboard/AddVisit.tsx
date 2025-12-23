@@ -59,6 +59,25 @@ export default function AddVisit() {
     }
   }, [visitId]);
 
+  // Vital signs change handler for Physical Exam Builder
+  const handleVitalSignsChange = (field: string, value: string) => {
+    const fieldMap: { [key: string]: string } = {
+      bp: "vitalSignsBP",
+      pulse: "vitalSignsPulse",
+      temp: "vitalSignsTemp",
+      respiratoryRate: "vitalSignsRespiratoryRate",
+      spo2: "vitalSignsSpO2",
+      weight: "vitalSignsWeight",
+      height: "vitalSignsHeight",
+      bmi: "vitalSignsBMI",
+      generalAppearance: "vitalSignsGeneralAppearance",
+    };
+    const formField = fieldMap[field];
+    if (formField) {
+      handleInputChange(formField, value);
+    }
+  };
+
   // Auto-calculate BMI when weight or height changes
   useEffect(() => {
     const weight = parseFloat(formData.vitalSignsWeight);
@@ -345,110 +364,21 @@ export default function AddVisit() {
         {/* Section 3: Objective */}
         <Card>
           <CardHeader>
-            <CardTitle>Objective</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Objective</CardTitle>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowPhysicalExamDialog(true)}
+              >
+                Physical Exam Builder
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <h4 className="font-medium mb-3">Vital Signs</h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="bp">BP (mmHg)</Label>
-                  <Input
-                    id="bp"
-                    value={formData.vitalSignsBP}
-                    onChange={(e) => handleInputChange("vitalSignsBP", e.target.value)}
-                    placeholder="e.g., 120/80"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="pulse">Pulse (bpm)</Label>
-                  <Input
-                    id="pulse"
-                    value={formData.vitalSignsPulse}
-                    onChange={(e) => handleInputChange("vitalSignsPulse", e.target.value)}
-                    placeholder="e.g., 72"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="temp">Temperature (°C)</Label>
-                  <Input
-                    id="temp"
-                    value={formData.vitalSignsTemp}
-                    onChange={(e) => handleInputChange("vitalSignsTemp", e.target.value)}
-                    placeholder="e.g., 37.0"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="respiratory">Respiratory Rate (breaths/min)</Label>
-                  <Input
-                    id="respiratory"
-                    value={formData.vitalSignsRespiratoryRate}
-                    onChange={(e) => handleInputChange("vitalSignsRespiratoryRate", e.target.value)}
-                    placeholder="e.g., 16"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="spo2">SpO2 (%)</Label>
-                  <Input
-                    id="spo2"
-                    value={formData.vitalSignsSpO2}
-                    onChange={(e) => handleInputChange("vitalSignsSpO2", e.target.value)}
-                    placeholder="e.g., 98"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="weight">Weight (kg)</Label>
-                  <Input
-                    id="weight"
-                    type="number"
-                    value={formData.vitalSignsWeight}
-                    onChange={(e) => handleInputChange("vitalSignsWeight", e.target.value)}
-                    placeholder="e.g., 70"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="height">Height (cm)</Label>
-                  <Input
-                    id="height"
-                    type="number"
-                    value={formData.vitalSignsHeight}
-                    onChange={(e) => handleInputChange("vitalSignsHeight", e.target.value)}
-                    placeholder="e.g., 175"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="bmi">BMI (Auto-calculated)</Label>
-                  <Input
-                    id="bmi"
-                    value={formData.vitalSignsBMI}
-                    readOnly
-                    placeholder="Auto-calculated"
-                    className="bg-muted"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="generalAppearance">General Appearance</Label>
-                  <Input
-                    id="generalAppearance"
-                    value={formData.vitalSignsGeneralAppearance}
-                    onChange={(e) => handleInputChange("vitalSignsGeneralAppearance", e.target.value)}
-                    placeholder="e.g., Well-nourished"
-                  />
-                </div>
-              </div>
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <Label htmlFor="physicalExamination">Physical Examination</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowPhysicalExamDialog(true)}
-                >
-                  Physical Exam Builder
-                </Button>
-              </div>
+              <Label htmlFor="physicalExamination">Physical Examination</Label>
               <Textarea
                 id="physicalExamination"
                 value={formData.physicalExamination}
@@ -534,6 +464,18 @@ export default function AddVisit() {
             : text;
           handleInputChange("physicalExamination", newValue);
         }}
+        vitalSigns={{
+          bp: formData.vitalSignsBP,
+          pulse: formData.vitalSignsPulse,
+          temp: formData.vitalSignsTemp,
+          respiratoryRate: formData.vitalSignsRespiratoryRate,
+          spo2: formData.vitalSignsSpO2,
+          weight: formData.vitalSignsWeight,
+          height: formData.vitalSignsHeight,
+          bmi: formData.vitalSignsBMI,
+          generalAppearance: formData.vitalSignsGeneralAppearance,
+        }}
+        onVitalSignsChange={handleVitalSignsChange}
       />
       <InvestigationBuilderDialog
         open={showInvestigationDialog}
