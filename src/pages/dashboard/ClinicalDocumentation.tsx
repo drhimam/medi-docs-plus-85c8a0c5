@@ -127,6 +127,35 @@ export default function ClinicalDocumentation() {
   const [assessment, setAssessment] = useState("");
   const [plan, setPlan] = useState("");
   const [prescription, setPrescription] = useState("");
+  
+  // Vital signs state for Physical Exam Builder
+  const [vitalSigns, setVitalSigns] = useState({
+    bp: "",
+    pulse: "",
+    temp: "",
+    respiratoryRate: "",
+    spo2: "",
+    weight: "",
+    height: "",
+    bmi: "",
+    generalAppearance: "",
+  });
+
+  // Calculate BMI when weight or height changes
+  useEffect(() => {
+    const weight = parseFloat(vitalSigns.weight);
+    const height = parseFloat(vitalSigns.height);
+    if (weight > 0 && height > 0) {
+      const heightInMeters = height / 100;
+      const bmi = (weight / (heightInMeters * heightInMeters)).toFixed(1);
+      setVitalSigns(prev => ({ ...prev, bmi }));
+    }
+  }, [vitalSigns.weight, vitalSigns.height]);
+
+  // Handler for vital signs changes
+  const handleVitalSignsChange = (field: keyof typeof vitalSigns, value: string) => {
+    setVitalSigns(prev => ({ ...prev, [field]: value }));
+  };
 
   useEffect(() => {
     if (visitId) {
@@ -2017,6 +2046,9 @@ ${cleanPrescription}
             return trimmedPrev ? trimmedPrev + dateHeader + text : text;
           });
         }}
+        vitalSigns={vitalSigns}
+        onVitalSignsChange={handleVitalSignsChange}
+        patientDateOfBirth={patient?.date_of_birth}
       />
 
       <InvestigationBuilderDialog
