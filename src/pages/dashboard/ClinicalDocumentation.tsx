@@ -2049,6 +2049,7 @@ ${cleanPrescription}
         vitalSigns={vitalSigns}
         onVitalSignsChange={handleVitalSignsChange}
         patientDateOfBirth={patient?.date_of_birth}
+        patientGender={patient?.gender}
       />
 
       <InvestigationBuilderDialog
