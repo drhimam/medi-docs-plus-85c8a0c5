@@ -476,6 +476,7 @@ export default function AddVisit() {
           generalAppearance: formData.vitalSignsGeneralAppearance,
         }}
         onVitalSignsChange={handleVitalSignsChange}
+        patientDateOfBirth={patient?.date_of_birth}
       />
       <InvestigationBuilderDialog
         open={showInvestigationDialog}

@@ -11,20 +11,119 @@ import { CheckCheck, Eye, EyeOff, Copy, Check, Heart } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
-// Vital signs normal ranges for validation
-const VITAL_RANGES = {
-  bp: {
-    systolic: { min: 90, max: 139 },
-    diastolic: { min: 60, max: 89 },
-  },
-  pulse: { min: 60, max: 100 },
-  temp: { min: 36.1, max: 37.5 },
-  respiratoryRate: { min: 12, max: 20 },
-  spo2: { min: 95, max: 100 },
-  bmi: { min: 18.5, max: 24.9 },
+import { differenceInYears, differenceInMonths } from "date-fns";
+
+// Get age-appropriate vital ranges
+const getVitalRanges = (dateOfBirth?: string) => {
+  if (!dateOfBirth) {
+    // Default adult ranges
+    return {
+      bp: { systolic: { min: 90, max: 139 }, diastolic: { min: 60, max: 89 } },
+      pulse: { min: 60, max: 100 },
+      temp: { min: 36.1, max: 37.5 },
+      respiratoryRate: { min: 12, max: 20 },
+      spo2: { min: 95, max: 100 },
+      bmi: { min: 18.5, max: 24.9 },
+    };
+  }
+
+  const ageInYears = differenceInYears(new Date(), new Date(dateOfBirth));
+  const ageInMonths = differenceInMonths(new Date(), new Date(dateOfBirth));
+
+  // Neonate (0-28 days / ~1 month)
+  if (ageInMonths < 1) {
+    return {
+      bp: { systolic: { min: 60, max: 90 }, diastolic: { min: 20, max: 60 } },
+      pulse: { min: 100, max: 160 },
+      temp: { min: 36.5, max: 37.5 },
+      respiratoryRate: { min: 30, max: 60 },
+      spo2: { min: 95, max: 100 },
+      bmi: { min: 10, max: 18 },
+    };
+  }
+  // Infant (1-12 months)
+  if (ageInMonths < 12) {
+    return {
+      bp: { systolic: { min: 70, max: 100 }, diastolic: { min: 30, max: 65 } },
+      pulse: { min: 100, max: 150 },
+      temp: { min: 36.5, max: 37.5 },
+      respiratoryRate: { min: 25, max: 50 },
+      spo2: { min: 95, max: 100 },
+      bmi: { min: 14, max: 20 },
+    };
+  }
+  // Toddler (1-3 years)
+  if (ageInYears < 3) {
+    return {
+      bp: { systolic: { min: 80, max: 110 }, diastolic: { min: 40, max: 70 } },
+      pulse: { min: 90, max: 140 },
+      temp: { min: 36.5, max: 37.5 },
+      respiratoryRate: { min: 20, max: 40 },
+      spo2: { min: 95, max: 100 },
+      bmi: { min: 14, max: 18 },
+    };
+  }
+  // Preschool (3-5 years)
+  if (ageInYears < 6) {
+    return {
+      bp: { systolic: { min: 85, max: 115 }, diastolic: { min: 45, max: 75 } },
+      pulse: { min: 80, max: 120 },
+      temp: { min: 36.1, max: 37.5 },
+      respiratoryRate: { min: 20, max: 30 },
+      spo2: { min: 95, max: 100 },
+      bmi: { min: 13.5, max: 17 },
+    };
+  }
+  // School-age (6-12 years)
+  if (ageInYears < 12) {
+    return {
+      bp: { systolic: { min: 90, max: 120 }, diastolic: { min: 55, max: 80 } },
+      pulse: { min: 70, max: 110 },
+      temp: { min: 36.1, max: 37.5 },
+      respiratoryRate: { min: 16, max: 24 },
+      spo2: { min: 95, max: 100 },
+      bmi: { min: 14, max: 21 },
+    };
+  }
+  // Adolescent (12-18 years)
+  if (ageInYears < 18) {
+    return {
+      bp: { systolic: { min: 90, max: 130 }, diastolic: { min: 60, max: 85 } },
+      pulse: { min: 60, max: 100 },
+      temp: { min: 36.1, max: 37.5 },
+      respiratoryRate: { min: 12, max: 20 },
+      spo2: { min: 95, max: 100 },
+      bmi: { min: 17, max: 25 },
+    };
+  }
+  // Adult (18+ years)
+  return {
+    bp: { systolic: { min: 90, max: 139 }, diastolic: { min: 60, max: 89 } },
+    pulse: { min: 60, max: 100 },
+    temp: { min: 36.1, max: 37.5 },
+    respiratoryRate: { min: 12, max: 20 },
+    spo2: { min: 95, max: 100 },
+    bmi: { min: 18.5, max: 24.9 },
+  };
 };
 
-// Normal vital values
+// Get age group label for display
+const getAgeGroupLabel = (dateOfBirth?: string): string => {
+  if (!dateOfBirth) return "Adult";
+  
+  const ageInYears = differenceInYears(new Date(), new Date(dateOfBirth));
+  const ageInMonths = differenceInMonths(new Date(), new Date(dateOfBirth));
+
+  if (ageInMonths < 1) return "Neonate";
+  if (ageInMonths < 12) return "Infant";
+  if (ageInYears < 3) return "Toddler";
+  if (ageInYears < 6) return "Preschool";
+  if (ageInYears < 12) return "School-age";
+  if (ageInYears < 18) return "Adolescent";
+  return "Adult";
+};
+
+// Normal vital values (adult defaults)
 const NORMAL_VITALS = {
   bp: "120/80",
   pulse: "72",
@@ -37,8 +136,72 @@ const NORMAL_VITALS = {
   generalAppearance: "Alert, oriented, well-nourished, in no acute distress",
 };
 
-// Check if a vital sign is abnormal
-const isVitalAbnormal = (field: string, value: string): boolean => {
+// Get pediatric-specific normal vitals
+const getPediatricNormalVitals = (dateOfBirth?: string) => {
+  if (!dateOfBirth) return NORMAL_VITALS;
+  
+  const ageInYears = differenceInYears(new Date(), new Date(dateOfBirth));
+  const ageInMonths = differenceInMonths(new Date(), new Date(dateOfBirth));
+
+  if (ageInMonths < 1) {
+    return {
+      ...NORMAL_VITALS,
+      bp: "70/40",
+      pulse: "130",
+      respiratoryRate: "40",
+      generalAppearance: "Alert, active, appropriate reflexes, pink and well-perfused",
+    };
+  }
+  if (ageInMonths < 12) {
+    return {
+      ...NORMAL_VITALS,
+      bp: "85/55",
+      pulse: "120",
+      respiratoryRate: "35",
+      generalAppearance: "Alert, interactive, appropriate for age",
+    };
+  }
+  if (ageInYears < 3) {
+    return {
+      ...NORMAL_VITALS,
+      bp: "95/60",
+      pulse: "110",
+      respiratoryRate: "28",
+      generalAppearance: "Active, playful, developmentally appropriate",
+    };
+  }
+  if (ageInYears < 6) {
+    return {
+      ...NORMAL_VITALS,
+      bp: "100/65",
+      pulse: "100",
+      respiratoryRate: "24",
+      generalAppearance: "Active, cooperative, age-appropriate behavior",
+    };
+  }
+  if (ageInYears < 12) {
+    return {
+      ...NORMAL_VITALS,
+      bp: "105/70",
+      pulse: "90",
+      respiratoryRate: "20",
+      generalAppearance: "Alert, cooperative, age-appropriate",
+    };
+  }
+  if (ageInYears < 18) {
+    return {
+      ...NORMAL_VITALS,
+      bp: "115/75",
+      pulse: "80",
+      respiratoryRate: "16",
+      generalAppearance: "Alert, oriented, cooperative",
+    };
+  }
+  return NORMAL_VITALS;
+};
+
+// Check if a vital sign is abnormal based on age-appropriate ranges
+const isVitalAbnormal = (field: string, value: string, ranges: ReturnType<typeof getVitalRanges>): boolean => {
   if (!value || value.trim() === "") return false;
   
   if (field === "bp") {
@@ -47,21 +210,21 @@ const isVitalAbnormal = (field: string, value: string): boolean => {
     const systolic = parseFloat(parts[0]);
     const diastolic = parseFloat(parts[1]);
     if (isNaN(systolic) || isNaN(diastolic)) return false;
-    return systolic < VITAL_RANGES.bp.systolic.min || systolic > VITAL_RANGES.bp.systolic.max ||
-           diastolic < VITAL_RANGES.bp.diastolic.min || diastolic > VITAL_RANGES.bp.diastolic.max;
+    return systolic < ranges.bp.systolic.min || systolic > ranges.bp.systolic.max ||
+           diastolic < ranges.bp.diastolic.min || diastolic > ranges.bp.diastolic.max;
   }
   
   const numValue = parseFloat(value);
   if (isNaN(numValue)) return false;
   
-  const range = VITAL_RANGES[field as keyof typeof VITAL_RANGES];
+  const range = ranges[field as keyof typeof ranges];
   if (!range || typeof range !== 'object' || 'systolic' in range) return false;
   
   return numValue < range.min || numValue > range.max;
 };
 
-// Get abnormality description
-const getAbnormalityDescription = (field: string, value: string): string | null => {
+// Get abnormality description based on age-appropriate ranges
+const getAbnormalityDescription = (field: string, value: string, ranges: ReturnType<typeof getVitalRanges>): string | null => {
   if (!value || value.trim() === "") return null;
   
   if (field === "bp") {
@@ -71,9 +234,9 @@ const getAbnormalityDescription = (field: string, value: string): string | null 
     const diastolic = parseFloat(parts[1]);
     if (isNaN(systolic) || isNaN(diastolic)) return null;
     
-    if (systolic >= 180 || diastolic >= 120) return "Hypertensive Crisis";
-    if (systolic >= 140 || diastolic >= 90) return "High";
-    if (systolic < 90 || diastolic < 60) return "Low";
+    if (systolic >= ranges.bp.systolic.max + 40 || diastolic >= ranges.bp.diastolic.max + 30) return "Severely High";
+    if (systolic > ranges.bp.systolic.max || diastolic > ranges.bp.diastolic.max) return "High";
+    if (systolic < ranges.bp.systolic.min || diastolic < ranges.bp.diastolic.min) return "Low";
     return null;
   }
   
@@ -82,25 +245,25 @@ const getAbnormalityDescription = (field: string, value: string): string | null 
   
   switch (field) {
     case "pulse":
-      if (numValue > 100) return "Tachycardia";
-      if (numValue < 60) return "Bradycardia";
+      if (numValue > ranges.pulse.max) return "Tachycardia";
+      if (numValue < ranges.pulse.min) return "Bradycardia";
       break;
     case "temp":
       if (numValue >= 38) return "Fever";
       if (numValue < 36) return "Hypothermia";
       break;
     case "respiratoryRate":
-      if (numValue > 20) return "Tachypnea";
-      if (numValue < 12) return "Bradypnea";
+      if (numValue > ranges.respiratoryRate.max) return "Tachypnea";
+      if (numValue < ranges.respiratoryRate.min) return "Bradypnea";
       break;
     case "spo2":
       if (numValue < 90) return "Severe Hypoxemia";
-      if (numValue < 95) return "Low";
+      if (numValue < ranges.spo2.min) return "Low";
       break;
     case "bmi":
       if (numValue >= 30) return "Obese";
-      if (numValue >= 25) return "Overweight";
-      if (numValue < 18.5) return "Underweight";
+      if (numValue > ranges.bmi.max) return "Overweight";
+      if (numValue < ranges.bmi.min) return "Underweight";
       break;
   }
   return null;
@@ -124,6 +287,7 @@ interface PhysicalExaminationDialogProps {
   onInsert: (text: string) => void;
   vitalSigns?: VitalSigns;
   onVitalSignsChange?: (field: keyof VitalSigns, value: string) => void;
+  patientDateOfBirth?: string;
 }
 
 type Finding = {
@@ -642,11 +806,16 @@ export default function PhysicalExaminationDialog({
   onInsert,
   vitalSigns,
   onVitalSignsChange,
+  patientDateOfBirth,
 }: PhysicalExaminationDialogProps) {
   const [selectedFindings, setSelectedFindings] = useState<SystemFindings>({});
   const [activeTab, setActiveTab] = useState("vitals");
   const [showPreview, setShowPreview] = useState(false);
   const [copied, setCopied] = useState(false);
+  
+  // Get age-appropriate vital ranges
+  const vitalRanges = useMemo(() => getVitalRanges(patientDateOfBirth), [patientDateOfBirth]);
+  const ageGroupLabel = useMemo(() => getAgeGroupLabel(patientDateOfBirth), [patientDateOfBirth]);
 
   // Auto-calculate BMI when weight or height changes
   useEffect(() => {
@@ -705,17 +874,18 @@ export default function PhysicalExaminationDialog({
     }));
   };
 
-  // Fill normal vitals
+  // Fill normal vitals (age-appropriate)
   const fillNormalVitals = () => {
     if (onVitalSignsChange) {
-      Object.entries(NORMAL_VITALS).forEach(([key, value]) => {
+      const normalVitals = getPediatricNormalVitals(patientDateOfBirth);
+      Object.entries(normalVitals).forEach(([key, value]) => {
         if (key !== 'bmi') { // BMI is auto-calculated
           onVitalSignsChange(key as keyof VitalSigns, value);
         }
       });
       toast({
-        title: "Normal Vitals Applied",
-        description: "Common normal vital values have been filled in.",
+        title: `${ageGroupLabel} Normal Vitals Applied`,
+        description: `Age-appropriate normal vital values have been filled in for ${ageGroupLabel.toLowerCase()} patients.`,
       });
     }
   };
@@ -945,13 +1115,18 @@ export default function PhysicalExaminationDialog({
         {/* Vitals Tab */}
         <TabsContent value="vitals" className="mt-0">
           <div className="space-y-4">
+            {patientDateOfBirth && (
+              <div className="text-xs text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-md inline-block">
+                Vital ranges adjusted for: <span className="font-medium text-foreground">{ageGroupLabel}</span>
+              </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <div className="flex items-center justify-between">
                   <Label htmlFor="vital-bp">BP (mmHg)</Label>
-                  {isVitalAbnormal("bp", vitalSigns?.bp || "") && (
+                  {isVitalAbnormal("bp", vitalSigns?.bp || "", vitalRanges) && (
                     <span className="text-xs font-medium text-destructive">
-                      {getAbnormalityDescription("bp", vitalSigns?.bp || "")}
+                      {getAbnormalityDescription("bp", vitalSigns?.bp || "", vitalRanges)}
                     </span>
                   )}
                 </div>
@@ -961,16 +1136,16 @@ export default function PhysicalExaminationDialog({
                   onChange={(e) => onVitalSignsChange?.("bp", e.target.value)}
                   placeholder="e.g., 120/80"
                   className={cn(
-                    isVitalAbnormal("bp", vitalSigns?.bp || "") && "border-destructive bg-destructive/5 focus-visible:ring-destructive"
+                    isVitalAbnormal("bp", vitalSigns?.bp || "", vitalRanges) && "border-destructive bg-destructive/5 focus-visible:ring-destructive"
                   )}
                 />
               </div>
               <div>
                 <div className="flex items-center justify-between">
                   <Label htmlFor="vital-pulse">Pulse (bpm)</Label>
-                  {isVitalAbnormal("pulse", vitalSigns?.pulse || "") && (
+                  {isVitalAbnormal("pulse", vitalSigns?.pulse || "", vitalRanges) && (
                     <span className="text-xs font-medium text-destructive">
-                      {getAbnormalityDescription("pulse", vitalSigns?.pulse || "")}
+                      {getAbnormalityDescription("pulse", vitalSigns?.pulse || "", vitalRanges)}
                     </span>
                   )}
                 </div>
@@ -980,16 +1155,16 @@ export default function PhysicalExaminationDialog({
                   onChange={(e) => onVitalSignsChange?.("pulse", e.target.value)}
                   placeholder="e.g., 72"
                   className={cn(
-                    isVitalAbnormal("pulse", vitalSigns?.pulse || "") && "border-destructive bg-destructive/5 focus-visible:ring-destructive"
+                    isVitalAbnormal("pulse", vitalSigns?.pulse || "", vitalRanges) && "border-destructive bg-destructive/5 focus-visible:ring-destructive"
                   )}
                 />
               </div>
               <div>
                 <div className="flex items-center justify-between">
                   <Label htmlFor="vital-temp">Temperature (°C)</Label>
-                  {isVitalAbnormal("temp", vitalSigns?.temp || "") && (
+                  {isVitalAbnormal("temp", vitalSigns?.temp || "", vitalRanges) && (
                     <span className="text-xs font-medium text-destructive">
-                      {getAbnormalityDescription("temp", vitalSigns?.temp || "")}
+                      {getAbnormalityDescription("temp", vitalSigns?.temp || "", vitalRanges)}
                     </span>
                   )}
                 </div>
@@ -999,16 +1174,16 @@ export default function PhysicalExaminationDialog({
                   onChange={(e) => onVitalSignsChange?.("temp", e.target.value)}
                   placeholder="e.g., 37.0"
                   className={cn(
-                    isVitalAbnormal("temp", vitalSigns?.temp || "") && "border-destructive bg-destructive/5 focus-visible:ring-destructive"
+                    isVitalAbnormal("temp", vitalSigns?.temp || "", vitalRanges) && "border-destructive bg-destructive/5 focus-visible:ring-destructive"
                   )}
                 />
               </div>
               <div>
                 <div className="flex items-center justify-between">
                   <Label htmlFor="vital-rr">Respiratory Rate (breaths/min)</Label>
-                  {isVitalAbnormal("respiratoryRate", vitalSigns?.respiratoryRate || "") && (
+                  {isVitalAbnormal("respiratoryRate", vitalSigns?.respiratoryRate || "", vitalRanges) && (
                     <span className="text-xs font-medium text-destructive">
-                      {getAbnormalityDescription("respiratoryRate", vitalSigns?.respiratoryRate || "")}
+                      {getAbnormalityDescription("respiratoryRate", vitalSigns?.respiratoryRate || "", vitalRanges)}
                     </span>
                   )}
                 </div>
@@ -1018,16 +1193,16 @@ export default function PhysicalExaminationDialog({
                   onChange={(e) => onVitalSignsChange?.("respiratoryRate", e.target.value)}
                   placeholder="e.g., 16"
                   className={cn(
-                    isVitalAbnormal("respiratoryRate", vitalSigns?.respiratoryRate || "") && "border-destructive bg-destructive/5 focus-visible:ring-destructive"
+                    isVitalAbnormal("respiratoryRate", vitalSigns?.respiratoryRate || "", vitalRanges) && "border-destructive bg-destructive/5 focus-visible:ring-destructive"
                   )}
                 />
               </div>
               <div>
                 <div className="flex items-center justify-between">
                   <Label htmlFor="vital-spo2">SpO2 (%)</Label>
-                  {isVitalAbnormal("spo2", vitalSigns?.spo2 || "") && (
+                  {isVitalAbnormal("spo2", vitalSigns?.spo2 || "", vitalRanges) && (
                     <span className="text-xs font-medium text-destructive">
-                      {getAbnormalityDescription("spo2", vitalSigns?.spo2 || "")}
+                      {getAbnormalityDescription("spo2", vitalSigns?.spo2 || "", vitalRanges)}
                     </span>
                   )}
                 </div>
@@ -1037,7 +1212,7 @@ export default function PhysicalExaminationDialog({
                   onChange={(e) => onVitalSignsChange?.("spo2", e.target.value)}
                   placeholder="e.g., 98"
                   className={cn(
-                    isVitalAbnormal("spo2", vitalSigns?.spo2 || "") && "border-destructive bg-destructive/5 focus-visible:ring-destructive"
+                    isVitalAbnormal("spo2", vitalSigns?.spo2 || "", vitalRanges) && "border-destructive bg-destructive/5 focus-visible:ring-destructive"
                   )}
                 />
               </div>
@@ -1064,9 +1239,9 @@ export default function PhysicalExaminationDialog({
               <div>
                 <div className="flex items-center justify-between">
                   <Label htmlFor="vital-bmi">BMI (Auto-calculated)</Label>
-                  {isVitalAbnormal("bmi", vitalSigns?.bmi || "") && (
+                  {isVitalAbnormal("bmi", vitalSigns?.bmi || "", vitalRanges) && (
                     <span className="text-xs font-medium text-destructive">
-                      {getAbnormalityDescription("bmi", vitalSigns?.bmi || "")}
+                      {getAbnormalityDescription("bmi", vitalSigns?.bmi || "", vitalRanges)}
                     </span>
                   )}
                 </div>
@@ -1077,7 +1252,7 @@ export default function PhysicalExaminationDialog({
                   placeholder="Auto-calculated"
                   className={cn(
                     "bg-muted",
-                    isVitalAbnormal("bmi", vitalSigns?.bmi || "") && "border-destructive bg-destructive/5"
+                    isVitalAbnormal("bmi", vitalSigns?.bmi || "", vitalRanges) && "border-destructive bg-destructive/5"
                   )}
                 />
               </div>
