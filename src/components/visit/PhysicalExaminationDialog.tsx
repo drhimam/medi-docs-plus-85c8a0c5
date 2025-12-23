@@ -555,29 +555,87 @@ const POSTNATAL_ITEMS = {
   "Emotional Status": ["Mood Appropriate", "Tearful", "Anxious", "Bonding Well", "Difficulty Bonding", "No Suicidal Ideation"],
 };
 
-const SYSTEMS = [
-  { id: "vitals", label: "Vitals", items: {} },
-  { id: "respiratory", label: "Respiratory", items: RESPIRATORY_ITEMS },
-  { id: "cardiovascular", label: "Cardiovascular", items: CARDIOVASCULAR_ITEMS },
-  { id: "gastrointestinal", label: "GI", items: GASTROINTESTINAL_ITEMS },
-  { id: "nervous", label: "Neuro", items: NERVOUS_ITEMS },
-  { id: "musculoskeletal", label: "MSK", items: MUSCULOSKELETAL_ITEMS },
-  { id: "skin", label: "Skin", items: SKIN_ITEMS },
-  { id: "endocrine", label: "Endocrine", items: ENDOCRINE_ITEMS },
-  { id: "gynecology", label: "Gynecology", items: GYNECOLOGY_ITEMS },
-  { id: "obstetric", label: "Obstetric", items: OBSTETRIC_ITEMS },
-  { id: "postnatal", label: "Postnatal", items: POSTNATAL_ITEMS },
-  { id: "pediatrics_neonate", label: "Neonate", items: PEDIATRICS_NEONATE_ITEMS },
-  { id: "pediatrics_ent", label: "Peds ENT", items: PEDIATRICS_ENT_ITEMS },
-  { id: "pediatrics_chest", label: "Peds Chest", items: PEDIATRICS_CHEST_ITEMS },
-  { id: "pediatrics_neuro", label: "Peds Neuro", items: PEDIATRICS_NEURO_ITEMS },
-  { id: "pediatrics_abdomen", label: "Peds Abdomen", items: PEDIATRICS_ABDOMEN_ITEMS },
-  { id: "pediatrics_growth", label: "Peds Growth", items: PEDIATRICS_GROWTH_ITEMS },
-  { id: "pediatrics_eyes", label: "Peds Eyes", items: PEDIATRICS_EYES_ITEMS },
-  { id: "pediatrics_skin", label: "Peds Skin", items: PEDIATRICS_SKIN_ITEMS },
-  { id: "pediatrics_lymph", label: "Peds Lymph", items: PEDIATRICS_LYMPH_ITEMS },
-  { id: "pediatrics_msk", label: "Peds MSK", items: PEDIATRICS_MSK_ITEMS },
+// Tab categories for age-based visibility
+type TabCategory = "general" | "adult_only" | "pediatric" | "neonate" | "gynecology" | "obstetric";
+
+interface SystemTab {
+  id: string;
+  label: string;
+  items: Record<string, string[]>;
+  category: TabCategory;
+}
+
+// System tabs configuration with age/gender-based categories
+const SYSTEMS: SystemTab[] = [
+  { id: "vitals", label: "Vitals", items: {}, category: "general" },
+  { id: "respiratory", label: "Respiratory", items: RESPIRATORY_ITEMS, category: "general" },
+  { id: "cardiovascular", label: "Cardiovascular", items: CARDIOVASCULAR_ITEMS, category: "general" },
+  { id: "gastrointestinal", label: "GI", items: GASTROINTESTINAL_ITEMS, category: "general" },
+  { id: "nervous", label: "Neuro", items: NERVOUS_ITEMS, category: "adult_only" },
+  { id: "musculoskeletal", label: "MSK", items: MUSCULOSKELETAL_ITEMS, category: "adult_only" },
+  { id: "skin", label: "Skin", items: SKIN_ITEMS, category: "general" },
+  { id: "endocrine", label: "Endocrine", items: ENDOCRINE_ITEMS, category: "adult_only" },
+  { id: "gynecology", label: "Gynecology", items: GYNECOLOGY_ITEMS, category: "gynecology" },
+  { id: "obstetric", label: "Obstetric", items: OBSTETRIC_ITEMS, category: "obstetric" },
+  { id: "postnatal", label: "Postnatal", items: POSTNATAL_ITEMS, category: "obstetric" },
+  { id: "pediatrics_neonate", label: "Neonate", items: PEDIATRICS_NEONATE_ITEMS, category: "neonate" },
+  { id: "pediatrics_ent", label: "Peds ENT", items: PEDIATRICS_ENT_ITEMS, category: "pediatric" },
+  { id: "pediatrics_chest", label: "Peds Chest", items: PEDIATRICS_CHEST_ITEMS, category: "pediatric" },
+  { id: "pediatrics_neuro", label: "Peds Neuro", items: PEDIATRICS_NEURO_ITEMS, category: "pediatric" },
+  { id: "pediatrics_abdomen", label: "Peds Abdomen", items: PEDIATRICS_ABDOMEN_ITEMS, category: "pediatric" },
+  { id: "pediatrics_growth", label: "Peds Growth", items: PEDIATRICS_GROWTH_ITEMS, category: "pediatric" },
+  { id: "pediatrics_eyes", label: "Peds Eyes", items: PEDIATRICS_EYES_ITEMS, category: "pediatric" },
+  { id: "pediatrics_skin", label: "Peds Skin", items: PEDIATRICS_SKIN_ITEMS, category: "pediatric" },
+  { id: "pediatrics_lymph", label: "Peds Lymph", items: PEDIATRICS_LYMPH_ITEMS, category: "pediatric" },
+  { id: "pediatrics_msk", label: "Peds MSK", items: PEDIATRICS_MSK_ITEMS, category: "pediatric" },
 ];
+
+// Filter tabs based on patient age and gender
+const getVisibleTabs = (dateOfBirth?: string, gender?: string): SystemTab[] => {
+  if (!dateOfBirth) {
+    // No DOB: show all general and adult tabs, hide neonate/pediatric tabs
+    // Show gynecology/obstetric for female or unknown
+    return SYSTEMS.filter(tab => {
+      if (tab.category === "neonate" || tab.category === "pediatric") return false;
+      if ((tab.category === "gynecology" || tab.category === "obstetric") && 
+          gender && gender.toLowerCase() === "male") return false;
+      return true;
+    });
+  }
+
+  const ageInYears = differenceInYears(new Date(), new Date(dateOfBirth));
+  const ageInMonths = differenceInMonths(new Date(), new Date(dateOfBirth));
+  const isFemale = gender?.toLowerCase() === "female";
+  const isMale = gender?.toLowerCase() === "male";
+
+  return SYSTEMS.filter(tab => {
+    // Always show general tabs
+    if (tab.category === "general") return true;
+
+    // Neonate tabs: only for <1 month
+    if (tab.category === "neonate") return ageInMonths < 1;
+
+    // Pediatric tabs: only for ≤12 years
+    if (tab.category === "pediatric") return ageInYears <= 12;
+
+    // Adult-only tabs: only for >12 years
+    if (tab.category === "adult_only") return ageInYears > 12;
+
+    // Gynecology: female patients ≥10 years
+    if (tab.category === "gynecology") {
+      if (isMale) return false;
+      return isFemale && ageInYears >= 10;
+    }
+
+    // Obstetric/Postnatal: female patients ≥12 years
+    if (tab.category === "obstetric") {
+      if (isMale) return false;
+      return isFemale && ageInYears >= 12;
+    }
+
+    return true;
+  });
+};
 
 // Normal findings for each system
 const NORMAL_FINDINGS: { [systemId: string]: { [category: string]: string[] } } = {
@@ -856,6 +914,9 @@ export default function PhysicalExaminationDialog({
   const vitalRanges = useMemo(() => getVitalRanges(patientDateOfBirth), [patientDateOfBirth]);
   const ageGroupLabel = useMemo(() => getAgeGroupLabel(patientDateOfBirth), [patientDateOfBirth]);
   
+  // Get visible tabs based on patient age and gender
+  const visibleTabs = useMemo(() => getVisibleTabs(patientDateOfBirth, patientGender), [patientDateOfBirth, patientGender]);
+  
   // Calculate growth chart percentiles for pediatric patients
   const growthPercentiles = useMemo(() => {
     if (!patientDateOfBirth || !patientGender || !isPediatricPatient(patientDateOfBirth)) {
@@ -988,7 +1049,7 @@ export default function PhysicalExaminationDialog({
       lines.push("");
     }
     
-    SYSTEMS.forEach((system) => {
+    visibleTabs.forEach((system) => {
       const findings = selectedFindings[system.id];
       if (findings && findings.length > 0) {
         lines.push(`**${system.label} Examination:**`);
@@ -1010,7 +1071,7 @@ export default function PhysicalExaminationDialog({
     });
     
     return lines.join("\n").trim();
-  }, [selectedFindings, hasVitalsEntered, generateVitalsSummary]);
+  }, [selectedFindings, hasVitalsEntered, generateVitalsSummary, visibleTabs]);
 
   const handleInsert = () => {
     if (generateExamText) {
@@ -1181,7 +1242,7 @@ export default function PhysicalExaminationDialog({
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="w-full flex flex-wrap h-auto gap-1 bg-transparent p-0 mb-4">
-          {SYSTEMS.map((system) => (
+          {visibleTabs.map((system) => (
             <TabsTrigger
               key={system.id}
               value={system.id}
@@ -1392,7 +1453,7 @@ export default function PhysicalExaminationDialog({
         </TabsContent>
 
         {/* Other System Tabs */}
-        {SYSTEMS.filter(s => s.id !== "vitals").map((system) => (
+        {visibleTabs.filter(s => s.id !== "vitals").map((system) => (
           <TabsContent key={system.id} value={system.id} className="mt-0">
             <div className="space-y-6">
               {Object.entries(system.items).map(([category, findings]) => (
