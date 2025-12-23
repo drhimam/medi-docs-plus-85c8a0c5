@@ -7,9 +7,17 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PresetDialog } from "@/components/patient/preset/PresetDialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { CheckCheck, Eye, EyeOff, Copy, Check, Heart } from "lucide-react";
+import { CheckCheck, Eye, EyeOff, Copy, Check, Heart, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import {
+  calculateWeightPercentile,
+  calculateHeightPercentile,
+  calculateBMIPercentile,
+  isPediatricPatient,
+  getPatientGender,
+  type GrowthPercentileResult,
+} from "@/lib/growthCharts";
 
 import { differenceInYears, differenceInMonths } from "date-fns";
 
@@ -288,6 +296,7 @@ interface PhysicalExaminationDialogProps {
   vitalSigns?: VitalSigns;
   onVitalSignsChange?: (field: keyof VitalSigns, value: string) => void;
   patientDateOfBirth?: string;
+  patientGender?: string;
 }
 
 type Finding = {
@@ -800,6 +809,35 @@ const NORMAL_FINDINGS: { [systemId: string]: { [category: string]: string[] } } 
   },
 };
 
+// Percentile display card component
+function PercentileCard({ label, result }: { label: string; result: GrowthPercentileResult }) {
+  const getPercentileColor = () => {
+    if (result.category === "low") return "text-amber-600 dark:text-amber-400";
+    if (result.category === "high") return "text-amber-600 dark:text-amber-400";
+    return "text-green-600 dark:text-green-400";
+  };
+  
+  const getBorderColor = () => {
+    if (result.category === "low") return "border-amber-200 dark:border-amber-800";
+    if (result.category === "high") return "border-amber-200 dark:border-amber-800";
+    return "border-green-200 dark:border-green-800";
+  };
+  
+  return (
+    <div className={cn("p-3 rounded-md border bg-background", getBorderColor())}>
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-xs font-medium text-muted-foreground">{label}</span>
+        {result.category === "low" && <TrendingDown className="h-4 w-4 text-amber-500" />}
+        {result.category === "high" && <TrendingUp className="h-4 w-4 text-amber-500" />}
+        {result.category === "normal" && <Minus className="h-4 w-4 text-green-500" />}
+      </div>
+      <div className={cn("text-lg font-bold", getPercentileColor())}>{result.percentile}%</div>
+      <div className="text-xs text-muted-foreground mt-1">z-score: {result.zScore}</div>
+      <div className="text-xs text-muted-foreground mt-1">{result.interpretation}</div>
+    </div>
+  );
+}
+
 export default function PhysicalExaminationDialog({
   open,
   onOpenChange,
@@ -807,6 +845,7 @@ export default function PhysicalExaminationDialog({
   vitalSigns,
   onVitalSignsChange,
   patientDateOfBirth,
+  patientGender,
 }: PhysicalExaminationDialogProps) {
   const [selectedFindings, setSelectedFindings] = useState<SystemFindings>({});
   const [activeTab, setActiveTab] = useState("vitals");
@@ -816,6 +855,32 @@ export default function PhysicalExaminationDialog({
   // Get age-appropriate vital ranges
   const vitalRanges = useMemo(() => getVitalRanges(patientDateOfBirth), [patientDateOfBirth]);
   const ageGroupLabel = useMemo(() => getAgeGroupLabel(patientDateOfBirth), [patientDateOfBirth]);
+  
+  // Calculate growth chart percentiles for pediatric patients
+  const growthPercentiles = useMemo(() => {
+    if (!patientDateOfBirth || !patientGender || !isPediatricPatient(patientDateOfBirth)) {
+      return null;
+    }
+    
+    const gender = getPatientGender(patientGender);
+    if (!gender) return null;
+    
+    const weight = parseFloat(vitalSigns?.weight || "");
+    const height = parseFloat(vitalSigns?.height || "");
+    const bmi = parseFloat(vitalSigns?.bmi || "");
+    
+    return {
+      weight: !isNaN(weight) && weight > 0 
+        ? calculateWeightPercentile(weight, patientDateOfBirth, gender)
+        : null,
+      height: !isNaN(height) && height > 0
+        ? calculateHeightPercentile(height, patientDateOfBirth, gender)
+        : null,
+      bmi: !isNaN(bmi) && bmi > 0
+        ? calculateBMIPercentile(bmi, patientDateOfBirth, gender)
+        : null,
+    };
+  }, [patientDateOfBirth, patientGender, vitalSigns?.weight, vitalSigns?.height, vitalSigns?.bmi]);
 
   // Auto-calculate BMI when weight or height changes
   useEffect(() => {
@@ -1005,13 +1070,13 @@ export default function PhysicalExaminationDialog({
       footer={
         <div className="flex items-center justify-between w-full">
           <span className="text-sm text-muted-foreground">
-            {getTotalSelectedCount()} finding(s) selected
+            {getTotalSelectedCount()} finding(s) selected{hasVitalsEntered && " + Vitals"}
           </span>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => handleOpenChange(false)}>
               Cancel
             </Button>
-            <Button onClick={handleInsert} disabled={getTotalSelectedCount() === 0}>
+            <Button onClick={handleInsert} disabled={getTotalSelectedCount() === 0 && !hasVitalsEntered}>
               Insert Findings
             </Button>
           </div>
@@ -1048,7 +1113,27 @@ export default function PhysicalExaminationDialog({
           {showPreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           {showPreview ? "Hide Preview" : "Show Preview"}
         </Button>
-        {getSystemSelectedCount(activeTab) > 0 && (
+        {activeTab === "vitals" && hasVitalsEntered && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              if (onVitalSignsChange) {
+                Object.keys(vitalSigns || {}).forEach((key) => {
+                  onVitalSignsChange(key as keyof VitalSigns, "");
+                });
+                toast({
+                  title: "Vitals Cleared",
+                  description: "All vital signs have been cleared.",
+                });
+              }
+            }}
+            className="text-destructive hover:text-destructive"
+          >
+            Clear Tab
+          </Button>
+        )}
+        {activeTab !== "vitals" && getSystemSelectedCount(activeTab) > 0 && (
           <Button
             variant="ghost"
             size="sm"
@@ -1064,7 +1149,7 @@ export default function PhysicalExaminationDialog({
         )}
       </div>
 
-      {showPreview && getTotalSelectedCount() > 0 && (
+      {showPreview && (getTotalSelectedCount() > 0 || hasVitalsEntered) && (
         <div className="mb-4 p-4 bg-muted rounded-lg border">
           <div className="flex items-center justify-between mb-2">
             <h4 className="text-sm font-medium">Preview</h4>
@@ -1086,7 +1171,7 @@ export default function PhysicalExaminationDialog({
         </div>
       )}
 
-      {showPreview && getTotalSelectedCount() === 0 && (
+      {showPreview && getTotalSelectedCount() === 0 && !hasVitalsEntered && (
         <div className="mb-4 p-4 bg-muted rounded-lg border">
           <p className="text-sm text-muted-foreground text-center">
             Select findings to see preview
@@ -1266,6 +1351,43 @@ export default function PhysicalExaminationDialog({
                 />
               </div>
             </div>
+            
+            {/* Growth Chart Percentiles for Pediatric Patients */}
+            {growthPercentiles && (growthPercentiles.weight || growthPercentiles.height || growthPercentiles.bmi) && (
+              <div className="mt-6 p-4 bg-muted/50 rounded-lg border">
+                <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4" />
+                  Growth Chart Percentiles (WHO/CDC Standards)
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {growthPercentiles.weight && growthPercentiles.weight.category !== "unknown" && (
+                    <PercentileCard
+                      label="Weight-for-age"
+                      result={growthPercentiles.weight}
+                    />
+                  )}
+                  {growthPercentiles.height && growthPercentiles.height.category !== "unknown" && (
+                    <PercentileCard
+                      label="Height-for-age"
+                      result={growthPercentiles.height}
+                    />
+                  )}
+                  {growthPercentiles.bmi && growthPercentiles.bmi.category !== "unknown" && (
+                    <PercentileCard
+                      label="BMI-for-age"
+                      result={growthPercentiles.bmi}
+                    />
+                  )}
+                </div>
+                {(!growthPercentiles.weight || growthPercentiles.weight.category === "unknown") &&
+                 (!growthPercentiles.height || growthPercentiles.height.category === "unknown") &&
+                 (!growthPercentiles.bmi || growthPercentiles.bmi.category === "unknown") && (
+                  <p className="text-xs text-muted-foreground">
+                    Enter weight, height, or BMI to see growth percentiles.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </TabsContent>
 

@@ -477,6 +477,7 @@ export default function AddVisit() {
         }}
         onVitalSignsChange={handleVitalSignsChange}
         patientDateOfBirth={patient?.date_of_birth}
+        patientGender={patient?.gender}
       />
       <InvestigationBuilderDialog
         open={showInvestigationDialog}
