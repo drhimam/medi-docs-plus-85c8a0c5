@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Check, Eye, EyeOff, Search, X, Beaker, Heart, Droplet, Activity, Brain, Stethoscope, Microscope, Scan, Radio, Baby, AlertTriangle, TrendingUp, TrendingDown, Save, FolderOpen, Trash2, Plus, Upload, FileText } from "lucide-react";
+import { Check, Eye, EyeOff, Search, X, Beaker, Heart, Droplet, Activity, Brain, Stethoscope, Microscope, Scan, Radio, Baby, AlertTriangle, TrendingUp, TrendingDown, Save, FolderOpen, Trash2, Plus, Upload, FileText, PlusCircle } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { PresetDialog } from "@/components/patient/preset/PresetDialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -164,7 +164,8 @@ type InvestigationType =
   | "tumorMarkers"
   | "imaging"
   | "cardiology"
-  | "obstetricGyn";
+  | "obstetricGyn"
+  | "custom";
 
 type InvestigationTest = {
   name: string;
@@ -222,6 +223,8 @@ const INVESTIGATION_CATEGORIES: Record<InvestigationType, { label: string; icon:
       { name: "A/G Ratio", normalRange: "1.1-2.5" },
       { name: "Lactate", unit: "mmol/L", normalRange: "0.5-2.2" },
       { name: "Ammonia", unit: "µmol/L", normalRange: "11-32" },
+      { name: "CRP (C-Reactive Protein)", unit: "mg/L", normalRange: "<10" },
+      { name: "25-Hydroxy Vitamin D", unit: "ng/mL", normalRange: "30-100" },
     ],
   },
   lipidProfile: {
@@ -613,6 +616,11 @@ const INVESTIGATION_CATEGORIES: Record<InvestigationType, { label: string; icon:
       { name: "Progesterone (Day 21)" },
     ],
   },
+  custom: {
+    label: "Custom",
+    icon: PlusCircle,
+    tests: [],
+  },
 };
 
 type SelectedInvestigations = Record<string, Record<string, { selected: boolean; result?: string }>>;
@@ -656,6 +664,12 @@ export default function InvestigationBuilderDialog({
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [importText, setImportText] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Custom investigation state
+  const [customTests, setCustomTests] = useState<InvestigationTest[]>([]);
+  const [newCustomTestName, setNewCustomTestName] = useState("");
+  const [newCustomTestUnit, setNewCustomTestUnit] = useState("");
+  const [newCustomTestNormalRange, setNewCustomTestNormalRange] = useState("");
 
   // Load templates on mount
   useEffect(() => {
@@ -841,8 +855,14 @@ export default function InvestigationBuilderDialog({
       "ptt": "aPTT",
       "bnp": "BNP",
       "troponin": "Troponin I",
-      "crp": "hs-CRP",
+      "crp": "CRP (C-Reactive Protein)",
+      "c-reactive protein": "CRP (C-Reactive Protein)",
+      "hs-crp": "hs-CRP",
       "egfr": "eGFR",
+      "vitamin d": "25-Hydroxy Vitamin D",
+      "vit d": "25-Hydroxy Vitamin D",
+      "25-oh vitamin d": "25-Hydroxy Vitamin D",
+      "25 hydroxy vitamin d": "25-Hydroxy Vitamin D",
     };
     
     if (abbreviations[normalizedName]) {
@@ -1054,7 +1074,10 @@ export default function InvestigationBuilderDialog({
   const getTestAbnormalStatus = (category: InvestigationType, testName: string): AbnormalStatus => {
     const result = getTestResult(category, testName);
     if (!result) return "unknown";
-    const testConfig = INVESTIGATION_CATEGORIES[category]?.tests.find((t) => t.name === testName);
+    // For custom tests, look in customTests array
+    const testConfig = category === "custom"
+      ? customTests.find((t) => t.name === testName)
+      : INVESTIGATION_CATEGORIES[category]?.tests.find((t) => t.name === testName);
     return checkValueAgainstRange(result, testConfig?.normalRange);
   };
 
@@ -1134,6 +1157,50 @@ export default function InvestigationBuilderDialog({
       delete newSelections[activeTab];
       return newSelections;
     });
+    // Also clear custom tests if on custom tab
+    if (activeTab === "custom") {
+      setCustomTests([]);
+    }
+  };
+
+  // Add custom investigation test
+  const addCustomTest = () => {
+    if (!newCustomTestName.trim()) {
+      toast({ title: "Error", description: "Please enter a test name", variant: "destructive" });
+      return;
+    }
+    
+    const newTest: InvestigationTest = {
+      name: newCustomTestName.trim(),
+      unit: newCustomTestUnit.trim() || undefined,
+      normalRange: newCustomTestNormalRange.trim() || undefined,
+    };
+    
+    setCustomTests(prev => [...prev, newTest]);
+    setSelectedInvestigations(prev => ({
+      ...prev,
+      custom: {
+        ...(prev.custom || {}),
+        [newTest.name]: { selected: true, result: "" },
+      },
+    }));
+    
+    // Clear inputs
+    setNewCustomTestName("");
+    setNewCustomTestUnit("");
+    setNewCustomTestNormalRange("");
+    
+    toast({ title: "Custom test added", description: `"${newTest.name}" added` });
+  };
+
+  // Remove custom test
+  const removeCustomTest = (testName: string) => {
+    setCustomTests(prev => prev.filter(t => t.name !== testName));
+    setSelectedInvestigations(prev => {
+      const customData = { ...(prev.custom || {}) };
+      delete customData[testName];
+      return { ...prev, custom: customData };
+    });
   };
 
   const generateInvestigationText = () => {
@@ -1146,7 +1213,11 @@ export default function InvestigationBuilderDialog({
       if (selectedTests.length > 0) {
         lines.push(`**${categoryConfig.label}:**`);
         selectedTests.forEach(([testName, data]) => {
-          const testConfig = categoryConfig.tests.find((t) => t.name === testName);
+          // For custom category, look in customTests array
+          const testConfig = category === "custom" 
+            ? customTests.find((t) => t.name === testName)
+            : categoryConfig.tests.find((t) => t.name === testName);
+            
           if (data.result) {
             const status = checkValueAgainstRange(data.result, testConfig?.normalRange);
             let resultLine = `- ${testName}: ${data.result}`;
@@ -1184,6 +1255,7 @@ export default function InvestigationBuilderDialog({
     onOpenChange(false);
     setSelectedInvestigations({});
     setSearchQuery("");
+    setCustomTests([]);
   };
 
   const filterTests = (tests: InvestigationTest[]) => {
@@ -1428,90 +1500,247 @@ export default function InvestigationBuilderDialog({
 
           {categories.map(([key, config]) => (
             <TabsContent key={key} value={key} className="mt-0">
-              <div className="grid gap-2">
-                {filterTests(config.tests).map((test) => {
-                  const isSelected = isTestSelected(key, test.name);
-                  const result = getTestResult(key, test.name);
-                  const abnormalStatus = getTestAbnormalStatus(key, test.name);
-                  
-                  return (
-                    <div
-                      key={test.name}
-                      className={`p-3 rounded-lg border transition-colors ${
-                        isSelected
-                          ? abnormalStatus === "high" || abnormalStatus === "low"
-                            ? "bg-destructive/10 border-destructive/50"
-                            : "bg-primary/5 border-primary/30"
-                          : "bg-card hover:bg-accent/50"
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <Checkbox
-                          id={`${key}-${test.name}`}
-                          checked={isSelected}
-                          onCheckedChange={() => handleToggleTest(key, test.name)}
-                          className="mt-0.5"
-                        />
-                        <div className="flex-1 space-y-2">
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-                            <Label
-                              htmlFor={`${key}-${test.name}`}
-                              className="font-medium cursor-pointer"
-                            >
-                              {test.name}
-                            </Label>
-                            {test.normalRange && (
-                              <span className="text-xs text-muted-foreground">
-                                Normal: {test.normalRange}
-                              </span>
-                            )}
-                          </div>
-                          {isSelected && (
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <Input
-                                placeholder={`Enter result${test.unit ? ` (${test.unit})` : ""}`}
-                                value={result}
-                                onChange={(e) => handleResultChange(key, test.name, e.target.value)}
-                                className={`max-w-xs ${
-                                  abnormalStatus === "high" || abnormalStatus === "low"
-                                    ? "border-destructive focus-visible:ring-destructive"
-                                    : ""
-                                }`}
-                              />
-                              {test.unit && (
-                                <span className="text-sm text-muted-foreground">{test.unit}</span>
-                              )}
-                              {abnormalStatus === "high" && (
-                                <Badge variant="destructive" className="flex items-center gap-1">
-                                  <TrendingUp className="h-3 w-3" />
-                                  HIGH
-                                </Badge>
-                              )}
-                              {abnormalStatus === "low" && (
-                                <Badge variant="destructive" className="flex items-center gap-1">
-                                  <TrendingDown className="h-3 w-3" />
-                                  LOW
-                                </Badge>
-                              )}
-                              {abnormalStatus === "normal" && result && (
-                                <Badge variant="secondary" className="flex items-center gap-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                                  <Check className="h-3 w-3" />
-                                  Normal
-                                </Badge>
-                              )}
-                            </div>
-                          )}
+              {key === "custom" ? (
+                <div className="space-y-4">
+                  {/* Add custom test form */}
+                  <div className="p-4 rounded-lg border border-dashed border-primary/50 bg-primary/5">
+                    <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                      <PlusCircle className="h-4 w-4" />
+                      Add Custom Investigation
+                    </h4>
+                    <div className="grid gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <div className="sm:col-span-1">
+                          <Label htmlFor="custom-test-name" className="text-xs text-muted-foreground">
+                            Test Name *
+                          </Label>
+                          <Input
+                            id="custom-test-name"
+                            placeholder="e.g., Serum Ferritin"
+                            value={newCustomTestName}
+                            onChange={(e) => setNewCustomTestName(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="custom-test-unit" className="text-xs text-muted-foreground">
+                            Unit (optional)
+                          </Label>
+                          <Input
+                            id="custom-test-unit"
+                            placeholder="e.g., ng/mL"
+                            value={newCustomTestUnit}
+                            onChange={(e) => setNewCustomTestUnit(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="custom-test-range" className="text-xs text-muted-foreground">
+                            Normal Range (optional)
+                          </Label>
+                          <Input
+                            id="custom-test-range"
+                            placeholder="e.g., 12-150"
+                            value={newCustomTestNormalRange}
+                            onChange={(e) => setNewCustomTestNormalRange(e.target.value)}
+                          />
                         </div>
                       </div>
+                      <Button 
+                        onClick={addCustomTest} 
+                        size="sm" 
+                        className="w-full sm:w-auto"
+                        disabled={!newCustomTestName.trim()}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Test
+                      </Button>
                     </div>
-                  );
-                })}
-                {filterTests(config.tests).length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No investigations found matching "{searchQuery}"
                   </div>
-                )}
-              </div>
+                  
+                  {/* List custom tests */}
+                  <div className="grid gap-2">
+                    {customTests.map((test) => {
+                      const isSelected = isTestSelected("custom", test.name);
+                      const result = getTestResult("custom", test.name);
+                      const abnormalStatus = getTestAbnormalStatus("custom", test.name);
+                      
+                      return (
+                        <div
+                          key={test.name}
+                          className={`p-3 rounded-lg border transition-colors ${
+                            isSelected
+                              ? abnormalStatus === "high" || abnormalStatus === "low"
+                                ? "bg-destructive/10 border-destructive/50"
+                                : "bg-primary/5 border-primary/30"
+                              : "bg-card hover:bg-accent/50"
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <Checkbox
+                              id={`custom-${test.name}`}
+                              checked={isSelected}
+                              onCheckedChange={() => handleToggleTest("custom", test.name)}
+                              className="mt-0.5"
+                            />
+                            <div className="flex-1 space-y-2">
+                              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                                <Label
+                                  htmlFor={`custom-${test.name}`}
+                                  className="font-medium cursor-pointer"
+                                >
+                                  {test.name}
+                                </Label>
+                                {test.unit && (
+                                  <span className="text-xs text-muted-foreground">
+                                    ({test.unit})
+                                  </span>
+                                )}
+                                {test.normalRange && (
+                                  <span className="text-xs text-muted-foreground">
+                                    Normal: {test.normalRange}
+                                  </span>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeCustomTest(test.name)}
+                                  className="h-6 w-6 p-0 text-destructive hover:text-destructive ml-auto"
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                              {isSelected && (
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <Input
+                                    placeholder={`Enter result${test.unit ? ` (${test.unit})` : ""}`}
+                                    value={result}
+                                    onChange={(e) => handleResultChange("custom", test.name, e.target.value)}
+                                    className={`max-w-xs ${
+                                      abnormalStatus === "high" || abnormalStatus === "low"
+                                        ? "border-destructive focus-visible:ring-destructive"
+                                        : ""
+                                    }`}
+                                  />
+                                  {test.unit && (
+                                    <span className="text-sm text-muted-foreground">{test.unit}</span>
+                                  )}
+                                  {abnormalStatus === "high" && (
+                                    <Badge variant="destructive" className="flex items-center gap-1">
+                                      <TrendingUp className="h-3 w-3" />
+                                      HIGH
+                                    </Badge>
+                                  )}
+                                  {abnormalStatus === "low" && (
+                                    <Badge variant="destructive" className="flex items-center gap-1">
+                                      <TrendingDown className="h-3 w-3" />
+                                      LOW
+                                    </Badge>
+                                  )}
+                                  {abnormalStatus === "normal" && result && (
+                                    <Badge variant="secondary" className="flex items-center gap-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                      <Check className="h-3 w-3" />
+                                      Normal
+                                    </Badge>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {customTests.length === 0 && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No custom investigations added yet. Use the form above to add tests that aren't in our preset lists.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="grid gap-2">
+                  {filterTests(config.tests).map((test) => {
+                    const isSelected = isTestSelected(key, test.name);
+                    const result = getTestResult(key, test.name);
+                    const abnormalStatus = getTestAbnormalStatus(key, test.name);
+                    
+                    return (
+                      <div
+                        key={test.name}
+                        className={`p-3 rounded-lg border transition-colors ${
+                          isSelected
+                            ? abnormalStatus === "high" || abnormalStatus === "low"
+                              ? "bg-destructive/10 border-destructive/50"
+                              : "bg-primary/5 border-primary/30"
+                            : "bg-card hover:bg-accent/50"
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <Checkbox
+                            id={`${key}-${test.name}`}
+                            checked={isSelected}
+                            onCheckedChange={() => handleToggleTest(key, test.name)}
+                            className="mt-0.5"
+                          />
+                          <div className="flex-1 space-y-2">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                              <Label
+                                htmlFor={`${key}-${test.name}`}
+                                className="font-medium cursor-pointer"
+                              >
+                                {test.name}
+                              </Label>
+                              {test.normalRange && (
+                                <span className="text-xs text-muted-foreground">
+                                  Normal: {test.normalRange}
+                                </span>
+                              )}
+                            </div>
+                            {isSelected && (
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Input
+                                  placeholder={`Enter result${test.unit ? ` (${test.unit})` : ""}`}
+                                  value={result}
+                                  onChange={(e) => handleResultChange(key, test.name, e.target.value)}
+                                  className={`max-w-xs ${
+                                    abnormalStatus === "high" || abnormalStatus === "low"
+                                      ? "border-destructive focus-visible:ring-destructive"
+                                      : ""
+                                  }`}
+                                />
+                                {test.unit && (
+                                  <span className="text-sm text-muted-foreground">{test.unit}</span>
+                                )}
+                                {abnormalStatus === "high" && (
+                                  <Badge variant="destructive" className="flex items-center gap-1">
+                                    <TrendingUp className="h-3 w-3" />
+                                    HIGH
+                                  </Badge>
+                                )}
+                                {abnormalStatus === "low" && (
+                                  <Badge variant="destructive" className="flex items-center gap-1">
+                                    <TrendingDown className="h-3 w-3" />
+                                    LOW
+                                  </Badge>
+                                )}
+                                {abnormalStatus === "normal" && result && (
+                                  <Badge variant="secondary" className="flex items-center gap-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                    <Check className="h-3 w-3" />
+                                    Normal
+                                  </Badge>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {filterTests(config.tests).length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No investigations found matching "{searchQuery}"
+                    </div>
+                  )}
+                </div>
+              )}
             </TabsContent>
           ))}
         </Tabs>
