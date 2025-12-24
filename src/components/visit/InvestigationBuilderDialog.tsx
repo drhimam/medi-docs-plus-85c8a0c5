@@ -1265,6 +1265,43 @@ export default function InvestigationBuilderDialog({
     );
   };
 
+  // Get all matching tests across ALL categories for global search
+  const getGlobalSearchResults = () => {
+    if (!searchQuery.trim()) return [];
+    
+    const query = searchQuery.toLowerCase();
+    const results: { category: InvestigationType; categoryLabel: string; test: InvestigationTest }[] = [];
+    
+    Object.entries(INVESTIGATION_CATEGORIES).forEach(([key, config]) => {
+      if (key === "custom") {
+        // Search custom tests
+        customTests.forEach((test) => {
+          if (test.name.toLowerCase().includes(query)) {
+            results.push({
+              category: key as InvestigationType,
+              categoryLabel: config.label,
+              test,
+            });
+          }
+        });
+      } else {
+        config.tests.forEach((test) => {
+          if (test.name.toLowerCase().includes(query)) {
+            results.push({
+              category: key as InvestigationType,
+              categoryLabel: config.label,
+              test,
+            });
+          }
+        });
+      }
+    });
+    
+    return results;
+  };
+
+  const globalSearchResults = getGlobalSearchResults();
+
   const abnormalResults = getAbnormalResults();
 
   const categories = Object.entries(INVESTIGATION_CATEGORIES) as [InvestigationType, typeof INVESTIGATION_CATEGORIES[InvestigationType]][];
@@ -1470,35 +1507,146 @@ export default function InvestigationBuilderDialog({
           </div>
         )}
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as InvestigationType)}>
-          <TabsList className="flex flex-wrap h-auto gap-1 mb-4">
-            {categories.map(([key, config]) => {
-              const Icon = config.icon;
-              const count = getCategorySelectedCount(key);
-              const abnormalCount = getCategoryAbnormalCount(key);
-              return (
-                <TabsTrigger
-                  key={key}
-                  value={key}
-                  className="flex items-center gap-1.5 text-xs px-2 py-1.5"
+        {/* Global Search Results - shown when search query is active */}
+        {searchQuery.trim() ? (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 mb-3">
+              <Search className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">
+                Showing {globalSearchResults.length} result(s) across all categories
+              </span>
+              {searchQuery && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSearchQuery("")}
+                  className="h-6 px-2 text-xs"
                 >
-                  <Icon className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">{config.label}</span>
-                  {count > 0 && (
-                    <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full ${
-                      abnormalCount > 0 
-                        ? "bg-destructive text-destructive-foreground" 
-                        : "bg-primary text-primary-foreground"
-                    }`}>
-                      {count}
-                    </span>
-                  )}
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
+                  <X className="h-3 w-3 mr-1" />
+                  Clear search
+                </Button>
+              )}
+            </div>
+            <ScrollArea className="h-[400px] pr-2">
+              <div className="grid gap-2">
+                {globalSearchResults.map(({ category, categoryLabel, test }) => {
+                  const isSelected = isTestSelected(category, test.name);
+                  const result = getTestResult(category, test.name);
+                  const abnormalStatus = getTestAbnormalStatus(category, test.name);
+                  
+                  return (
+                    <div
+                      key={`${category}-${test.name}`}
+                      className={`p-3 rounded-lg border transition-colors ${
+                        isSelected
+                          ? abnormalStatus === "high" || abnormalStatus === "low"
+                            ? "bg-destructive/10 border-destructive/50"
+                            : "bg-primary/5 border-primary/30"
+                          : "bg-card hover:bg-accent/50"
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <Checkbox
+                          id={`search-${category}-${test.name}`}
+                          checked={isSelected}
+                          onCheckedChange={() => handleToggleTest(category, test.name)}
+                          className="mt-0.5"
+                        />
+                        <div className="flex-1 space-y-2">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                            <Label
+                              htmlFor={`search-${category}-${test.name}`}
+                              className="font-medium cursor-pointer"
+                            >
+                              {test.name}
+                            </Label>
+                            <Badge variant="outline" className="text-xs w-fit">
+                              {categoryLabel}
+                            </Badge>
+                            {test.normalRange && (
+                              <span className="text-xs text-muted-foreground">
+                                Normal: {test.normalRange}
+                              </span>
+                            )}
+                          </div>
+                          {isSelected && (
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <Input
+                                placeholder={`Enter result${test.unit ? ` (${test.unit})` : ""}`}
+                                value={result}
+                                onChange={(e) => handleResultChange(category, test.name, e.target.value)}
+                                className={`max-w-xs ${
+                                  abnormalStatus === "high" || abnormalStatus === "low"
+                                    ? "border-destructive focus-visible:ring-destructive"
+                                    : ""
+                                }`}
+                              />
+                              {test.unit && (
+                                <span className="text-sm text-muted-foreground">{test.unit}</span>
+                              )}
+                              {abnormalStatus === "high" && (
+                                <Badge variant="destructive" className="flex items-center gap-1">
+                                  <TrendingUp className="h-3 w-3" />
+                                  HIGH
+                                </Badge>
+                              )}
+                              {abnormalStatus === "low" && (
+                                <Badge variant="destructive" className="flex items-center gap-1">
+                                  <TrendingDown className="h-3 w-3" />
+                                  LOW
+                                </Badge>
+                              )}
+                              {abnormalStatus === "normal" && result && (
+                                <Badge variant="secondary" className="flex items-center gap-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                  <Check className="h-3 w-3" />
+                                  Normal
+                                </Badge>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                {globalSearchResults.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No investigations found matching "{searchQuery}"
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+          </div>
+        ) : (
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as InvestigationType)}>
+            <TabsList className="flex flex-wrap h-auto gap-1 mb-4">
+              {categories.map(([key, config]) => {
+                const Icon = config.icon;
+                const count = getCategorySelectedCount(key);
+                const abnormalCount = getCategoryAbnormalCount(key);
+                return (
+                  <TabsTrigger
+                    key={key}
+                    value={key}
+                    className="flex items-center gap-1.5 text-xs px-2 py-1.5"
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">{config.label}</span>
+                    {count > 0 && (
+                      <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full ${
+                        abnormalCount > 0 
+                          ? "bg-destructive text-destructive-foreground" 
+                          : "bg-primary text-primary-foreground"
+                      }`}>
+                        {count}
+                      </span>
+                    )}
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
 
-          {categories.map(([key, config]) => (
+            {categories.map(([key, config]) => (
             <TabsContent key={key} value={key} className="mt-0">
               {key === "custom" ? (
                 <div className="space-y-4">
@@ -1743,7 +1891,8 @@ export default function InvestigationBuilderDialog({
               )}
             </TabsContent>
           ))}
-        </Tabs>
+          </Tabs>
+        )}
       </PresetDialog>
       
       {/* Save Template Dialog */}
