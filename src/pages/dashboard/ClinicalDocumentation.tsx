@@ -26,6 +26,8 @@ import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } 
 import { PrescriptionSnippetsDialog } from "@/components/prescription/PrescriptionSnippetsDialog";
 import PhysicalExaminationDialog from "@/components/visit/PhysicalExaminationDialog";
 import InvestigationBuilderDialog from "@/components/visit/InvestigationBuilderDialog";
+import InvestigationRequisitionDialog from "@/components/visit/InvestigationRequisitionDialog";
+import { exportRequisitionToPDF } from "@/lib/requisitionExport";
 import HPIBuilder from "@/components/visit/HPIBuilder";
 import ROSBuilder from "@/components/visit/ROSBuilder";
 import { SOAPExportSettingsDialog } from "@/components/soap/SOAPExportSettingsDialog";
@@ -118,6 +120,7 @@ export default function ClinicalDocumentation() {
   const [showSOAPExportSettings, setShowSOAPExportSettings] = useState(false);
   const [showSOAPPreview, setShowSOAPPreview] = useState(false);
   const [showSOAPEmail, setShowSOAPEmail] = useState(false);
+  const [showRequisitionDialog, setShowRequisitionDialog] = useState(false);
   const assessmentRef = useRef<HTMLTextAreaElement>(null);
   const planRef = useRef<HTMLTextAreaElement>(null);
   const prescriptionEditorRef = useRef<RichTextEditorHandle>(null);
@@ -1846,10 +1849,16 @@ ${cleanPrescription}
                       <h2 className="text-2xl font-semibold">Patient Documents</h2>
                       <p className="text-sm text-muted-foreground">Uploaded documents for this visit</p>
                     </div>
-                    <Button onClick={() => setIsUploadDialogOpen(true)}>
-                      <FileText className="w-4 h-4 mr-2" />
-                      Upload Document
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button variant="outline" onClick={() => setShowRequisitionDialog(true)}>
+                        <FlaskConical className="w-4 h-4 mr-2" />
+                        Generate Requisition
+                      </Button>
+                      <Button onClick={() => setIsUploadDialogOpen(true)}>
+                        <FileText className="w-4 h-4 mr-2" />
+                        Upload Document
+                      </Button>
+                    </div>
                   </div>
 
                   {documents.length > 0 ? (
@@ -2112,6 +2121,59 @@ ${cleanPrescription}
         onOpenChange={setShowSOAPEmail}
         patientName={patient ? `${patient.first_name} ${patient.last_name}` : ""}
         soapNote={{ subjective, objective, assessment, plan }}
+      />
+
+      <InvestigationRequisitionDialog
+        open={showRequisitionDialog}
+        onOpenChange={setShowRequisitionDialog}
+        patientName={patient ? `${patient.first_name} ${patient.last_name}` : ""}
+        patientAge={patient ? `${differenceInYears(new Date(), new Date(patient.date_of_birth))} years` : undefined}
+        patientGender={patient?.gender}
+        clinicalInfo={assessment || visit?.reason_for_visit}
+        onGenerate={async (requisitionText, selectedTests) => {
+          try {
+            const { data: settings } = await supabase
+              .from("prescription_settings")
+              .select("*")
+              .single();
+            
+            const selectedInvestigations = selectedTests.reduce((acc, test) => {
+              const existing = acc.find(g => g.category === "Selected");
+              if (existing) {
+                existing.tests.push(test);
+              } else {
+                acc.push({ category: "Selected", tests: [test] });
+              }
+              return acc;
+            }, [] as { category: string; tests: string[] }[]);
+            
+            await exportRequisitionToPDF(
+              selectedInvestigations,
+              patient?.id || "",
+              patient ? `${patient.first_name} ${patient.last_name}` : "",
+              patient ? `${differenceInYears(new Date(), new Date(patient.date_of_birth))} years` : undefined,
+              patient?.gender,
+              patient?.contact_number,
+              patient?.address,
+              assessment || visit?.reason_for_visit,
+              "routine",
+              false,
+              settings as any
+            );
+            
+            toast({
+              title: "Success",
+              description: "Investigation requisition generated and downloaded",
+            });
+          } catch (error) {
+            console.error("Error generating requisition:", error);
+            toast({
+              title: "Error",
+              description: "Failed to generate requisition PDF",
+              variant: "destructive",
+            });
+          }
+        }}
       />
     </div>
   );
