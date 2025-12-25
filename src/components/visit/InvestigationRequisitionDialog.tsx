@@ -822,7 +822,7 @@ export default function InvestigationRequisitionDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-hidden flex flex-col gap-4">
+        <div className="flex-1 overflow-hidden flex flex-col gap-4 min-h-0">
           {/* Search and Controls */}
           <div className="flex items-center gap-4 flex-wrap">
             <div className="relative flex-1 min-w-[200px]">
@@ -875,7 +875,7 @@ export default function InvestigationRequisitionDialog({
           </div>
 
           {/* Main Content */}
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 overflow-hidden min-h-0">
             {showPreview ? (
               <div className="h-full flex flex-col gap-4">
                 <div className="flex items-center justify-between">
@@ -1049,7 +1049,11 @@ export default function InvestigationRequisitionDialog({
               </div>
             ) : (
               // Category Tabs
-              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as InvestigationType)} className="h-full flex flex-col">
+              <Tabs
+                value={activeTab}
+                onValueChange={(v) => setActiveTab(v as InvestigationType)}
+                className="h-full min-h-0 flex flex-col"
+              >
                 <div className="overflow-x-auto w-full flex-shrink-0">
                   <TabsList className="inline-flex h-auto p-1 mb-2 min-w-max">
                     {Object.entries(INVESTIGATION_CATEGORIES).map(([key, { label, icon: Icon }]) => (
@@ -1066,7 +1070,7 @@ export default function InvestigationRequisitionDialog({
                 </div>
 
                 <div className="flex-1 overflow-hidden min-h-0">
-                  <ScrollArea className="h-full">
+                  <ScrollArea className="h-full"> 
                     {Object.entries(INVESTIGATION_CATEGORIES).map(([category, config]) => (
                       <TabsContent key={category} value={category} className="mt-0 h-full">
                         {category === "custom" ? (
