@@ -25,7 +25,10 @@ import {
   Eye,
   Plus,
   Trash2,
-  PlusCircle
+  PlusCircle,
+  Save,
+  FolderOpen,
+  Loader2
 } from "lucide-react";
 import {
   Dialog,
@@ -36,6 +39,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 type InvestigationType = 
   | "hematology"
@@ -62,6 +67,13 @@ type InvestigationTest = {
   unit?: string;
   normalRange?: string;
 };
+
+interface RequisitionTemplate {
+  id: string;
+  name: string;
+  description: string | null;
+  investigations: { category: string; tests: string[] }[];
+}
 
 const INVESTIGATION_CATEGORIES: Record<InvestigationType, { label: string; icon: any; tests: InvestigationTest[] }> = {
   hematology: {
@@ -467,11 +479,13 @@ type SelectedInvestigations = Record<string, boolean>;
 type InvestigationRequisitionDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onGenerate: (requisitionText: string, selectedTests: string[]) => void;
+  onGenerate: (requisitionText: string, selectedTests: string[], priority: string, fasting: boolean, clinicalNotes: string, saveAsDocument?: boolean) => void;
   patientName: string;
   patientAge?: string;
   patientGender?: string;
   clinicalInfo?: string;
+  visitId?: string;
+  patientId?: string;
 };
 
 export default function InvestigationRequisitionDialog({
@@ -482,6 +496,8 @@ export default function InvestigationRequisitionDialog({
   patientAge,
   patientGender,
   clinicalInfo,
+  visitId,
+  patientId,
 }: InvestigationRequisitionDialogProps) {
   const [activeTab, setActiveTab] = useState<InvestigationType>("hematology");
   const [selectedInvestigations, setSelectedInvestigations] = useState<SelectedInvestigations>({});
@@ -492,6 +508,52 @@ export default function InvestigationRequisitionDialog({
   const [clinicalNotes, setClinicalNotes] = useState(clinicalInfo || "");
   const [priority, setPriority] = useState<"routine" | "urgent" | "stat">("routine");
   const [fasting, setFasting] = useState(false);
+  const [saveAsDocument, setSaveAsDocument] = useState(true);
+  
+  // Templates state
+  const [templates, setTemplates] = useState<RequisitionTemplate[]>([]);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [templateName, setTemplateName] = useState("");
+  const [templateDescription, setTemplateDescription] = useState("");
+  const [isSavingTemplate, setIsSavingTemplate] = useState(false);
+  const [showSaveTemplateForm, setShowSaveTemplateForm] = useState(false);
+
+  // Fetch templates when dialog opens
+  useEffect(() => {
+    if (open) {
+      fetchTemplates();
+    }
+  }, [open]);
+
+  const fetchTemplates = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("investigation_templates")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("name");
+
+      if (error) throw error;
+      
+      // Parse the investigations from Json to the correct type
+      const parsedTemplates: RequisitionTemplate[] = (data || []).map(t => ({
+        id: t.id,
+        name: t.name,
+        description: t.description,
+        investigations: (t.investigations as any[] || []).map(inv => ({
+          category: inv.category || "",
+          tests: inv.tests || []
+        }))
+      }));
+      
+      setTemplates(parsedTemplates);
+    } catch (error) {
+      console.error("Error fetching templates:", error);
+    }
+  };
 
   // Reset state when dialog opens
   useEffect(() => {
@@ -504,6 +566,10 @@ export default function InvestigationRequisitionDialog({
       setClinicalNotes(clinicalInfo || "");
       setPriority("routine");
       setFasting(false);
+      setShowTemplates(false);
+      setShowSaveTemplateForm(false);
+      setTemplateName("");
+      setTemplateDescription("");
     }
   }, [open, clinicalInfo]);
 
@@ -632,8 +698,109 @@ export default function InvestigationRequisitionDialog({
       .map(([key]) => key.split(":")[1]);
     
     const requisitionText = generateRequisitionText();
-    onGenerate(requisitionText, selectedTests);
+    onGenerate(requisitionText, selectedTests, priority, fasting, clinicalNotes, saveAsDocument);
     onOpenChange(false);
+  };
+
+  const handleSaveTemplate = async () => {
+    if (!templateName.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a template name",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSavingTemplate(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const selectedGroups = getSelectedTests();
+      
+      const { error } = await supabase
+        .from("investigation_templates")
+        .insert({
+          user_id: user.id,
+          name: templateName.trim(),
+          description: templateDescription.trim() || null,
+          investigations: selectedGroups,
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Template saved successfully",
+      });
+      
+      setShowSaveTemplateForm(false);
+      setTemplateName("");
+      setTemplateDescription("");
+      fetchTemplates();
+    } catch (error: any) {
+      console.error("Error saving template:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save template",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingTemplate(false);
+    }
+  };
+
+  const handleLoadTemplate = (template: RequisitionTemplate) => {
+    const newSelections: SelectedInvestigations = {};
+    
+    template.investigations.forEach(group => {
+      const categoryKey = Object.entries(INVESTIGATION_CATEGORIES).find(
+        ([_, config]) => config.label === group.category
+      )?.[0] || "custom";
+      
+      group.tests.forEach(test => {
+        newSelections[`${categoryKey}:${test}`] = true;
+        
+        // Add to custom tests if it's a custom category
+        if (categoryKey === "custom" && !customTests.includes(test)) {
+          setCustomTests(prev => [...prev, test]);
+        }
+      });
+    });
+    
+    setSelectedInvestigations(prev => ({ ...prev, ...newSelections }));
+    setShowTemplates(false);
+    
+    toast({
+      title: "Template Loaded",
+      description: `"${template.name}" investigations have been added`,
+    });
+  };
+
+  const handleDeleteTemplate = async (templateId: string) => {
+    try {
+      const { error } = await supabase
+        .from("investigation_templates")
+        .delete()
+        .eq("id", templateId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Template deleted successfully",
+      });
+      
+      fetchTemplates();
+    } catch (error: any) {
+      console.error("Error deleting template:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete template",
+        variant: "destructive",
+      });
+    }
   };
 
   const filteredTests = searchQuery 
@@ -770,11 +937,121 @@ export default function InvestigationRequisitionDialog({
                   </div>
                 </ScrollArea>
               </div>
+            ) : showTemplates ? (
+              // Templates View
+              <div className="h-full flex flex-col">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-medium text-sm">Investigation Templates</h3>
+                  <Button variant="ghost" size="sm" onClick={() => setShowTemplates(false)}>
+                    <X className="h-4 w-4 mr-1" />
+                    Back
+                  </Button>
+                </div>
+                <ScrollArea className="flex-1">
+                  <div className="space-y-3 pr-4">
+                    {templates.length === 0 ? (
+                      <div className="text-center text-muted-foreground py-8">
+                        <FolderOpen className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                        <p>No templates saved yet</p>
+                        <p className="text-xs mt-1">Select investigations and save as a template for quick reuse</p>
+                      </div>
+                    ) : (
+                      templates.map(template => (
+                        <div key={template.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h4 className="font-medium">{template.name}</h4>
+                              {template.description && (
+                                <p className="text-sm text-muted-foreground mt-1">{template.description}</p>
+                              )}
+                              <div className="flex flex-wrap gap-1 mt-2">
+                                {template.investigations.slice(0, 3).map((group, i) => (
+                                  <Badge key={i} variant="secondary" className="text-xs">
+                                    {group.category}: {group.tests.length} tests
+                                  </Badge>
+                                ))}
+                                {template.investigations.length > 3 && (
+                                  <Badge variant="outline" className="text-xs">
+                                    +{template.investigations.length - 3} more
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex gap-2 ml-4">
+                              <Button size="sm" variant="outline" onClick={() => handleLoadTemplate(template)}>
+                                <Plus className="h-3 w-3 mr-1" />
+                                Use
+                              </Button>
+                              <Button size="sm" variant="ghost" onClick={() => handleDeleteTemplate(template.id)}>
+                                <Trash2 className="h-3 w-3 text-destructive" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </ScrollArea>
+              </div>
+            ) : showSaveTemplateForm ? (
+              // Save Template Form
+              <div className="h-full flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-medium text-sm">Save as Template</h3>
+                  <Button variant="ghost" size="sm" onClick={() => setShowSaveTemplateForm(false)}>
+                    <X className="h-4 w-4 mr-1" />
+                    Cancel
+                  </Button>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="templateName">Template Name *</Label>
+                    <Input
+                      id="templateName"
+                      value={templateName}
+                      onChange={(e) => setTemplateName(e.target.value)}
+                      placeholder="e.g., Annual Physical, Diabetes Workup"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="templateDesc">Description (Optional)</Label>
+                    <Textarea
+                      id="templateDesc"
+                      value={templateDescription}
+                      onChange={(e) => setTemplateDescription(e.target.value)}
+                      placeholder="Brief description of when to use this template..."
+                      className="mt-1 h-20"
+                    />
+                  </div>
+                  <div className="bg-muted/50 rounded-lg p-3">
+                    <p className="text-sm font-medium mb-2">Selected Investigations ({getSelectedCount()})</p>
+                    <div className="flex flex-wrap gap-1">
+                      {getSelectedTests().map((group, i) => (
+                        <Badge key={i} variant="secondary" className="text-xs">
+                          {group.category}: {group.tests.length}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  <Button 
+                    onClick={handleSaveTemplate} 
+                    disabled={isSavingTemplate || !templateName.trim()}
+                    className="w-full"
+                  >
+                    {isSavingTemplate ? (
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...</>
+                    ) : (
+                      <><Save className="h-4 w-4 mr-2" /> Save Template</>
+                    )}
+                  </Button>
+                </div>
+              </div>
             ) : (
               // Category Tabs
               <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as InvestigationType)} className="h-full flex flex-col">
-                <div className="overflow-x-auto w-full">
-                  <TabsList className="inline-flex h-auto p-1 mb-4 min-w-max">
+                <div className="overflow-x-auto w-full flex-shrink-0">
+                  <TabsList className="inline-flex h-auto p-1 mb-2 min-w-max">
                     {Object.entries(INVESTIGATION_CATEGORIES).map(([key, { label, icon: Icon }]) => (
                       <TabsTrigger
                         key={key}
@@ -788,26 +1065,65 @@ export default function InvestigationRequisitionDialog({
                   </TabsList>
                 </div>
 
-                <ScrollArea className="flex-1">
-                  {Object.entries(INVESTIGATION_CATEGORIES).map(([category, config]) => (
-                    <TabsContent key={category} value={category} className="mt-0">
-                      {category === "custom" ? (
-                        <div className="space-y-4">
-                          <div className="flex gap-2">
-                            <Input
-                              placeholder="Enter custom investigation name..."
-                              value={newCustomTest}
-                              onChange={(e) => setNewCustomTest(e.target.value)}
-                              onKeyDown={(e) => e.key === "Enter" && addCustomTest()}
-                            />
-                            <Button onClick={addCustomTest} size="sm">
-                              <Plus className="h-4 w-4 mr-1" />
-                              Add
-                            </Button>
+                <div className="flex-1 overflow-hidden min-h-0">
+                  <ScrollArea className="h-full">
+                    {Object.entries(INVESTIGATION_CATEGORIES).map(([category, config]) => (
+                      <TabsContent key={category} value={category} className="mt-0 h-full">
+                        {category === "custom" ? (
+                          <div className="space-y-4 pr-4">
+                            <div className="flex gap-2">
+                              <Input
+                                placeholder="Enter custom investigation name..."
+                                value={newCustomTest}
+                                onChange={(e) => setNewCustomTest(e.target.value)}
+                                onKeyDown={(e) => e.key === "Enter" && addCustomTest()}
+                              />
+                              <Button onClick={addCustomTest} size="sm">
+                                <Plus className="h-4 w-4 mr-1" />
+                                Add
+                              </Button>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              {customTests.map((test) => {
+                                const key = `custom:${test}`;
+                                const isSelected = selectedInvestigations[key];
+                                return (
+                                  <div
+                                    key={key}
+                                    className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
+                                      isSelected ? 'bg-primary/10 border-primary' : 'hover:bg-muted'
+                                    }`}
+                                    onClick={() => toggleInvestigation("custom", test)}
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <Checkbox checked={isSelected} />
+                                      <span className="text-sm">{test}</span>
+                                    </div>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        removeCustomTest(test);
+                                      }}
+                                    >
+                                      <Trash2 className="h-3 w-3 text-destructive" />
+                                    </Button>
+                                  </div>
+                                );
+                              })}
+                              {customTests.length === 0 && (
+                                <div className="col-span-2 text-center text-muted-foreground py-8">
+                                  Add custom investigations using the input above
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {customTests.map((test) => {
-                              const key = `custom:${test}`;
+                        ) : (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pr-4 pb-4">
+                            {config.tests.map((test) => {
+                              const key = `${category}:${test.name}`;
                               const isSelected = selectedInvestigations[key];
                               return (
                                 <div
@@ -815,87 +1131,85 @@ export default function InvestigationRequisitionDialog({
                                   className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
                                     isSelected ? 'bg-primary/10 border-primary' : 'hover:bg-muted'
                                   }`}
-                                  onClick={() => toggleInvestigation("custom", test)}
+                                  onClick={() => toggleInvestigation(category, test.name)}
                                 >
                                   <div className="flex items-center gap-3">
                                     <Checkbox checked={isSelected} />
-                                    <span className="text-sm">{test}</span>
+                                    <span className="text-sm">{test.name}</span>
                                   </div>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      removeCustomTest(test);
-                                    }}
-                                  >
-                                    <Trash2 className="h-3 w-3 text-destructive" />
-                                  </Button>
                                 </div>
                               );
                             })}
-                            {customTests.length === 0 && (
-                              <div className="col-span-2 text-center text-muted-foreground py-8">
-                                Add custom investigations using the input above
-                              </div>
-                            )}
                           </div>
-                        </div>
-                      ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pr-4">
-                          {config.tests.map((test) => {
-                            const key = `${category}:${test.name}`;
-                            const isSelected = selectedInvestigations[key];
-                            return (
-                              <div
-                                key={key}
-                                className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
-                                  isSelected ? 'bg-primary/10 border-primary' : 'hover:bg-muted'
-                                }`}
-                                onClick={() => toggleInvestigation(category, test.name)}
-                              >
-                                <div className="flex items-center gap-3">
-                                  <Checkbox checked={isSelected} />
-                                  <span className="text-sm">{test.name}</span>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </TabsContent>
-                  ))}
-                </ScrollArea>
+                        )}
+                      </TabsContent>
+                    ))}
+                  </ScrollArea>
+                </div>
               </Tabs>
             )}
           </div>
 
           {/* Clinical Notes */}
-          <div>
+          <div className="flex-shrink-0">
             <Label htmlFor="clinicalNotes" className="text-sm font-medium">Clinical Notes (Optional)</Label>
             <Textarea
               id="clinicalNotes"
               value={clinicalNotes}
               onChange={(e) => setClinicalNotes(e.target.value)}
               placeholder="Add relevant clinical information, symptoms, or suspected diagnosis..."
-              className="mt-1 h-20"
+              className="mt-1 h-16"
             />
           </div>
+
+          {/* Save as document checkbox */}
+          {visitId && patientId && (
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Checkbox 
+                id="saveAsDoc" 
+                checked={saveAsDocument} 
+                onCheckedChange={(c) => setSaveAsDocument(c === true)} 
+              />
+              <Label htmlFor="saveAsDoc" className="text-sm cursor-pointer">
+                Save requisition to documents list
+              </Label>
+            </div>
+          )}
         </div>
 
         <Separator className="my-2" />
 
         <DialogFooter className="flex-shrink-0">
           <div className="flex items-center gap-2 w-full justify-between flex-wrap">
-            <Button
-              variant="outline"
-              onClick={() => setShowPreview(!showPreview)}
-              disabled={getSelectedCount() === 0}
-            >
-              <Eye className="h-4 w-4 mr-2" />
-              {showPreview ? "Hide Preview" : "Preview"}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowTemplates(true)}
+                disabled={showPreview || showSaveTemplateForm}
+              >
+                <FolderOpen className="h-4 w-4 mr-1" />
+                Templates
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowSaveTemplateForm(true)}
+                disabled={getSelectedCount() === 0 || showPreview || showTemplates}
+              >
+                <Save className="h-4 w-4 mr-1" />
+                Save Template
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowPreview(!showPreview)}
+                disabled={getSelectedCount() === 0}
+              >
+                <Eye className="h-4 w-4 mr-1" />
+                {showPreview ? "Hide" : "Preview"}
+              </Button>
+            </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
@@ -905,7 +1219,7 @@ export default function InvestigationRequisitionDialog({
                 disabled={getSelectedCount() === 0}
               >
                 <Download className="h-4 w-4 mr-2" />
-                Generate Requisition ({getSelectedCount()})
+                Generate ({getSelectedCount()})
               </Button>
             </div>
           </div>

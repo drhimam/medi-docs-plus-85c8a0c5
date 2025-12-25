@@ -2130,40 +2130,112 @@ ${cleanPrescription}
         patientAge={patient ? `${differenceInYears(new Date(), new Date(patient.date_of_birth))} years` : undefined}
         patientGender={patient?.gender}
         clinicalInfo={assessment || visit?.reason_for_visit}
-        onGenerate={async (requisitionText, selectedTests) => {
+        visitId={visitId}
+        patientId={patient?.id}
+        onGenerate={async (requisitionText, selectedTests, priority, fasting, clinicalNotes, saveAsDocument) => {
           try {
             const { data: settings } = await supabase
               .from("prescription_settings")
               .select("*")
               .single();
             
-            const selectedInvestigations = selectedTests.reduce((acc, test) => {
-              const existing = acc.find(g => g.category === "Selected");
+            // Group selected tests by their original categories
+            const selectedGroups: { category: string; tests: string[] }[] = [];
+            selectedTests.forEach(test => {
+              const existing = selectedGroups.find(g => g.category === "Selected");
               if (existing) {
                 existing.tests.push(test);
               } else {
-                acc.push({ category: "Selected", tests: [test] });
+                selectedGroups.push({ category: "Selected", tests: [test] });
               }
-              return acc;
-            }, [] as { category: string; tests: string[] }[]);
+            });
+            
+            // Get logo and signature data URLs if configured
+            let logoDataUrl: string | undefined;
+            let signatureDataUrl: string | undefined;
+            
+            if (settings?.logo_path) {
+              try {
+                const { data } = await supabase.storage
+                  .from('prescription-assets')
+                  .download(settings.logo_path);
+                if (data) {
+                  logoDataUrl = await new Promise<string>((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result as string);
+                    reader.readAsDataURL(data);
+                  });
+                }
+              } catch (e) {
+                console.error("Error loading logo:", e);
+              }
+            }
+            
+            if (settings?.signature_path) {
+              try {
+                const { data } = await supabase.storage
+                  .from('prescription-assets')
+                  .download(settings.signature_path);
+                if (data) {
+                  signatureDataUrl = await new Promise<string>((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result as string);
+                    reader.readAsDataURL(data);
+                  });
+                }
+              } catch (e) {
+                console.error("Error loading signature:", e);
+              }
+            }
             
             await exportRequisitionToPDF(
-              selectedInvestigations,
+              selectedGroups,
               patient?.id || "",
               patient ? `${patient.first_name} ${patient.last_name}` : "",
               patient ? `${differenceInYears(new Date(), new Date(patient.date_of_birth))} years` : undefined,
               patient?.gender,
               patient?.contact_number,
               patient?.address,
-              assessment || visit?.reason_for_visit,
-              "routine",
-              false,
-              settings as any
+              clinicalNotes || assessment || visit?.reason_for_visit,
+              priority,
+              fasting,
+              settings as any,
+              logoDataUrl,
+              signatureDataUrl
             );
+            
+            // Save as document if requested
+            if (saveAsDocument && visitId && patient?.id) {
+              const { data: { user } } = await supabase.auth.getUser();
+              if (user) {
+                const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, -5);
+                const fileName = `Investigation_Requisition_${patient.first_name}_${patient.last_name}_${timestamp}.pdf`;
+                
+                await supabase
+                  .from("documents")
+                  .insert({
+                    visit_id: visitId,
+                    patient_id: patient.id,
+                    user_id: user.id,
+                    document_type: "Investigation Requisition",
+                    description: `Investigation requisition with ${selectedTests.length} tests - ${priority.toUpperCase()} priority`,
+                    file_name: fileName,
+                    file_path: `requisitions/${fileName}`,
+                    file_type: "application/pdf",
+                    file_size: 0, // We don't have the actual file size since it's downloaded directly
+                    document_date: new Date().toISOString().split('T')[0],
+                    review_status: "reviewed",
+                  });
+                
+                fetchDocuments();
+              }
+            }
             
             toast({
               title: "Success",
-              description: "Investigation requisition generated and downloaded",
+              description: saveAsDocument 
+                ? "Investigation requisition generated and saved to documents" 
+                : "Investigation requisition generated and downloaded",
             });
           } catch (error) {
             console.error("Error generating requisition:", error);
