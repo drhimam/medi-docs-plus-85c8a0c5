@@ -62,8 +62,12 @@ export const exportRequisitionToPDF = async (
   fasting?: boolean,
   settings?: PrescriptionSettings,
   logoDataUrl?: string,
-  signatureDataUrl?: string
-) => {
+  signatureDataUrl?: string,
+  options?: {
+    output?: "download" | "blob";
+    fileName?: string;
+  }
+): Promise<{ blob: Blob; fileName: string } | void> => {
   const doc = new jsPDF({
     format: settings?.paper_size === "a4" ? "a4" : "letter",
   });
@@ -77,7 +81,7 @@ export const exportRequisitionToPDF = async (
   // Function to draw header
   const drawHeader = () => {
     yPosition = 20;
-    
+
     if (!settings?.use_own_letterhead && settings) {
       // Draw header background
       if (settings.header_background_color && settings.header_background_color !== "#ffffff") {
@@ -90,15 +94,15 @@ export const exportRequisitionToPDF = async (
         const logoWidth = settings.logo_width || 60;
         const logoHeight = settings.logo_height || 40;
         let logoX = margin;
-        
-        if (settings.logo_position === 'top-center') {
+
+        if (settings.logo_position === "top-center") {
           logoX = (pageWidth - logoWidth) / 2;
-        } else if (settings.logo_position === 'top-right') {
+        } else if (settings.logo_position === "top-right") {
           logoX = pageWidth - margin - logoWidth;
         }
-        
+
         try {
-          doc.addImage(logoDataUrl, 'PNG', logoX, 10, logoWidth, logoHeight);
+          doc.addImage(logoDataUrl, "PNG", logoX, 10, logoWidth, logoHeight);
         } catch (error) {
           console.error("Error adding logo:", error);
         }
@@ -171,7 +175,7 @@ export const exportRequisitionToPDF = async (
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
-  
+
   // Patient details in a compact format
   let patientLine = `Name: ${patientName}`;
   if (patientAge) patientLine += `  |  Age: ${patientAge}`;
@@ -184,11 +188,15 @@ export const exportRequisitionToPDF = async (
     yPosition += 5;
   }
 
-  doc.text(`Date: ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`, margin, yPosition);
+  doc.text(
+    `Date: ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`,
+    margin,
+    yPosition,
+  );
   yPosition += 5;
 
   // Priority and Fasting on same line
-  let statusLine = `Priority: ${(priority || 'Routine').toUpperCase()}`;
+  let statusLine = `Priority: ${(priority || "Routine").toUpperCase()}`;
   if (fasting) statusLine += "  |  ⚠ FASTING REQUIRED";
   doc.setFont("helvetica", "bold");
   doc.text(statusLine, margin, yPosition);
@@ -239,7 +247,7 @@ export const exportRequisitionToPDF = async (
   // Render investigations by category in a compact table-like format
   selectedInvestigations.forEach((group) => {
     checkIfNeedNewPage();
-    
+
     // Category header
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
@@ -253,37 +261,37 @@ export const exportRequisitionToPDF = async (
     doc.setFontSize(8);
     const colWidth = maxWidth / 2;
     const tests = group.tests;
-    
+
     for (let i = 0; i < tests.length; i += 2) {
       checkIfNeedNewPage();
-      
+
       // Left column
       doc.text(`☐ ${tests[i]}`, margin + 4, yPosition);
-      
+
       // Right column if exists
       if (tests[i + 1]) {
         doc.text(`☐ ${tests[i + 1]}`, margin + colWidth + 4, yPosition);
       }
-      
+
       yPosition += 5;
     }
-    
+
     yPosition += 3;
   });
 
   // Clinical Notes section
   if (clinicalNotes && clinicalNotes.trim()) {
     checkIfNeedNewPage();
-    
+
     doc.setDrawColor(200, 200, 200);
     doc.line(margin, yPosition, pageWidth - margin, yPosition);
     yPosition += 6;
-    
+
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
     doc.text("Clinical Notes:", margin, yPosition);
     yPosition += 5;
-    
+
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     const noteLines = doc.splitTextToSize(clinicalNotes.trim(), maxWidth - 10);
@@ -300,9 +308,9 @@ export const exportRequisitionToPDF = async (
   // Add footer and signature to all pages
   for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
     doc.setPage(pageNum);
-    
+
     const footerY = pageHeight - 30;
-    
+
     // Signature line
     doc.setDrawColor(100, 100, 100);
     doc.setLineWidth(0.3);
@@ -310,27 +318,27 @@ export const exportRequisitionToPDF = async (
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
     doc.text("Physician's Signature", pageWidth - margin - 30, footerY + 5, { align: "center" });
-    
+
     // Add digital signature on last page only
     if (pageNum === totalPages && signatureDataUrl && settings?.signature_path) {
       const sigWidth = settings.signature_width || 60;
       const sigHeight = settings.signature_height || 30;
       const sigX = pageWidth - margin - sigWidth;
       const sigY = footerY - sigHeight - 5;
-      
+
       try {
-        doc.addImage(signatureDataUrl, 'PNG', sigX, sigY, sigWidth, sigHeight);
+        doc.addImage(signatureDataUrl, "PNG", sigX, sigY, sigWidth, sigHeight);
       } catch (error) {
         console.error("Error adding signature:", error);
       }
     }
-    
+
     // Footer line if enabled
     if (settings?.footer_line_enabled !== false) {
       doc.setDrawColor(200, 200, 200);
       doc.line(margin, footerY + 10, pageWidth - margin, footerY + 10);
     }
-    
+
     // Footer text
     doc.setFontSize(settings?.footer_font_size || 8);
     if (settings?.footer_text_color) {
@@ -352,5 +360,13 @@ export const exportRequisitionToPDF = async (
   }
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, -5);
-  doc.save(`Investigation_Requisition_${patientName.replace(/\s+/g, "_")}_${timestamp}.pdf`);
+  const defaultFileName = `Investigation_Requisition_${patientName.replace(/\s+/g, "_")}_${timestamp}.pdf`;
+  const fileName = options?.fileName || defaultFileName;
+
+  if (options?.output === "blob") {
+    const blob = doc.output("blob") as Blob;
+    return { blob, fileName };
+  }
+
+  doc.save(fileName);
 };
