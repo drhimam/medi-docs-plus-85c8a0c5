@@ -1040,7 +1040,7 @@ export default function InvestigationRequisitionDialog({
           {/* Main Content */}
           <div className="flex-1 overflow-hidden min-h-0">
             {showPreview ? (
-              <div className="h-full flex flex-col gap-4">
+              <div className="h-full min-h-0 flex flex-col gap-4">
                 <div className="flex items-center justify-between">
                   <h3 className="font-medium">Requisition Preview</h3>
                   <Button variant="outline" size="sm" onClick={() => setShowPreview(false)}>
@@ -1048,7 +1048,7 @@ export default function InvestigationRequisitionDialog({
                     Close Preview
                   </Button>
                 </div>
-                <ScrollArea className="flex-1 border rounded-md">
+                <ScrollArea className="flex-1 min-h-0 border rounded-md">
                   <pre className="p-4 text-sm font-mono whitespace-pre-wrap">
                     {generateRequisitionText() || "No investigations selected"}
                   </pre>
