@@ -66,6 +66,10 @@ export const exportRequisitionToPDF = async (
   options?: {
     output?: "download" | "blob";
     fileName?: string;
+  },
+  digitalSignature?: {
+    enabled: boolean;
+    physicianName?: string;
   }
 ): Promise<{ blob: Blob; fileName: string } | void> => {
   const doc = new jsPDF({
@@ -256,7 +260,7 @@ export const exportRequisitionToPDF = async (
     doc.text(group.category.toUpperCase(), margin + 2, yPosition);
     yPosition += 6;
 
-    // Tests in two columns
+    // Tests in two columns with checkbox styling
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     const colWidth = maxWidth / 2;
@@ -265,12 +269,45 @@ export const exportRequisitionToPDF = async (
     for (let i = 0; i < tests.length; i += 2) {
       checkIfNeedNewPage();
 
-      // Left column
-      doc.text(`☐ ${tests[i]}`, margin + 4, yPosition);
+      // Left column - draw checkbox with checkmark
+      const checkboxSize = 3;
+      const leftCheckboxX = margin + 4;
+      const rightCheckboxX = margin + colWidth + 4;
+      const checkboxY = yPosition - 2.5;
+
+      // Left checkbox - filled with checkmark
+      doc.setDrawColor(60, 60, 60);
+      doc.setLineWidth(0.3);
+      doc.rect(leftCheckboxX, checkboxY, checkboxSize, checkboxSize);
+      doc.setFillColor(34, 139, 34); // Forest green
+      doc.rect(leftCheckboxX + 0.3, checkboxY + 0.3, checkboxSize - 0.6, checkboxSize - 0.6, "F");
+      
+      // Draw checkmark
+      doc.setDrawColor(255, 255, 255);
+      doc.setLineWidth(0.5);
+      const startX = leftCheckboxX + 0.6;
+      const startY = checkboxY + 1.5;
+      doc.line(startX, startY, startX + 0.8, startY + 0.8);
+      doc.line(startX + 0.8, startY + 0.8, startX + 2.2, startY - 0.6);
+      
+      doc.setTextColor(0, 0, 0);
+      doc.text(tests[i], leftCheckboxX + checkboxSize + 2, yPosition);
 
       // Right column if exists
       if (tests[i + 1]) {
-        doc.text(`☐ ${tests[i + 1]}`, margin + colWidth + 4, yPosition);
+        doc.setDrawColor(60, 60, 60);
+        doc.rect(rightCheckboxX, checkboxY, checkboxSize, checkboxSize);
+        doc.setFillColor(34, 139, 34);
+        doc.rect(rightCheckboxX + 0.3, checkboxY + 0.3, checkboxSize - 0.6, checkboxSize - 0.6, "F");
+        
+        // Draw checkmark
+        doc.setDrawColor(255, 255, 255);
+        const startX2 = rightCheckboxX + 0.6;
+        doc.line(startX2, startY, startX2 + 0.8, startY + 0.8);
+        doc.line(startX2 + 0.8, startY + 0.8, startX2 + 2.2, startY - 0.6);
+        
+        doc.setTextColor(0, 0, 0);
+        doc.text(tests[i + 1], rightCheckboxX + checkboxSize + 2, yPosition);
       }
 
       yPosition += 5;
@@ -319,7 +356,18 @@ export const exportRequisitionToPDF = async (
     doc.setFont("helvetica", "normal");
     doc.text("Physician's Signature", pageWidth - margin - 30, footerY + 5, { align: "center" });
 
-    // Add digital signature on last page only
+    // Add digital signature name above the line (on all pages) if enabled
+    if (digitalSignature?.enabled && digitalSignature?.physicianName) {
+      // Draw physician name in italics (signature style) above the line
+      doc.setFont("times", "italic");
+      doc.setFontSize(14);
+      doc.setTextColor(0, 0, 100); // Dark blue for signature
+      const signatureName = digitalSignature.physicianName;
+      doc.text(signatureName, pageWidth - margin - 30, footerY - 5, { align: "center" });
+      doc.setTextColor(0, 0, 0); // Reset text color
+    }
+
+    // Add image signature on last page only if provided
     if (pageNum === totalPages && signatureDataUrl && settings?.signature_path) {
       const sigWidth = settings.signature_width || 60;
       const sigHeight = settings.signature_height || 30;

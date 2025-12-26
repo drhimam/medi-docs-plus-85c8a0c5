@@ -2132,7 +2132,7 @@ ${cleanPrescription}
         clinicalInfo={assessment || visit?.reason_for_visit}
         visitId={visitId}
         patientId={patient?.id}
-        onGenerate={async (_requisitionText, selectedTests, priority, fasting, clinicalNotes, saveAsDocument) => {
+        onGenerate={async (_requisitionText, selectedTests, priority, fasting, clinicalNotes, saveAsDocument, digitalSignature) => {
           try {
             const { data: settings } = await supabase
               .from("prescription_settings")
@@ -2217,7 +2217,8 @@ ${cleanPrescription}
                 settings as any,
                 logoDataUrl,
                 signatureDataUrl,
-                { output: "blob", fileName }
+                { output: "blob", fileName },
+                digitalSignature
               )) as { blob: Blob; fileName: string };
 
               const { error: uploadError } = await supabase.storage
@@ -2267,7 +2268,9 @@ ${cleanPrescription}
               fasting,
               settings as any,
               logoDataUrl,
-              signatureDataUrl
+              signatureDataUrl,
+              undefined,
+              digitalSignature
             );
 
             toast({

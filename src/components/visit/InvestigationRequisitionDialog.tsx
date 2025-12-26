@@ -73,7 +73,107 @@ interface RequisitionTemplate {
   name: string;
   description: string | null;
   investigations: { category: string; tests: string[] }[];
+  isPredefined?: boolean;
 }
+
+// Predefined investigation templates for common clinical scenarios
+const PREDEFINED_TEMPLATES: Omit<RequisitionTemplate, "id">[] = [
+  {
+    name: "Annual Physical",
+    description: "Comprehensive annual health screening",
+    isPredefined: true,
+    investigations: [
+      { category: "Hematology", tests: ["Complete Blood Count (CBC)", "ESR"] },
+      { category: "Biochemistry", tests: ["Blood Glucose (Fasting)", "Electrolytes Panel", "CRP (C-Reactive Protein)"] },
+      { category: "Lipid Profile", tests: ["Lipid Profile (Complete)"] },
+      { category: "Liver Function", tests: ["Liver Function Tests (LFT)"] },
+      { category: "Renal Function", tests: ["Renal Function Tests (RFT)", "Urine Albumin/Creatinine Ratio (ACR)"] },
+      { category: "Thyroid", tests: ["TSH"] },
+      { category: "Urinalysis", tests: ["Routine Urinalysis"] },
+    ],
+  },
+  {
+    name: "Diabetes Workup",
+    description: "Comprehensive diabetes evaluation and monitoring",
+    isPredefined: true,
+    investigations: [
+      { category: "Diabetes", tests: ["HbA1c", "Fasting Blood Glucose", "Fasting Insulin", "C-Peptide"] },
+      { category: "Lipid Profile", tests: ["Lipid Profile (Complete)"] },
+      { category: "Renal Function", tests: ["Renal Function Tests (RFT)", "Urine Albumin/Creatinine Ratio (ACR)", "Microalbumin"] },
+      { category: "Liver Function", tests: ["Liver Function Tests (LFT)"] },
+      { category: "Hematology", tests: ["Complete Blood Count (CBC)"] },
+      { category: "Urinalysis", tests: ["Routine Urinalysis"] },
+    ],
+  },
+  {
+    name: "Cardiac Evaluation",
+    description: "Cardiovascular risk assessment and cardiac workup",
+    isPredefined: true,
+    investigations: [
+      { category: "Cardiac Markers", tests: ["Troponin I", "BNP", "hs-CRP", "Homocysteine"] },
+      { category: "Lipid Profile", tests: ["Lipid Profile (Complete)", "Apolipoprotein A1", "Apolipoprotein B", "Lipoprotein(a)"] },
+      { category: "Coagulation", tests: ["D-Dimer", "PT (Prothrombin Time)", "INR"] },
+      { category: "Biochemistry", tests: ["Electrolytes Panel", "Blood Glucose (Fasting)"] },
+      { category: "Hematology", tests: ["Complete Blood Count (CBC)"] },
+      { category: "Cardiology", tests: ["ECG (12-Lead)", "Echocardiogram (2D Echo)"] },
+    ],
+  },
+  {
+    name: "Thyroid Workup",
+    description: "Complete thyroid function evaluation",
+    isPredefined: true,
+    investigations: [
+      { category: "Thyroid", tests: ["Thyroid Function Tests (TFT)", "TSH", "Free T4 (FT4)", "Free T3 (FT3)", "Anti-TPO Antibodies", "Anti-Thyroglobulin Antibodies"] },
+      { category: "Hematology", tests: ["Complete Blood Count (CBC)"] },
+      { category: "Biochemistry", tests: ["Calcium (Total)", "25-Hydroxy Vitamin D"] },
+      { category: "Imaging", tests: ["Ultrasound Thyroid"] },
+    ],
+  },
+  {
+    name: "Anemia Workup",
+    description: "Comprehensive evaluation for anemia",
+    isPredefined: true,
+    investigations: [
+      { category: "Hematology", tests: ["Complete Blood Count (CBC)", "Peripheral Blood Smear", "Reticulocyte Count", "Iron Studies", "Serum Iron", "TIBC", "Ferritin", "Vitamin B12", "Folate"] },
+      { category: "Biochemistry", tests: ["Total Protein", "Albumin", "LDH"] },
+    ],
+  },
+  {
+    name: "Prenatal Panel",
+    description: "First trimester prenatal screening",
+    isPredefined: true,
+    investigations: [
+      { category: "Hematology", tests: ["Complete Blood Count (CBC)", "Hemoglobin (Hb)"] },
+      { category: "Biochemistry", tests: ["Blood Glucose (Fasting)"] },
+      { category: "Serology", tests: ["HIV 1 & 2 Antibody", "VDRL/RPR", "HBsAg", "Anti-HCV", "Rubella IgG/IgM"] },
+      { category: "Urinalysis", tests: ["Routine Urinalysis", "Urine Culture & Sensitivity"] },
+      { category: "OB-GYN", tests: ["Serum Beta-hCG", "TORCH Panel"] },
+      { category: "Thyroid", tests: ["TSH"] },
+    ],
+  },
+  {
+    name: "Liver Function Panel",
+    description: "Comprehensive liver assessment",
+    isPredefined: true,
+    investigations: [
+      { category: "Liver Function", tests: ["Liver Function Tests (LFT)", "AST (SGOT)", "ALT (SGPT)", "ALP (Alkaline Phosphatase)", "GGT", "Total Bilirubin", "Direct Bilirubin", "Hepatitis B Surface Antigen (HBsAg)", "Hepatitis C Antibody (Anti-HCV)"] },
+      { category: "Coagulation", tests: ["PT (Prothrombin Time)", "INR"] },
+      { category: "Biochemistry", tests: ["Total Protein", "Albumin"] },
+      { category: "Imaging", tests: ["Ultrasound Abdomen (Complete)"] },
+    ],
+  },
+  {
+    name: "Renal Function Panel",
+    description: "Kidney function evaluation",
+    isPredefined: true,
+    investigations: [
+      { category: "Renal Function", tests: ["Renal Function Tests (RFT)", "Blood Urea Nitrogen (BUN)", "Serum Creatinine", "eGFR", "24-Hour Urine Protein", "Urine Albumin/Creatinine Ratio (ACR)"] },
+      { category: "Biochemistry", tests: ["Electrolytes Panel", "Calcium (Total)", "Phosphorus", "Uric Acid"] },
+      { category: "Urinalysis", tests: ["Routine Urinalysis"] },
+      { category: "Imaging", tests: ["Ultrasound KUB"] },
+    ],
+  },
+];
 
 const INVESTIGATION_CATEGORIES: Record<InvestigationType, { label: string; icon: any; tests: InvestigationTest[] }> = {
   hematology: {
@@ -479,7 +579,15 @@ type SelectedInvestigations = Record<string, boolean>;
 type InvestigationRequisitionDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onGenerate: (requisitionText: string, selectedTests: string[], priority: string, fasting: boolean, clinicalNotes: string, saveAsDocument?: boolean) => void;
+  onGenerate: (
+    requisitionText: string, 
+    selectedTests: string[], 
+    priority: string, 
+    fasting: boolean, 
+    clinicalNotes: string, 
+    saveAsDocument?: boolean,
+    digitalSignature?: { enabled: boolean; physicianName?: string }
+  ) => void;
   patientName: string;
   patientAge?: string;
   patientGender?: string;
@@ -509,6 +617,8 @@ export default function InvestigationRequisitionDialog({
   const [priority, setPriority] = useState<"routine" | "urgent" | "stat">("routine");
   const [fasting, setFasting] = useState(false);
   const [saveAsDocument, setSaveAsDocument] = useState(true);
+  const [digitalSignatureEnabled, setDigitalSignatureEnabled] = useState(true);
+  const [physicianName, setPhysicianName] = useState("");
   
   // Templates state
   const [templates, setTemplates] = useState<RequisitionTemplate[]>([]);
@@ -517,6 +627,33 @@ export default function InvestigationRequisitionDialog({
   const [templateDescription, setTemplateDescription] = useState("");
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
   const [showSaveTemplateForm, setShowSaveTemplateForm] = useState(false);
+
+  // Fetch profile data for physician name
+  useEffect(() => {
+    const fetchPhysicianName = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("first_name, last_name")
+          .eq("user_id", user.id)
+          .single();
+        
+        if (profile) {
+          const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(" ");
+          setPhysicianName(fullName || "");
+        }
+      } catch (error) {
+        console.error("Error fetching physician name:", error);
+      }
+    };
+    
+    if (open) {
+      fetchPhysicianName();
+    }
+  }, [open]);
 
   // Fetch templates when dialog opens
   useEffect(() => {
@@ -528,7 +665,15 @@ export default function InvestigationRequisitionDialog({
   const fetchTemplates = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        // Just show predefined templates if not logged in
+        const predefinedWithIds = PREDEFINED_TEMPLATES.map((t, i) => ({
+          ...t,
+          id: `predefined-${i}`,
+        }));
+        setTemplates(predefinedWithIds);
+        return;
+      }
 
       const { data, error } = await supabase
         .from("investigation_templates")
@@ -539,19 +684,33 @@ export default function InvestigationRequisitionDialog({
       if (error) throw error;
       
       // Parse the investigations from Json to the correct type
-      const parsedTemplates: RequisitionTemplate[] = (data || []).map(t => ({
+      const userTemplates: RequisitionTemplate[] = (data || []).map(t => ({
         id: t.id,
         name: t.name,
         description: t.description,
         investigations: (t.investigations as any[] || []).map(inv => ({
           category: inv.category || "",
           tests: inv.tests || []
-        }))
+        })),
+        isPredefined: false,
       }));
       
-      setTemplates(parsedTemplates);
+      // Add predefined templates with unique IDs
+      const predefinedWithIds: RequisitionTemplate[] = PREDEFINED_TEMPLATES.map((t, i) => ({
+        ...t,
+        id: `predefined-${i}`,
+      }));
+      
+      // Combine: user templates first, then predefined
+      setTemplates([...userTemplates, ...predefinedWithIds]);
     } catch (error) {
       console.error("Error fetching templates:", error);
+      // Fallback to predefined templates on error
+      const predefinedWithIds = PREDEFINED_TEMPLATES.map((t, i) => ({
+        ...t,
+        id: `predefined-${i}`,
+      }));
+      setTemplates(predefinedWithIds);
     }
   };
 
@@ -698,7 +857,11 @@ export default function InvestigationRequisitionDialog({
       .map(([key]) => key.split(":")[1]);
     
     const requisitionText = generateRequisitionText();
-    onGenerate(requisitionText, selectedTests, priority, fasting, clinicalNotes, saveAsDocument);
+    const digitalSignature = {
+      enabled: digitalSignatureEnabled,
+      physicianName: digitalSignatureEnabled ? physicianName : undefined
+    };
+    onGenerate(requisitionText, selectedTests, priority, fasting, clinicalNotes, saveAsDocument, digitalSignature);
     onOpenChange(false);
   };
 
@@ -956,39 +1119,95 @@ export default function InvestigationRequisitionDialog({
                         <p className="text-xs mt-1">Select investigations and save as a template for quick reuse</p>
                       </div>
                     ) : (
-                      templates.map(template => (
-                        <div key={template.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <h4 className="font-medium">{template.name}</h4>
-                              {template.description && (
-                                <p className="text-sm text-muted-foreground mt-1">{template.description}</p>
-                              )}
-                              <div className="flex flex-wrap gap-1 mt-2">
-                                {template.investigations.slice(0, 3).map((group, i) => (
-                                  <Badge key={i} variant="secondary" className="text-xs">
-                                    {group.category}: {group.tests.length} tests
-                                  </Badge>
-                                ))}
-                                {template.investigations.length > 3 && (
-                                  <Badge variant="outline" className="text-xs">
-                                    +{template.investigations.length - 3} more
-                                  </Badge>
-                                )}
+                      <>
+                        {/* User templates section */}
+                        {templates.filter(t => !t.isPredefined).length > 0 && (
+                          <>
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">My Templates</span>
+                              <div className="flex-1 h-px bg-border"></div>
+                            </div>
+                            {templates.filter(t => !t.isPredefined).map(template => (
+                              <div key={template.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1">
+                                    <h4 className="font-medium">{template.name}</h4>
+                                    {template.description && (
+                                      <p className="text-sm text-muted-foreground mt-1">{template.description}</p>
+                                    )}
+                                    <div className="flex flex-wrap gap-1 mt-2">
+                                      {template.investigations.slice(0, 3).map((group, i) => (
+                                        <Badge key={i} variant="secondary" className="text-xs">
+                                          {group.category}: {group.tests.length} tests
+                                        </Badge>
+                                      ))}
+                                      {template.investigations.length > 3 && (
+                                        <Badge variant="outline" className="text-xs">
+                                          +{template.investigations.length - 3} more
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="flex gap-2 ml-4">
+                                    <Button size="sm" variant="outline" onClick={() => handleLoadTemplate(template)}>
+                                      <Plus className="h-3 w-3 mr-1" />
+                                      Use
+                                    </Button>
+                                    <Button size="sm" variant="ghost" onClick={() => handleDeleteTemplate(template.id)}>
+                                      <Trash2 className="h-3 w-3 text-destructive" />
+                                    </Button>
+                                  </div>
+                                </div>
                               </div>
+                            ))}
+                          </>
+                        )}
+                        
+                        {/* Predefined templates section */}
+                        {templates.filter(t => t.isPredefined).length > 0 && (
+                          <>
+                            <div className="flex items-center gap-2 mb-2 mt-4">
+                              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Quick Start Templates</span>
+                              <div className="flex-1 h-px bg-border"></div>
                             </div>
-                            <div className="flex gap-2 ml-4">
-                              <Button size="sm" variant="outline" onClick={() => handleLoadTemplate(template)}>
-                                <Plus className="h-3 w-3 mr-1" />
-                                Use
-                              </Button>
-                              <Button size="sm" variant="ghost" onClick={() => handleDeleteTemplate(template.id)}>
-                                <Trash2 className="h-3 w-3 text-destructive" />
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      ))
+                            {templates.filter(t => t.isPredefined).map(template => (
+                              <div key={template.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors bg-primary/5">
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2">
+                                      <h4 className="font-medium">{template.name}</h4>
+                                      <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/30">
+                                        Built-in
+                                      </Badge>
+                                    </div>
+                                    {template.description && (
+                                      <p className="text-sm text-muted-foreground mt-1">{template.description}</p>
+                                    )}
+                                    <div className="flex flex-wrap gap-1 mt-2">
+                                      {template.investigations.slice(0, 3).map((group, i) => (
+                                        <Badge key={i} variant="secondary" className="text-xs">
+                                          {group.category}: {group.tests.length} tests
+                                        </Badge>
+                                      ))}
+                                      {template.investigations.length > 3 && (
+                                        <Badge variant="outline" className="text-xs">
+                                          +{template.investigations.length - 3} more
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="flex gap-2 ml-4">
+                                    <Button size="sm" variant="outline" onClick={() => handleLoadTemplate(template)}>
+                                      <Plus className="h-3 w-3 mr-1" />
+                                      Use
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </>
+                        )}
+                      </>
                     )}
                   </div>
                 </ScrollArea>
@@ -1164,6 +1383,23 @@ export default function InvestigationRequisitionDialog({
               placeholder="Add relevant clinical information, symptoms, or suspected diagnosis..."
               className="mt-1 h-16"
             />
+          </div>
+
+          {/* Digital Signature checkbox */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Checkbox 
+              id="digitalSign" 
+              checked={digitalSignatureEnabled} 
+              onCheckedChange={(c) => setDigitalSignatureEnabled(c === true)} 
+            />
+            <Label htmlFor="digitalSign" className="text-sm cursor-pointer">
+              Add digital signature
+            </Label>
+            {digitalSignatureEnabled && physicianName && (
+              <span className="text-sm text-muted-foreground italic ml-2">
+                ({physicianName})
+              </span>
+            )}
           </div>
 
           {/* Save as document checkbox */}
