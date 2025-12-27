@@ -1036,9 +1036,8 @@ export default function InvestigationRequisitionDialog({
               </Badge>
             )}
           </div>
-
           {/* Main Content */}
-          <div className="flex-1 overflow-hidden min-h-0">
+          <div className="flex-1 overflow-hidden min-h-0 flex flex-col">
             {showPreview ? (
               <div className="h-full min-h-0 flex flex-col gap-4">
                 <div className="flex items-center justify-between">
@@ -1289,11 +1288,11 @@ export default function InvestigationRequisitionDialog({
                 </div>
 
                 <div className="flex-1 overflow-hidden min-h-0">
-                  <ScrollArea className="h-full"> 
-                    {Object.entries(INVESTIGATION_CATEGORIES).map(([category, config]) => (
-                      <TabsContent key={category} value={category} className="mt-0 h-full">
+                  {Object.entries(INVESTIGATION_CATEGORIES).map(([category, config]) => (
+                    <TabsContent key={category} value={category} className="mt-0 flex-1 min-h-0">
+                      <ScrollArea className="h-full">
                         {category === "custom" ? (
-                          <div className="space-y-4 pr-4">
+                          <div className="space-y-4 pr-4 pb-4">
                             <div className="flex gap-2">
                               <Input
                                 placeholder="Enter custom investigation name..."
@@ -1314,7 +1313,7 @@ export default function InvestigationRequisitionDialog({
                                   <div
                                     key={key}
                                     className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
-                                      isSelected ? 'bg-primary/10 border-primary' : 'hover:bg-muted'
+                                      isSelected ? "bg-primary/10 border-primary" : "hover:bg-muted"
                                     }`}
                                     onClick={() => toggleInvestigation("custom", test)}
                                   >
@@ -1352,7 +1351,7 @@ export default function InvestigationRequisitionDialog({
                                 <div
                                   key={key}
                                   className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
-                                    isSelected ? 'bg-primary/10 border-primary' : 'hover:bg-muted'
+                                    isSelected ? "bg-primary/10 border-primary" : "hover:bg-muted"
                                   }`}
                                   onClick={() => toggleInvestigation(category, test.name)}
                                 >
@@ -1365,9 +1364,9 @@ export default function InvestigationRequisitionDialog({
                             })}
                           </div>
                         )}
-                      </TabsContent>
-                    ))}
-                  </ScrollArea>
+                      </ScrollArea>
+                    </TabsContent>
+                  ))}
                 </div>
               </Tabs>
             )}
