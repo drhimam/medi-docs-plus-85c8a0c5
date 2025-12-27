@@ -1055,7 +1055,7 @@ export default function InvestigationRequisitionDialog({
               </div>
             ) : searchQuery ? (
               // Global Search Results
-              <div className="h-full flex flex-col">
+              <div className="flex-1 min-h-0 flex flex-col">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-medium text-sm">
                     Search Results ({getGlobalSearchResults().length})
@@ -1064,13 +1064,13 @@ export default function InvestigationRequisitionDialog({
                     Clear search
                   </Button>
                 </div>
-                <ScrollArea className="flex-1">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pr-4">
+                <ScrollArea className="flex-1 min-h-0">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pr-4 pb-4">
                     {getGlobalSearchResults().map(({ category, test }) => {
                       const key = `${category}:${test.name}`;
                       const isSelected = selectedInvestigations[key];
                       const categoryLabel = INVESTIGATION_CATEGORIES[category]?.label || "Custom";
-                      
+
                       return (
                         <div
                           key={key}
@@ -1101,116 +1101,116 @@ export default function InvestigationRequisitionDialog({
               </div>
             ) : showTemplates ? (
               // Templates View
-              <div className="h-full flex flex-col">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-medium text-sm">Investigation Templates</h3>
-                  <Button variant="ghost" size="sm" onClick={() => setShowTemplates(false)}>
-                    <X className="h-4 w-4 mr-1" />
-                    Back
-                  </Button>
-                </div>
-                <ScrollArea className="flex-1">
-                  <div className="space-y-3 pr-4">
-                    {templates.length === 0 ? (
-                      <div className="text-center text-muted-foreground py-8">
-                        <FolderOpen className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                        <p>No templates saved yet</p>
-                        <p className="text-xs mt-1">Select investigations and save as a template for quick reuse</p>
-                      </div>
-                    ) : (
-                      <>
-                        {/* User templates section */}
-                        {templates.filter(t => !t.isPredefined).length > 0 && (
-                          <>
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">My Templates</span>
-                              <div className="flex-1 h-px bg-border"></div>
-                            </div>
-                            {templates.filter(t => !t.isPredefined).map(template => (
-                              <div key={template.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
-                                <div className="flex items-start justify-between">
-                                  <div className="flex-1">
-                                    <h4 className="font-medium">{template.name}</h4>
-                                    {template.description && (
-                                      <p className="text-sm text-muted-foreground mt-1">{template.description}</p>
-                                    )}
-                                    <div className="flex flex-wrap gap-1 mt-2">
-                                      {template.investigations.slice(0, 3).map((group, i) => (
-                                        <Badge key={i} variant="secondary" className="text-xs">
-                                          {group.category}: {group.tests.length} tests
-                                        </Badge>
-                                      ))}
-                                      {template.investigations.length > 3 && (
-                                        <Badge variant="outline" className="text-xs">
-                                          +{template.investigations.length - 3} more
-                                        </Badge>
-                                      )}
-                                    </div>
-                                  </div>
-                                  <div className="flex gap-2 ml-4">
-                                    <Button size="sm" variant="outline" onClick={() => handleLoadTemplate(template)}>
-                                      <Plus className="h-3 w-3 mr-1" />
-                                      Use
-                                    </Button>
-                                    <Button size="sm" variant="ghost" onClick={() => handleDeleteTemplate(template.id)}>
-                                      <Trash2 className="h-3 w-3 text-destructive" />
-                                    </Button>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </>
-                        )}
-                        
-                        {/* Predefined templates section */}
-                        {templates.filter(t => t.isPredefined).length > 0 && (
-                          <>
-                            <div className="flex items-center gap-2 mb-2 mt-4">
-                              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Quick Start Templates</span>
-                              <div className="flex-1 h-px bg-border"></div>
-                            </div>
-                            {templates.filter(t => t.isPredefined).map(template => (
-                              <div key={template.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors bg-primary/5">
-                                <div className="flex items-start justify-between">
-                                  <div className="flex-1">
-                                    <div className="flex items-center gap-2">
-                                      <h4 className="font-medium">{template.name}</h4>
-                                      <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/30">
-                                        Built-in
-                                      </Badge>
-                                    </div>
-                                    {template.description && (
-                                      <p className="text-sm text-muted-foreground mt-1">{template.description}</p>
-                                    )}
-                                    <div className="flex flex-wrap gap-1 mt-2">
-                                      {template.investigations.slice(0, 3).map((group, i) => (
-                                        <Badge key={i} variant="secondary" className="text-xs">
-                                          {group.category}: {group.tests.length} tests
-                                        </Badge>
-                                      ))}
-                                      {template.investigations.length > 3 && (
-                                        <Badge variant="outline" className="text-xs">
-                                          +{template.investigations.length - 3} more
-                                        </Badge>
-                                      )}
-                                    </div>
-                                  </div>
-                                  <div className="flex gap-2 ml-4">
-                                    <Button size="sm" variant="outline" onClick={() => handleLoadTemplate(template)}>
-                                      <Plus className="h-3 w-3 mr-1" />
-                                      Use
-                                    </Button>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </>
-                        )}
-                      </>
-                    )}
+                <div className="flex-1 min-h-0 flex flex-col">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-medium text-sm">Investigation Templates</h3>
+                    <Button variant="ghost" size="sm" onClick={() => setShowTemplates(false)}>
+                      <X className="h-4 w-4 mr-1" />
+                      Back
+                    </Button>
                   </div>
-                </ScrollArea>
-              </div>
+                  <ScrollArea className="flex-1 min-h-0">
+                    <div className="space-y-3 pr-4 pb-4">
+                      {templates.length === 0 ? (
+                        <div className="text-center text-muted-foreground py-8">
+                          <FolderOpen className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                          <p>No templates saved yet</p>
+                          <p className="text-xs mt-1">Select investigations and save as a template for quick reuse</p>
+                        </div>
+                      ) : (
+                        <>
+                          {/* User templates section */}
+                          {templates.filter(t => !t.isPredefined).length > 0 && (
+                            <>
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">My Templates</span>
+                                <div className="flex-1 h-px bg-border"></div>
+                              </div>
+                              {templates.filter(t => !t.isPredefined).map(template => (
+                                <div key={template.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                      <h4 className="font-medium">{template.name}</h4>
+                                      {template.description && (
+                                        <p className="text-sm text-muted-foreground mt-1">{template.description}</p>
+                                      )}
+                                      <div className="flex flex-wrap gap-1 mt-2">
+                                        {template.investigations.slice(0, 3).map((group, i) => (
+                                          <Badge key={i} variant="secondary" className="text-xs">
+                                            {group.category}: {group.tests.length} tests
+                                          </Badge>
+                                        ))}
+                                        {template.investigations.length > 3 && (
+                                          <Badge variant="outline" className="text-xs">
+                                            +{template.investigations.length - 3} more
+                                          </Badge>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="flex gap-2 ml-4">
+                                      <Button size="sm" variant="outline" onClick={() => handleLoadTemplate(template)}>
+                                        <Plus className="h-3 w-3 mr-1" />
+                                        Use
+                                      </Button>
+                                      <Button size="sm" variant="ghost" onClick={() => handleDeleteTemplate(template.id)}>
+                                        <Trash2 className="h-3 w-3 text-destructive" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </>
+                          )}
+
+                          {/* Predefined templates section */}
+                          {templates.filter(t => t.isPredefined).length > 0 && (
+                            <>
+                              <div className="flex items-center gap-2 mb-2 mt-4">
+                                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Quick Start Templates</span>
+                                <div className="flex-1 h-px bg-border"></div>
+                              </div>
+                              {templates.filter(t => t.isPredefined).map(template => (
+                                <div key={template.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors bg-primary/5">
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2">
+                                        <h4 className="font-medium">{template.name}</h4>
+                                        <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/30">
+                                          Built-in
+                                        </Badge>
+                                      </div>
+                                      {template.description && (
+                                        <p className="text-sm text-muted-foreground mt-1">{template.description}</p>
+                                      )}
+                                      <div className="flex flex-wrap gap-1 mt-2">
+                                        {template.investigations.slice(0, 3).map((group, i) => (
+                                          <Badge key={i} variant="secondary" className="text-xs">
+                                            {group.category}: {group.tests.length} tests
+                                          </Badge>
+                                        ))}
+                                        {template.investigations.length > 3 && (
+                                          <Badge variant="outline" className="text-xs">
+                                            +{template.investigations.length - 3} more
+                                          </Badge>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="flex gap-2 ml-4">
+                                      <Button size="sm" variant="outline" onClick={() => handleLoadTemplate(template)}>
+                                        <Plus className="h-3 w-3 mr-1" />
+                                        Use
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </ScrollArea>
+                </div>
             ) : showSaveTemplateForm ? (
               // Save Template Form
               <div className="h-full flex flex-col gap-4">
@@ -1287,9 +1287,9 @@ export default function InvestigationRequisitionDialog({
                   </TabsList>
                 </div>
 
-                <div className="flex-1 overflow-hidden min-h-0">
+                <div className="flex-1 overflow-hidden min-h-0 relative">
                   {Object.entries(INVESTIGATION_CATEGORIES).map(([category, config]) => (
-                    <TabsContent key={category} value={category} className="mt-0 flex-1 min-h-0">
+                    <TabsContent key={category} value={category} className="mt-0 absolute inset-0">
                       <ScrollArea className="h-full">
                         {category === "custom" ? (
                           <div className="space-y-4 pr-4 pb-4">
