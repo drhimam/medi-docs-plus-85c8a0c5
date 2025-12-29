@@ -30,6 +30,8 @@ import {
   FolderOpen,
   Loader2,
   MoreVertical,
+  PanelRightClose,
+  PanelRightOpen,
 } from "lucide-react";
 import {
   Dialog,
@@ -637,6 +639,9 @@ export default function InvestigationRequisitionDialog({
   const [templateDescription, setTemplateDescription] = useState("");
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
   const [showSaveTemplateForm, setShowSaveTemplateForm] = useState(false);
+  
+  // Split view state
+  const [splitViewEnabled, setSplitViewEnabled] = useState(false);
 
   // Fetch profile data for physician name
   useEffect(() => {
@@ -1085,307 +1090,366 @@ export default function InvestigationRequisitionDialog({
                     {getSelectedCount()} selected
                   </Badge>
                 )}
+
+                {/* Split view toggle */}
+                <Button
+                  variant={splitViewEnabled ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSplitViewEnabled(!splitViewEnabled)}
+                  className="gap-1.5"
+                >
+                  {splitViewEnabled ? (
+                    <PanelRightClose className="h-4 w-4" />
+                  ) : (
+                    <PanelRightOpen className="h-4 w-4" />
+                  )}
+                  <span className="hidden sm:inline">
+                    {splitViewEnabled ? "Hide Preview" : "Live Preview"}
+                  </span>
+                </Button>
               </div>
             </section>
 
-            {/* Main content area (no nested ScrollAreas; dialog body scrolls) */}
-            <section className="space-y-4">
-              {showPreview ? (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="font-medium">Requisition Preview</h3>
-                    <Button variant="outline" size="sm" onClick={() => setShowPreview(false)}>
-                      <X className="h-4 w-4 mr-2" />
-                      Close Preview
-                    </Button>
+            {/* Main content area - split view when enabled */}
+            <section className={`${splitViewEnabled ? "flex gap-4" : ""}`}>
+              {/* Left column: test selection */}
+              <div className={splitViewEnabled ? "flex-1 min-w-0" : ""}>
+                {showPreview && !splitViewEnabled ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="font-medium">Requisition Preview</h3>
+                      <Button variant="outline" size="sm" onClick={() => setShowPreview(false)}>
+                        <X className="h-4 w-4 mr-2" />
+                        Close Preview
+                      </Button>
+                    </div>
+                    <div className="border rounded-md">
+                      <pre className="p-4 text-sm font-mono whitespace-pre-wrap">
+                        {generateRequisitionText() || "No investigations selected"}
+                      </pre>
+                    </div>
                   </div>
-                  <div className="border rounded-md">
-                    <pre className="p-4 text-sm font-mono whitespace-pre-wrap">
-                      {generateRequisitionText() || "No investigations selected"}
-                    </pre>
-                  </div>
-                </div>
-              ) : searchQuery ? (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="font-medium text-sm">
-                      Search Results ({getGlobalSearchResults().length})
-                    </h3>
-                    <Button variant="ghost" size="sm" onClick={() => setSearchQuery("")}> 
-                      Clear search
-                    </Button>
-                  </div>
+                ) : searchQuery ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="font-medium text-sm">
+                        Search Results ({getGlobalSearchResults().length})
+                      </h3>
+                      <Button variant="ghost" size="sm" onClick={() => setSearchQuery("")}> 
+                        Clear search
+                      </Button>
+                    </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {getGlobalSearchResults().map(({ category, test }) => {
-                      const key = `${category}:${test.name}`;
-                      const isSelected = selectedInvestigations[key];
-                      const categoryLabel = INVESTIGATION_CATEGORIES[category]?.label || "Custom";
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {getGlobalSearchResults().map(({ category, test }) => {
+                        const key = `${category}:${test.name}`;
+                        const isSelected = selectedInvestigations[key];
+                        const categoryLabel = INVESTIGATION_CATEGORIES[category]?.label || "Custom";
 
-                      return (
-                        <div
-                          key={key}
-                          className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
-                            isSelected ? "bg-primary/10 border-primary" : "hover:bg-muted"
-                          }`}
-                          onClick={() => toggleInvestigation(category, test.name)}
-                        >
-                          <div className="flex items-center gap-3">
-                            <Checkbox checked={isSelected} />
-                            <div>
-                              <span className="text-sm">{test.name}</span>
-                              <Badge variant="outline" className="ml-2 text-xs">
-                                {categoryLabel}
-                              </Badge>
+                        return (
+                          <div
+                            key={key}
+                            className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
+                              isSelected ? "bg-primary/10 border-primary" : "hover:bg-muted"
+                            }`}
+                            onClick={() => toggleInvestigation(category, test.name)}
+                          >
+                            <div className="flex items-center gap-3">
+                              <Checkbox checked={isSelected} />
+                              <div>
+                                <span className="text-sm">{test.name}</span>
+                                <Badge variant="outline" className="ml-2 text-xs">
+                                  {categoryLabel}
+                                </Badge>
+                              </div>
                             </div>
                           </div>
+                        );
+                      })}
+
+                      {getGlobalSearchResults().length === 0 && (
+                        <div className="col-span-2 text-center text-muted-foreground py-8">
+                          No investigations found matching "{searchQuery}"
                         </div>
-                      );
-                    })}
-
-                    {getGlobalSearchResults().length === 0 && (
-                      <div className="col-span-2 text-center text-muted-foreground py-8">
-                        No investigations found matching "{searchQuery}"
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
-                </div>
-              ) : showTemplates ? (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="font-medium text-sm">Investigation Templates</h3>
-                    <Button variant="ghost" size="sm" onClick={() => setShowTemplates(false)}>
-                      <X className="h-4 w-4 mr-1" />
-                      Back
-                    </Button>
-                  </div>
-
-                  <div className="space-y-3">
-                    {templates.length === 0 ? (
-                      <div className="text-center text-muted-foreground py-8">
-                        <FolderOpen className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                        <p>No templates saved yet</p>
-                        <p className="text-xs mt-1">
-                          Select investigations and save as a template for quick reuse
-                        </p>
-                      </div>
-                    ) : (
-                      <>
-                        {/* User templates section */}
-                        {templates.filter((t) => !t.isPredefined).length > 0 && (
-                          <>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                                My Templates
-                              </span>
-                              <div className="flex-1 h-px bg-border" />
-                            </div>
-                            {templates
-                              .filter((t) => !t.isPredefined)
-                              .map((template) => (
-                                <div key={template.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
-                                  <div className="flex items-start justify-between gap-4">
-                                    <div className="flex-1">
-                                      <h4 className="font-medium">{template.name}</h4>
-                                      {template.description && (
-                                        <p className="text-sm text-muted-foreground mt-1">{template.description}</p>
-                                      )}
-                                      <div className="flex flex-wrap gap-1 mt-2">
-                                        {template.investigations.slice(0, 3).map((group, i) => (
-                                          <Badge key={i} variant="secondary" className="text-xs">
-                                            {group.category}: {group.tests.length} tests
-                                          </Badge>
-                                        ))}
-                                        {template.investigations.length > 3 && (
-                                          <Badge variant="outline" className="text-xs">
-                                            +{template.investigations.length - 3} more
-                                          </Badge>
-                                        )}
-                                      </div>
-                                    </div>
-                                    <div className="flex gap-2">
-                                      <Button size="sm" variant="outline" onClick={() => handleLoadTemplate(template)}>
-                                        <Plus className="h-3 w-3 mr-1" />
-                                        Use
-                                      </Button>
-                                      <Button size="sm" variant="ghost" onClick={() => handleDeleteTemplate(template.id)}>
-                                        <Trash2 className="h-3 w-3 text-destructive" />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                          </>
-                        )}
-
-                        {/* Predefined templates section */}
-                        {templates.filter((t) => t.isPredefined).length > 0 && (
-                          <>
-                            <div className="flex items-center gap-2 mt-6">
-                              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                                Quick Start Templates
-                              </span>
-                              <div className="flex-1 h-px bg-border" />
-                            </div>
-                            {templates
-                              .filter((t) => t.isPredefined)
-                              .map((template) => (
-                                <div key={template.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors bg-primary/5">
-                                  <div className="flex items-start justify-between gap-4">
-                                    <div className="flex-1">
-                                      <div className="flex items-center gap-2">
-                                        <h4 className="font-medium">{template.name}</h4>
-                                        <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/30">
-                                          Built-in
-                                        </Badge>
-                                      </div>
-                                      {template.description && (
-                                        <p className="text-sm text-muted-foreground mt-1">{template.description}</p>
-                                      )}
-                                      <div className="flex flex-wrap gap-1 mt-2">
-                                        {template.investigations.slice(0, 3).map((group, i) => (
-                                          <Badge key={i} variant="secondary" className="text-xs">
-                                            {group.category}: {group.tests.length} tests
-                                          </Badge>
-                                        ))}
-                                        {template.investigations.length > 3 && (
-                                          <Badge variant="outline" className="text-xs">
-                                            +{template.investigations.length - 3} more
-                                          </Badge>
-                                        )}
-                                      </div>
-                                    </div>
-                                    <div className="flex gap-2">
-                                      <Button size="sm" variant="outline" onClick={() => handleLoadTemplate(template)}>
-                                        <Plus className="h-3 w-3 mr-1" />
-                                        Use
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                          </>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </div>
-              ) : showSaveTemplateForm ? (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="font-medium text-sm">Save as Template</h3>
-                    <Button variant="ghost" size="sm" onClick={() => setShowSaveTemplateForm(false)}>
-                      <X className="h-4 w-4 mr-1" />
-                      Cancel
-                    </Button>
-                  </div>
-
+                ) : showTemplates ? (
                   <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="templateName">Template Name *</Label>
-                      <Input
-                        id="templateName"
-                        value={templateName}
-                        onChange={(e) => setTemplateName(e.target.value)}
-                        placeholder="e.g., Annual Physical, Diabetes Workup"
-                        className="mt-1"
-                      />
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="font-medium text-sm">Investigation Templates</h3>
+                      <Button variant="ghost" size="sm" onClick={() => setShowTemplates(false)}>
+                        <X className="h-4 w-4 mr-1" />
+                        Back
+                      </Button>
                     </div>
-                    <div>
-                      <Label htmlFor="templateDesc">Description (Optional)</Label>
-                      <Textarea
-                        id="templateDesc"
-                        value={templateDescription}
-                        onChange={(e) => setTemplateDescription(e.target.value)}
-                        placeholder="Brief description of when to use this template..."
-                        className="mt-1 h-20"
-                      />
-                    </div>
-                    <div className="bg-muted/50 rounded-lg p-3">
-                      <p className="text-sm font-medium mb-2">Selected Investigations ({getSelectedCount()})</p>
-                      <div className="flex flex-wrap gap-1">
-                        {getSelectedTests().map((group, i) => (
-                          <Badge key={i} variant="secondary" className="text-xs">
-                            {group.category}: {group.tests.length}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                    <Button
-                      onClick={handleSaveTemplate}
-                      disabled={isSavingTemplate || !templateName.trim()}
-                      className="w-full"
-                    >
-                      {isSavingTemplate ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Saving...
-                        </>
+
+                    <div className="space-y-3">
+                      {templates.length === 0 ? (
+                        <div className="text-center text-muted-foreground py-8">
+                          <FolderOpen className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                          <p>No templates saved yet</p>
+                          <p className="text-xs mt-1">
+                            Select investigations and save as a template for quick reuse
+                          </p>
+                        </div>
                       ) : (
                         <>
-                          <Save className="h-4 w-4 mr-2" />
-                          Save Template
+                          {/* User templates section */}
+                          {templates.filter((t) => !t.isPredefined).length > 0 && (
+                            <>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                                  My Templates
+                                </span>
+                                <div className="flex-1 h-px bg-border" />
+                              </div>
+                              {templates
+                                .filter((t) => !t.isPredefined)
+                                .map((template) => (
+                                  <div key={template.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                                    <div className="flex items-start justify-between gap-4">
+                                      <div className="flex-1">
+                                        <h4 className="font-medium">{template.name}</h4>
+                                        {template.description && (
+                                          <p className="text-sm text-muted-foreground mt-1">{template.description}</p>
+                                        )}
+                                        <div className="flex flex-wrap gap-1 mt-2">
+                                          {template.investigations.slice(0, 3).map((group, i) => (
+                                            <Badge key={i} variant="secondary" className="text-xs">
+                                              {group.category}: {group.tests.length} tests
+                                            </Badge>
+                                          ))}
+                                          {template.investigations.length > 3 && (
+                                            <Badge variant="outline" className="text-xs">
+                                              +{template.investigations.length - 3} more
+                                            </Badge>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <div className="flex gap-2">
+                                        <Button size="sm" variant="outline" onClick={() => handleLoadTemplate(template)}>
+                                          <Plus className="h-3 w-3 mr-1" />
+                                          Use
+                                        </Button>
+                                        <Button size="sm" variant="ghost" onClick={() => handleDeleteTemplate(template.id)}>
+                                          <Trash2 className="h-3 w-3 text-destructive" />
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                            </>
+                          )}
+
+                          {/* Predefined templates section */}
+                          {templates.filter((t) => t.isPredefined).length > 0 && (
+                            <>
+                              <div className="flex items-center gap-2 mt-6">
+                                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                                  Quick Start Templates
+                                </span>
+                                <div className="flex-1 h-px bg-border" />
+                              </div>
+                              {templates
+                                .filter((t) => t.isPredefined)
+                                .map((template) => (
+                                  <div key={template.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors bg-primary/5">
+                                    <div className="flex items-start justify-between gap-4">
+                                      <div className="flex-1">
+                                        <div className="flex items-center gap-2">
+                                          <h4 className="font-medium">{template.name}</h4>
+                                          <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/30">
+                                            Built-in
+                                          </Badge>
+                                        </div>
+                                        {template.description && (
+                                          <p className="text-sm text-muted-foreground mt-1">{template.description}</p>
+                                        )}
+                                        <div className="flex flex-wrap gap-1 mt-2">
+                                          {template.investigations.slice(0, 3).map((group, i) => (
+                                            <Badge key={i} variant="secondary" className="text-xs">
+                                              {group.category}: {group.tests.length} tests
+                                            </Badge>
+                                          ))}
+                                          {template.investigations.length > 3 && (
+                                            <Badge variant="outline" className="text-xs">
+                                              +{template.investigations.length - 3} more
+                                            </Badge>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <div className="flex gap-2">
+                                        <Button size="sm" variant="outline" onClick={() => handleLoadTemplate(template)}>
+                                          <Plus className="h-3 w-3 mr-1" />
+                                          Use
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                            </>
+                          )}
                         </>
                       )}
-                    </Button>
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <Tabs
-                  value={activeTab}
-                  onValueChange={(v) => setActiveTab(v as InvestigationType)}
-                  className="flex flex-col gap-3"
-                >
-                  <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 p-1">
-                    {Object.entries(INVESTIGATION_CATEGORIES).map(([key, { label, icon: Icon }]) => (
-                      <TabsTrigger
-                        key={key}
-                        value={key}
-                        className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] leading-none"
-                      >
-                        <Icon className="h-3 w-3" />
-                        <span className="whitespace-nowrap">{label}</span>
-                      </TabsTrigger>
-                    ))}
-                  </TabsList>
-
-                  <TabsContent value={activeTab} className="mt-0">
-                    <div className="flex items-center justify-end gap-2 pb-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => selectAllInTab(activeTab)}
-                      >
-                        Select all
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => clearAllInTab(activeTab)}
-                        disabled={getSelectedCountForTab(activeTab) === 0}
-                      >
-                        Clear all
+                ) : showSaveTemplateForm ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="font-medium text-sm">Save as Template</h3>
+                      <Button variant="ghost" size="sm" onClick={() => setShowSaveTemplateForm(false)}>
+                        <X className="h-4 w-4 mr-1" />
+                        Cancel
                       </Button>
                     </div>
 
-                    {activeTab === "custom" ? (
-                      <div className="space-y-4">
-                        <div className="flex gap-2">
-                          <Input
-                            placeholder="Enter custom investigation name..."
-                            value={newCustomTest}
-                            onChange={(e) => setNewCustomTest(e.target.value)}
-                            onKeyDown={(e) => e.key === "Enter" && addCustomTest()}
-                          />
-                          <Button onClick={addCustomTest} size="sm">
-                            <Plus className="h-4 w-4 mr-1" />
-                            Add
-                          </Button>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="templateName">Template Name *</Label>
+                        <Input
+                          id="templateName"
+                          value={templateName}
+                          onChange={(e) => setTemplateName(e.target.value)}
+                          placeholder="e.g., Annual Physical, Diabetes Workup"
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="templateDesc">Description (Optional)</Label>
+                        <Textarea
+                          id="templateDesc"
+                          value={templateDescription}
+                          onChange={(e) => setTemplateDescription(e.target.value)}
+                          placeholder="Brief description of when to use this template..."
+                          className="mt-1 h-20"
+                        />
+                      </div>
+                      <div className="bg-muted/50 rounded-lg p-3">
+                        <p className="text-sm font-medium mb-2">Selected Investigations ({getSelectedCount()})</p>
+                        <div className="flex flex-wrap gap-1">
+                          {getSelectedTests().map((group, i) => (
+                            <Badge key={i} variant="secondary" className="text-xs">
+                              {group.category}: {group.tests.length}
+                            </Badge>
+                          ))}
                         </div>
+                      </div>
+                      <Button
+                        onClick={handleSaveTemplate}
+                        disabled={isSavingTemplate || !templateName.trim()}
+                        className="w-full"
+                      >
+                        {isSavingTemplate ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="h-4 w-4 mr-2" />
+                            Save Template
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Tabs
+                    value={activeTab}
+                    onValueChange={(v) => setActiveTab(v as InvestigationType)}
+                    className="flex flex-col gap-3"
+                  >
+                    <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 p-1">
+                      {Object.entries(INVESTIGATION_CATEGORIES).map(([key, { label, icon: Icon }]) => (
+                        <TabsTrigger
+                          key={key}
+                          value={key}
+                          className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] leading-none"
+                        >
+                          <Icon className="h-3 w-3" />
+                          <span className="whitespace-nowrap">{label}</span>
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
 
+                    <TabsContent value={activeTab} className="mt-0">
+                      <div className="flex items-center justify-end gap-2 pb-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => selectAllInTab(activeTab)}
+                        >
+                          Select all
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => clearAllInTab(activeTab)}
+                          disabled={getSelectedCountForTab(activeTab) === 0}
+                        >
+                          Clear all
+                        </Button>
+                      </div>
+
+                      {activeTab === "custom" ? (
+                        <div className="space-y-4">
+                          <div className="flex gap-2">
+                            <Input
+                              placeholder="Enter custom investigation name..."
+                              value={newCustomTest}
+                              onChange={(e) => setNewCustomTest(e.target.value)}
+                              onKeyDown={(e) => e.key === "Enter" && addCustomTest()}
+                            />
+                            <Button onClick={addCustomTest} size="sm">
+                              <Plus className="h-4 w-4 mr-1" />
+                              Add
+                            </Button>
+                          </div>
+
+                          <div className="grid grid-cols-1 gap-2">
+                            {customTests.map((test) => {
+                              const key = `custom:${test}`;
+                              const isSelected = selectedInvestigations[key];
+                              return (
+                                <div
+                                  key={key}
+                                  className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
+                                    isSelected ? "bg-primary/10 border-primary" : "hover:bg-muted"
+                                  }`}
+                                  onClick={() => toggleInvestigation("custom", test)}
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <Checkbox checked={isSelected} />
+                                    <span className="text-sm">{test}</span>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      removeCustomTest(test);
+                                    }}
+                                  >
+                                    <Trash2 className="h-3 w-3 text-destructive" />
+                                    <span className="sr-only">Remove</span>
+                                  </Button>
+                                </div>
+                              );
+                            })}
+
+                            {customTests.length === 0 && (
+                              <div className="col-span-1 text-center text-muted-foreground py-8">
+                                Add custom investigations using the input above
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
                         <div className="grid grid-cols-1 gap-2">
-                          {customTests.map((test) => {
-                            const key = `custom:${test}`;
+                          {INVESTIGATION_CATEGORIES[activeTab].tests.map((test) => {
+                            const key = `${activeTab}:${test.name}`;
                             const isSelected = selectedInvestigations[key];
                             return (
                               <div
@@ -1393,74 +1457,59 @@ export default function InvestigationRequisitionDialog({
                                 className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
                                   isSelected ? "bg-primary/10 border-primary" : "hover:bg-muted"
                                 }`}
-                                onClick={() => toggleInvestigation("custom", test)}
+                                onClick={() => toggleInvestigation(activeTab, test.name)}
                               >
                                 <div className="flex items-center gap-3">
                                   <Checkbox checked={isSelected} />
-                                  <span className="text-sm">{test}</span>
+                                  <span className="text-sm">{test.name}</span>
                                 </div>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-6 w-6"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    removeCustomTest(test);
-                                  }}
-                                >
-                                  <Trash2 className="h-3 w-3 text-destructive" />
-                                  <span className="sr-only">Remove</span>
-                                </Button>
                               </div>
                             );
                           })}
-
-                          {customTests.length === 0 && (
-                            <div className="col-span-1 text-center text-muted-foreground py-8">
-                              Add custom investigations using the input above
-                            </div>
-                          )}
                         </div>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 gap-2">
-                        {INVESTIGATION_CATEGORIES[activeTab].tests.map((test) => {
-                          const key = `${activeTab}:${test.name}`;
-                          const isSelected = selectedInvestigations[key];
-                          return (
-                            <div
-                              key={key}
-                              className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
-                                isSelected ? "bg-primary/10 border-primary" : "hover:bg-muted"
-                              }`}
-                              onClick={() => toggleInvestigation(activeTab, test.name)}
-                            >
-                              <div className="flex items-center gap-3">
-                                <Checkbox checked={isSelected} />
-                                <span className="text-sm">{test.name}</span>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </TabsContent>
-                </Tabs>
-              )}
+                      )}
+                    </TabsContent>
+                  </Tabs>
+                )}
 
-              {/* Notes */}
-              <div className="space-y-2">
-                <Label htmlFor="clinicalNotes" className="text-sm font-medium">
-                  Clinical Notes (Optional)
-                </Label>
-                <Textarea
-                  id="clinicalNotes"
-                  value={clinicalNotes}
-                  onChange={(e) => setClinicalNotes(e.target.value)}
-                  placeholder="Add relevant clinical information, symptoms, or suspected diagnosis..."
-                  className="h-24"
-                />
+                {/* Notes - only show when not in full preview mode */}
+                {!showPreview && (
+                  <div className="space-y-2 mt-4">
+                    <Label htmlFor="clinicalNotes" className="text-sm font-medium">
+                      Clinical Notes (Optional)
+                    </Label>
+                    <Textarea
+                      id="clinicalNotes"
+                      value={clinicalNotes}
+                      onChange={(e) => setClinicalNotes(e.target.value)}
+                      placeholder="Add relevant clinical information, symptoms, or suspected diagnosis..."
+                      className="h-24"
+                    />
+                  </div>
+                )}
               </div>
+
+              {/* Right column: live preview (only when split view is enabled) */}
+              {splitViewEnabled && (
+                <div className="w-[45%] min-w-[280px] border-l pl-4">
+                  <div className="sticky top-0">
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                      <h3 className="font-medium text-sm flex items-center gap-2">
+                        <Eye className="h-4 w-4" />
+                        Live Preview
+                      </h3>
+                      <Badge variant="outline" className="text-xs">
+                        {getSelectedCount()} tests
+                      </Badge>
+                    </div>
+                    <div className="border rounded-md bg-muted/30 max-h-[50vh] overflow-auto">
+                      <pre className="p-4 text-xs font-mono whitespace-pre-wrap">
+                        {generateRequisitionText() || "Select investigations to see preview"}
+                      </pre>
+                    </div>
+                  </div>
+                </div>
+              )}
             </section>
           </main>
         </ScrollArea>
