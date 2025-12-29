@@ -131,6 +131,15 @@ export default function ClinicalDocumentation() {
   const [plan, setPlan] = useState("");
   const [prescription, setPrescription] = useState("");
   
+  // Track initial values to detect changes
+  const [initialValues, setInitialValues] = useState({
+    subjective: "",
+    objective: "",
+    assessment: "",
+    plan: "",
+    prescription: "",
+  });
+  
   // Vital signs state for Physical Exam Builder
   const [vitalSigns, setVitalSigns] = useState({
     bp: "",
@@ -188,21 +197,42 @@ export default function ClinicalDocumentation() {
       setPatient(patientData);
 
       // Load saved SOAP notes and prescription, or auto-populate if empty
+      let subjectiveVal = "";
+      let objectiveVal = "";
+      
       if (visitData.soap_subjective) {
-        setSubjective(visitData.soap_subjective);
+        subjectiveVal = visitData.soap_subjective;
+        setSubjective(subjectiveVal);
       } else {
+        // We need to get the populated value after setting it
         populateSubjective(visitData, patientData);
       }
       
       if (visitData.soap_objective) {
-        setObjective(visitData.soap_objective);
+        objectiveVal = visitData.soap_objective;
+        setObjective(objectiveVal);
       } else {
         populateObjective(visitData);
       }
       
-      setAssessment(visitData.soap_assessment || "");
-      setPlan(visitData.soap_plan || "");
-      setPrescription(visitData.prescription || "");
+      const assessmentVal = visitData.soap_assessment || "";
+      const planVal = visitData.soap_plan || "";
+      const prescriptionVal = visitData.prescription || "";
+      
+      setAssessment(assessmentVal);
+      setPlan(planVal);
+      setPrescription(prescriptionVal);
+      
+      // Store initial values for change detection (use timeout to get populated values)
+      setTimeout(() => {
+        setInitialValues({
+          subjective: visitData.soap_subjective || "",
+          objective: visitData.soap_objective || "",
+          assessment: assessmentVal,
+          plan: planVal,
+          prescription: prescriptionVal,
+        });
+      }, 100);
     } catch (error: any) {
       console.error("Error fetching visit:", error);
       toast({
@@ -663,6 +693,15 @@ export default function ClinicalDocumentation() {
 
       if (error) throw error;
 
+      // Update initial values after successful save
+      setInitialValues({
+        subjective,
+        objective,
+        assessment,
+        plan,
+        prescription,
+      });
+
       toast({
         title: "Success",
         description: "Clinical documentation saved",
@@ -677,12 +716,37 @@ export default function ClinicalDocumentation() {
     }
   };
 
+  // Check if there are unsaved changes in SOAP notes or prescription
+  const hasUnsavedChanges = () => {
+    // Only check assessment, plan, and prescription as these are the user-editable fields
+    // Subjective and objective are auto-populated initially
+    return (
+      assessment !== initialValues.assessment ||
+      plan !== initialValues.plan ||
+      prescription !== initialValues.prescription
+    );
+  };
+
   const handleClose = () => {
-    setShowCloseDialog(true);
+    if (hasUnsavedChanges()) {
+      setShowCloseDialog(true);
+    } else {
+      // No changes, navigate directly
+      if (patient?.id) {
+        navigate(`/dashboard/patients/${patient.id}`);
+      } else {
+        navigate(-1);
+      }
+    }
   };
 
   const confirmClose = () => {
-    navigate(-1);
+    setShowCloseDialog(false);
+    if (patient?.id) {
+      navigate(`/dashboard/patients/${patient.id}`);
+    } else {
+      navigate(-1);
+    }
   };
 
   const exportSOAPToMarkdown = () => {
