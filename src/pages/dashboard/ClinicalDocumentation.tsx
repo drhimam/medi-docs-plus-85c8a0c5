@@ -1302,13 +1302,13 @@ ${cleanPrescription}
         </div>
 
         {/* SOAP Note and Prescription */}
-        <div className="p-8 space-y-6">
-          <div className="bg-card border rounded-lg p-6 shadow-sm">
+        <div className="p-4 sm:p-8 space-y-6">
+          <div className="bg-card border rounded-lg p-4 sm:p-6 shadow-sm">
             <Tabs defaultValue="soap">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="soap">SOAP Note</TabsTrigger>
-                <TabsTrigger value="prescription">Prescription</TabsTrigger>
-                <TabsTrigger value="documents">Documents</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-3 h-auto">
+                <TabsTrigger value="soap" className="text-xs sm:text-sm py-2">SOAP Note</TabsTrigger>
+                <TabsTrigger value="prescription" className="text-xs sm:text-sm py-2">Prescription</TabsTrigger>
+                <TabsTrigger value="documents" className="text-xs sm:text-sm py-2">Documents</TabsTrigger>
               </TabsList>
               
               <TabsContent value="soap" className="space-y-6 mt-6">
@@ -1475,7 +1475,8 @@ ${cleanPrescription}
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <Label>Subjective</Label>
-                        <div className="flex gap-2">
+                        {/* Desktop buttons */}
+                        <div className="hidden sm:flex gap-2">
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -1509,6 +1510,26 @@ ${cleanPrescription}
                             </Tooltip>
                           </TooltipProvider>
                         </div>
+                        {/* Mobile dropdown */}
+                        <div className="sm:hidden">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="icon" disabled={isSoapViewMode}>
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => setShowHPIDialog(true)}>
+                                <FileText className="w-4 h-4 mr-2" />
+                                Add Complaint
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setShowROSDialog(true)}>
+                                <Stethoscope className="w-4 h-4 mr-2" />
+                                ROS
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </div>
                       <Textarea
                         value={subjective}
@@ -1520,7 +1541,8 @@ ${cleanPrescription}
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <Label>Objective</Label>
-                        <div className="flex gap-2">
+                        {/* Desktop buttons */}
+                        <div className="hidden sm:flex gap-2">
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -1554,6 +1576,26 @@ ${cleanPrescription}
                             </Tooltip>
                           </TooltipProvider>
                         </div>
+                        {/* Mobile dropdown */}
+                        <div className="sm:hidden">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="icon" disabled={isSoapViewMode}>
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => setShowPhysicalExamDialog(true)}>
+                                <Stethoscope className="w-4 h-4 mr-2" />
+                                Physical Exam
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setShowInvestigationDialog(true)}>
+                                <FlaskConical className="w-4 h-4 mr-2" />
+                                Investigations
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </div>
                       <Textarea
                         value={objective}
@@ -1565,7 +1607,8 @@ ${cleanPrescription}
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <Label>Assessment</Label>
-                        <div className="flex gap-2">
+                        {/* Desktop buttons */}
+                        <div className="hidden sm:flex gap-2">
                           <TranscribeButton 
                             onTranscription={(text) => {
                               const textarea = assessmentRef.current;
@@ -1592,6 +1635,40 @@ ${cleanPrescription}
                             Generate with AI
                           </Button>
                         </div>
+                        {/* Mobile dropdown */}
+                        <div className="sm:hidden">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="icon" disabled={isSoapViewMode}>
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem asChild>
+                                <TranscribeButton 
+                                  onTranscription={(text) => {
+                                    const textarea = assessmentRef.current;
+                                    if (textarea) {
+                                      const start = textarea.selectionStart;
+                                      const end = textarea.selectionEnd;
+                                      const newValue = assessment.substring(0, start) + text + assessment.substring(end);
+                                      setAssessment(newValue);
+                                      setTimeout(() => {
+                                        textarea.focus();
+                                        textarea.selectionStart = textarea.selectionEnd = start + text.length;
+                                      }, 0);
+                                    }
+                                  }}
+                                  disabled={isSoapViewMode}
+                                />
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={handleGenerateAssessment} disabled={isGenerating}>
+                                <Sparkles className="w-4 h-4 mr-2" />
+                                Generate with AI
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </div>
                       <Textarea
                         ref={assessmentRef}
@@ -1605,7 +1682,8 @@ ${cleanPrescription}
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <Label>Plan</Label>
-                        <div className="flex gap-2">
+                        {/* Desktop buttons */}
+                        <div className="hidden sm:flex gap-2">
                           <TranscribeButton 
                             onTranscription={(text) => {
                               const textarea = planRef.current;
@@ -1631,6 +1709,40 @@ ${cleanPrescription}
                             <Sparkles className="w-4 h-4 mr-2" />
                             Generate with AI
                           </Button>
+                        </div>
+                        {/* Mobile dropdown */}
+                        <div className="sm:hidden">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="icon" disabled={isSoapViewMode}>
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem asChild>
+                                <TranscribeButton 
+                                  onTranscription={(text) => {
+                                    const textarea = planRef.current;
+                                    if (textarea) {
+                                      const start = textarea.selectionStart;
+                                      const end = textarea.selectionEnd;
+                                      const newValue = plan.substring(0, start) + text + plan.substring(end);
+                                      setPlan(newValue);
+                                      setTimeout(() => {
+                                        textarea.focus();
+                                        textarea.selectionStart = textarea.selectionEnd = start + text.length;
+                                      }, 0);
+                                    }
+                                  }}
+                                  disabled={isSoapViewMode}
+                                />
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={handleGeneratePlan} disabled={isGenerating}>
+                                <Sparkles className="w-4 h-4 mr-2" />
+                                Generate with AI
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </div>
                       <Textarea
@@ -1844,22 +1956,43 @@ ${cleanPrescription}
 
               <TabsContent value="documents" className="space-y-4 mt-6">
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-2xl font-semibold">Patient Documents</h2>
-                      <p className="text-sm text-muted-foreground">Uploaded documents for this visit</p>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h2 className="text-2xl font-semibold">Patient Documents</h2>
+                        <p className="text-sm text-muted-foreground">Uploaded documents for this visit</p>
+                      </div>
+                      {/* Desktop buttons */}
+                      <div className="hidden sm:flex gap-2">
+                        <Button variant="outline" onClick={() => setShowRequisitionDialog(true)}>
+                          <FlaskConical className="w-4 h-4 mr-2" />
+                          Generate Requisition
+                        </Button>
+                        <Button onClick={() => setIsUploadDialogOpen(true)}>
+                          <FileText className="w-4 h-4 mr-2" />
+                          Upload Document
+                        </Button>
+                      </div>
+                      {/* Mobile dropdown */}
+                      <div className="sm:hidden">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="icon">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setShowRequisitionDialog(true)}>
+                              <FlaskConical className="w-4 h-4 mr-2" />
+                              Generate Requisition
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setIsUploadDialogOpen(true)}>
+                              <FileText className="w-4 h-4 mr-2" />
+                              Upload Document
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" onClick={() => setShowRequisitionDialog(true)}>
-                        <FlaskConical className="w-4 h-4 mr-2" />
-                        Generate Requisition
-                      </Button>
-                      <Button onClick={() => setIsUploadDialogOpen(true)}>
-                        <FileText className="w-4 h-4 mr-2" />
-                        Upload Document
-                      </Button>
-                    </div>
-                  </div>
 
                   {documents.length > 0 ? (
                     <div className="border rounded-lg">
