@@ -744,10 +744,36 @@ export default function InvestigationRequisitionDialog({
 
   const toggleInvestigation = (category: string, testName: string) => {
     const key = `${category}:${testName}`;
-    setSelectedInvestigations(prev => ({
+    setSelectedInvestigations((prev) => ({
       ...prev,
-      [key]: !prev[key]
+      [key]: !prev[key],
     }));
+  };
+
+  const selectAllInTab = (tab: InvestigationType) => {
+    setSelectedInvestigations((prev) => {
+      const next = { ...prev };
+      if (tab === "custom") {
+        customTests.forEach((test) => {
+          next[`custom:${test}`] = true;
+        });
+      } else {
+        INVESTIGATION_CATEGORIES[tab].tests.forEach((t) => {
+          next[`${tab}:${t.name}`] = true;
+        });
+      }
+      return next;
+    });
+  };
+
+  const clearAllInTab = (tab: InvestigationType) => {
+    setSelectedInvestigations((prev) => {
+      const next = { ...prev };
+      Object.keys(next).forEach((k) => {
+        if (k.startsWith(`${tab}:`)) delete next[k];
+      });
+      return next;
+    });
   };
 
   const addCustomTest = () => {
@@ -792,6 +818,12 @@ export default function InvestigationRequisitionDialog({
 
   const getSelectedCount = () => {
     return Object.values(selectedInvestigations).filter(Boolean).length;
+  };
+
+  const getSelectedCountForTab = (tab: InvestigationType) => {
+    return Object.entries(selectedInvestigations).filter(
+      ([k, v]) => v && k.startsWith(`${tab}:`),
+    ).length;
   };
 
   const getGlobalSearchResults = () => {
@@ -1304,22 +1336,38 @@ export default function InvestigationRequisitionDialog({
                   onValueChange={(v) => setActiveTab(v as InvestigationType)}
                   className="flex flex-col gap-3"
                 >
-                  <div className="overflow-x-auto w-full">
-                    <TabsList className="inline-flex h-auto p-1 min-w-max">
-                      {Object.entries(INVESTIGATION_CATEGORIES).map(([key, { label, icon: Icon }]) => (
-                        <TabsTrigger
-                          key={key}
-                          value={key}
-                          className="flex items-center gap-1 px-3 py-1.5 text-xs whitespace-nowrap"
-                        >
-                          <Icon className="h-3 w-3" />
-                          {label}
-                        </TabsTrigger>
-                      ))}
-                    </TabsList>
-                  </div>
+                  <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 p-1">
+                    {Object.entries(INVESTIGATION_CATEGORIES).map(([key, { label, icon: Icon }]) => (
+                      <TabsTrigger
+                        key={key}
+                        value={key}
+                        className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] leading-none"
+                      >
+                        <Icon className="h-3 w-3" />
+                        <span className="whitespace-nowrap">{label}</span>
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
 
                   <TabsContent value={activeTab} className="mt-0">
+                    <div className="flex items-center justify-end gap-2 pb-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => selectAllInTab(activeTab)}
+                      >
+                        Select all
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => clearAllInTab(activeTab)}
+                        disabled={getSelectedCountForTab(activeTab) === 0}
+                      >
+                        Clear all
+                      </Button>
+                    </div>
+
                     {activeTab === "custom" ? (
                       <div className="space-y-4">
                         <div className="flex gap-2">
@@ -1334,7 +1382,8 @@ export default function InvestigationRequisitionDialog({
                             Add
                           </Button>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+
+                        <div className="grid grid-cols-1 gap-2">
                           {customTests.map((test) => {
                             const key = `custom:${test}`;
                             const isSelected = selectedInvestigations[key];
@@ -1365,15 +1414,16 @@ export default function InvestigationRequisitionDialog({
                               </div>
                             );
                           })}
+
                           {customTests.length === 0 && (
-                            <div className="col-span-2 text-center text-muted-foreground py-8">
+                            <div className="col-span-1 text-center text-muted-foreground py-8">
                               Add custom investigations using the input above
                             </div>
                           )}
                         </div>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div className="grid grid-cols-1 gap-2">
                         {INVESTIGATION_CATEGORIES[activeTab].tests.map((test) => {
                           const key = `${activeTab}:${test.name}`;
                           const isSelected = selectedInvestigations[key];
