@@ -33,6 +33,7 @@ import {
   PanelRightClose,
   PanelRightOpen,
   Printer,
+  Copy,
 } from "lucide-react";
 import {
   Dialog,
@@ -1500,6 +1501,25 @@ export default function InvestigationRequisitionDialog({
                         Live Preview
                       </h3>
                       <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const content = generateRequisitionText();
+                            if (!content) return;
+                            navigator.clipboard.writeText(content).then(() => {
+                              toast({
+                                title: "Copied",
+                                description: "Requisition copied to clipboard",
+                              });
+                            });
+                          }}
+                          disabled={getSelectedCount() === 0}
+                          className="gap-1"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                          Copy
+                        </Button>
                         <Button
                           variant="outline"
                           size="sm"
