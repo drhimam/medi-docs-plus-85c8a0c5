@@ -32,6 +32,7 @@ import {
   MoreVertical,
   PanelRightClose,
   PanelRightOpen,
+  Printer,
 } from "lucide-react";
 import {
   Dialog,
@@ -1498,9 +1499,45 @@ export default function InvestigationRequisitionDialog({
                         <Eye className="h-4 w-4" />
                         Live Preview
                       </h3>
-                      <Badge variant="outline" className="text-xs">
-                        {getSelectedCount()} tests
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const content = generateRequisitionText();
+                            if (!content) return;
+                            const printWindow = window.open("", "_blank");
+                            if (printWindow) {
+                              printWindow.document.write(`
+                                <!DOCTYPE html>
+                                <html>
+                                <head>
+                                  <title>Investigation Requisition</title>
+                                  <style>
+                                    body { font-family: 'Courier New', monospace; padding: 20px; font-size: 12px; }
+                                    pre { white-space: pre-wrap; word-wrap: break-word; }
+                                    @media print { body { padding: 0; } }
+                                  </style>
+                                </head>
+                                <body>
+                                  <pre>${content}</pre>
+                                  <script>window.onload = function() { window.print(); window.onafterprint = function() { window.close(); }; }</script>
+                                </body>
+                                </html>
+                              `);
+                              printWindow.document.close();
+                            }
+                          }}
+                          disabled={getSelectedCount() === 0}
+                          className="gap-1"
+                        >
+                          <Printer className="h-3.5 w-3.5" />
+                          Print
+                        </Button>
+                        <Badge variant="outline" className="text-xs">
+                          {getSelectedCount()} tests
+                        </Badge>
+                      </div>
                     </div>
                     <div className="border rounded-md bg-muted/30 max-h-[50vh] overflow-auto">
                       <pre className="p-4 text-xs font-mono whitespace-pre-wrap">
