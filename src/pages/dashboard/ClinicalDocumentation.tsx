@@ -717,14 +717,21 @@ export default function ClinicalDocumentation() {
   };
 
   // Check if there are unsaved changes in SOAP notes or prescription
-  const hasUnsavedChanges = () => {
-    // Only check assessment, plan, and prescription as these are the user-editable fields
-    // Subjective and objective are auto-populated initially
+  const hasSoapChanges = () => {
     return (
+      subjective !== initialValues.subjective ||
+      objective !== initialValues.objective ||
       assessment !== initialValues.assessment ||
-      plan !== initialValues.plan ||
-      prescription !== initialValues.prescription
+      plan !== initialValues.plan
     );
+  };
+
+  const hasPrescriptionChanges = () => {
+    return prescription !== initialValues.prescription;
+  };
+
+  const hasUnsavedChanges = () => {
+    return hasSoapChanges() || hasPrescriptionChanges();
   };
 
   const handleClose = () => {
@@ -1370,8 +1377,18 @@ ${cleanPrescription}
           <div className="bg-card border rounded-lg p-4 sm:p-6 shadow-sm">
             <Tabs defaultValue="soap">
               <TabsList className="grid w-full grid-cols-3 h-auto">
-                <TabsTrigger value="soap" className="text-xs sm:text-sm py-2">SOAP Note</TabsTrigger>
-                <TabsTrigger value="prescription" className="text-xs sm:text-sm py-2">Prescription</TabsTrigger>
+                <TabsTrigger value="soap" className="text-xs sm:text-sm py-2 relative">
+                  SOAP Note
+                  {hasSoapChanges() && (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-orange-500 rounded-full" />
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="prescription" className="text-xs sm:text-sm py-2 relative">
+                  Prescription
+                  {hasPrescriptionChanges() && (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-orange-500 rounded-full" />
+                  )}
+                </TabsTrigger>
                 <TabsTrigger value="documents" className="text-xs sm:text-sm py-2">Documents</TabsTrigger>
               </TabsList>
               
