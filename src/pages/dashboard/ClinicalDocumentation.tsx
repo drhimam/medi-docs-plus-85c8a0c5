@@ -2346,7 +2346,7 @@ ${cleanPrescription}
         clinicalInfo={assessment || visit?.reason_for_visit}
         visitId={visitId}
         patientId={patient?.id}
-        onGenerate={async (_requisitionText, selectedTests, priority, fasting, clinicalNotes, saveAsDocument, digitalSignature) => {
+        onGenerate={async (_requisitionText, selectedTests, priority, fasting, clinicalNotes, saveAsDocument, digitalSignature, useLetterhead) => {
           try {
             const { data: settings } = await supabase
               .from("prescription_settings")
@@ -2364,11 +2364,11 @@ ${cleanPrescription}
               }
             });
 
-            // Get logo and signature data URLs if configured
+            // Get logo and signature data URLs if configured and letterhead is enabled
             let logoDataUrl: string | undefined;
             let signatureDataUrl: string | undefined;
 
-            if (settings?.logo_path) {
+            if (useLetterhead && settings?.logo_path) {
               try {
                 const { data } = await supabase.storage
                   .from("prescription-assets")
@@ -2402,6 +2402,12 @@ ${cleanPrescription}
               }
             }
 
+            // Apply letterhead settings or use minimal settings
+            const pdfSettings = useLetterhead ? settings : {
+              ...settings,
+              use_own_letterhead: true, // This disables the header rendering in PDF
+            };
+
             const patientName = patient ? `${patient.first_name} ${patient.last_name}` : "";
             const patientAge = patient
               ? `${differenceInYears(new Date(), new Date(patient.date_of_birth))} years`
@@ -2428,8 +2434,8 @@ ${cleanPrescription}
                 clinicalNotes || assessment || visit?.reason_for_visit,
                 priority,
                 fasting,
-                settings as any,
-                logoDataUrl,
+                pdfSettings as any,
+                useLetterhead ? logoDataUrl : undefined,
                 signatureDataUrl,
                 { output: "blob", fileName },
                 digitalSignature
@@ -2480,8 +2486,8 @@ ${cleanPrescription}
               clinicalNotes || assessment || visit?.reason_for_visit,
               priority,
               fasting,
-              settings as any,
-              logoDataUrl,
+              pdfSettings as any,
+              useLetterhead ? logoDataUrl : undefined,
               signatureDataUrl,
               undefined,
               digitalSignature
