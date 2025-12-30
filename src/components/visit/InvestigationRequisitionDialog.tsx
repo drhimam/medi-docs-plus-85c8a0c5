@@ -776,9 +776,22 @@ export default function InvestigationRequisitionDialog({
   const clearAllInTab = (tab: InvestigationType) => {
     setSelectedInvestigations((prev) => {
       const next = { ...prev };
+      // Set all matching keys to false instead of deleting to ensure proper state update
       Object.keys(next).forEach((k) => {
-        if (k.startsWith(`${tab}:`)) delete next[k];
+        if (k.startsWith(`${tab}:`)) {
+          next[k] = false;
+        }
       });
+      // Also explicitly set all tests in this tab to false, even if not in prev
+      if (tab === "custom") {
+        customTests.forEach((test) => {
+          next[`custom:${test}`] = false;
+        });
+      } else if (INVESTIGATION_CATEGORIES[tab]) {
+        INVESTIGATION_CATEGORIES[tab].tests.forEach((t) => {
+          next[`${tab}:${t.name}`] = false;
+        });
+      }
       return next;
     });
   };
