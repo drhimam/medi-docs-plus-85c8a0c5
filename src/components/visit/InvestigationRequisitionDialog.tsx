@@ -600,7 +600,8 @@ type InvestigationRequisitionDialogProps = {
     fasting: boolean, 
     clinicalNotes: string, 
     saveAsDocument?: boolean,
-    digitalSignature?: { enabled: boolean; physicianName?: string }
+    digitalSignature?: { enabled: boolean; physicianName?: string },
+    useLetterhead?: boolean
   ) => void;
   patientName: string;
   patientAge?: string;
@@ -633,6 +634,7 @@ export default function InvestigationRequisitionDialog({
   const [saveAsDocument, setSaveAsDocument] = useState(true);
   const [digitalSignatureEnabled, setDigitalSignatureEnabled] = useState(true);
   const [physicianName, setPhysicianName] = useState("");
+  const [useLetterhead, setUseLetterhead] = useState(true);
   const [physicianDetails, setPhysicianDetails] = useState<{
     clinicName?: string;
     clinicAddress?: string;
@@ -973,7 +975,7 @@ export default function InvestigationRequisitionDialog({
       enabled: digitalSignatureEnabled,
       physicianName: digitalSignatureEnabled ? physicianName : undefined
     };
-    onGenerate(requisitionText, selectedTests, priority, fasting, clinicalNotes, saveAsDocument, digitalSignature);
+    onGenerate(requisitionText, selectedTests, priority, fasting, clinicalNotes, saveAsDocument, digitalSignature, useLetterhead);
     onOpenChange(false);
   };
 
@@ -1676,6 +1678,12 @@ export default function InvestigationRequisitionDialog({
 
                   <DropdownMenuSeparator />
                   <DropdownMenuLabel>Options</DropdownMenuLabel>
+                  <DropdownMenuCheckboxItem
+                    checked={useLetterhead}
+                    onCheckedChange={(c) => setUseLetterhead(c === true)}
+                  >
+                    Use letterhead (logo & header)
+                  </DropdownMenuCheckboxItem>
                   <DropdownMenuCheckboxItem
                     checked={digitalSignatureEnabled}
                     onCheckedChange={(c) => setDigitalSignatureEnabled(c === true)}
