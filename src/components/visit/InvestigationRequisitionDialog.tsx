@@ -633,6 +633,13 @@ export default function InvestigationRequisitionDialog({
   const [saveAsDocument, setSaveAsDocument] = useState(true);
   const [digitalSignatureEnabled, setDigitalSignatureEnabled] = useState(true);
   const [physicianName, setPhysicianName] = useState("");
+  const [physicianDetails, setPhysicianDetails] = useState<{
+    clinicName?: string;
+    clinicAddress?: string;
+    specialty?: string;
+    licenseNumber?: string;
+    phone?: string;
+  }>({});
   
   // Templates state
   const [templates, setTemplates] = useState<RequisitionTemplate[]>([]);
@@ -647,28 +654,35 @@ export default function InvestigationRequisitionDialog({
 
   // Fetch profile data for physician name
   useEffect(() => {
-    const fetchPhysicianName = async () => {
+    const fetchPhysicianDetails = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
         
         const { data: profile } = await supabase
           .from("profiles")
-          .select("first_name, last_name")
+          .select("first_name, last_name, clinic_name, clinic_address, specialty, license_number, phone")
           .eq("user_id", user.id)
           .single();
         
         if (profile) {
           const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(" ");
           setPhysicianName(fullName || "");
+          setPhysicianDetails({
+            clinicName: profile.clinic_name || undefined,
+            clinicAddress: profile.clinic_address || undefined,
+            specialty: profile.specialty || undefined,
+            licenseNumber: profile.license_number || undefined,
+            phone: profile.phone || undefined,
+          });
         }
       } catch (error) {
-        console.error("Error fetching physician name:", error);
+        console.error("Error fetching physician details:", error);
       }
     };
     
     if (open) {
-      fetchPhysicianName();
+      fetchPhysicianDetails();
     }
   }, [open]);
 
@@ -880,6 +894,35 @@ export default function InvestigationRequisitionDialog({
     text += "      INVESTIGATION REQUISITION\n";
     text += "═══════════════════════════════════════\n\n";
     
+    // Doctor/Clinic particulars section
+    if (physicianDetails.clinicName) {
+      text += `${physicianDetails.clinicName}\n`;
+    }
+    if (physicianDetails.clinicAddress) {
+      text += `${physicianDetails.clinicAddress}\n`;
+    }
+    if (physicianDetails.phone) {
+      text += `Tel: ${physicianDetails.phone}\n`;
+    }
+    if (physicianDetails.clinicName || physicianDetails.clinicAddress || physicianDetails.phone) {
+      text += "\n";
+    }
+    
+    // Ordering Physician
+    if (physicianName) {
+      text += `Ordering Physician: Dr. ${physicianName}\n`;
+      if (physicianDetails.specialty) {
+        text += `Specialty: ${physicianDetails.specialty}\n`;
+      }
+      if (physicianDetails.licenseNumber) {
+        text += `License No: ${physicianDetails.licenseNumber}\n`;
+      }
+      text += "\n";
+    }
+    
+    text += "───────────────────────────────────────\n";
+    text += "PATIENT INFORMATION\n";
+    text += "───────────────────────────────────────\n";
     text += `Patient: ${patientName}\n`;
     if (patientAge) text += `Age: ${patientAge}`;
     if (patientGender) text += `  |  Gender: ${patientGender}`;
@@ -887,7 +930,9 @@ export default function InvestigationRequisitionDialog({
     text += `Date: ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}\n`;
     text += `Priority: ${priority.toUpperCase()}\n`;
     if (fasting) text += "⚠ FASTING REQUIRED\n";
-    text += "\n───────────────────────────────────────\n\n";
+    text += "\n───────────────────────────────────────\n";
+    text += "INVESTIGATIONS ORDERED\n";
+    text += "───────────────────────────────────────\n\n";
     
     // Group tests by category
     selectedGroups.forEach((group, index) => {
@@ -907,7 +952,12 @@ export default function InvestigationRequisitionDialog({
     }
     
     text += "\n═══════════════════════════════════════\n";
-    text += "         Authorized by Physician\n";
+    if (physicianName) {
+      text += `         Dr. ${physicianName}\n`;
+      text += "         Authorized Signature\n";
+    } else {
+      text += "         Authorized by Physician\n";
+    }
     text += "═══════════════════════════════════════\n";
     
     return text;
