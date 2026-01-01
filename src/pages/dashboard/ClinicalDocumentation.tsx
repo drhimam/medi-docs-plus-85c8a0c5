@@ -33,6 +33,7 @@ import ROSBuilder from "@/components/visit/ROSBuilder";
 import { SOAPExportSettingsDialog } from "@/components/soap/SOAPExportSettingsDialog";
 import { SOAPLivePreviewDialog } from "@/components/soap/SOAPLivePreviewDialog";
 import { SOAPEmailDialog } from "@/components/soap/SOAPEmailDialog";
+import { PrescriptionEmailDialog } from "@/components/prescription/PrescriptionEmailDialog";
 import jsPDF from "jspdf";
 import { format, differenceInYears } from "date-fns";
 import DOMPurify from "dompurify";
@@ -120,6 +121,7 @@ export default function ClinicalDocumentation() {
   const [showSOAPExportSettings, setShowSOAPExportSettings] = useState(false);
   const [showSOAPPreview, setShowSOAPPreview] = useState(false);
   const [showSOAPEmail, setShowSOAPEmail] = useState(false);
+  const [showPrescriptionEmail, setShowPrescriptionEmail] = useState(false);
   const [showRequisitionDialog, setShowRequisitionDialog] = useState(false);
   const assessmentRef = useRef<HTMLTextAreaElement>(null);
   const planRef = useRef<HTMLTextAreaElement>(null);
@@ -1934,6 +1936,17 @@ ${cleanPrescription}
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
+                            <Button variant="outline" size="icon" onClick={() => setShowPrescriptionEmail(true)}>
+                              <Mail className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Email Prescription</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
                             <Button variant="outline" size="icon" onClick={() => setIsSettingsOpen(true)}>
                               <Settings className="h-4 w-4" />
                             </Button>
@@ -1971,6 +1984,10 @@ ${cleanPrescription}
                           <DropdownMenuItem onClick={() => setShowLivePreview(true)}>
                             <FileSearch className="h-4 w-4 mr-2" />
                             Preview Prescription
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setShowPrescriptionEmail(true)}>
+                            <Mail className="h-4 w-4 mr-2" />
+                            Email Prescription
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => setIsSettingsOpen(true)}>
                             <Settings className="h-4 w-4 mr-2" />
@@ -2335,6 +2352,13 @@ ${cleanPrescription}
         onOpenChange={setShowSOAPEmail}
         patientName={patient ? `${patient.first_name} ${patient.last_name}` : ""}
         soapNote={{ subjective, objective, assessment, plan }}
+      />
+
+      <PrescriptionEmailDialog
+        open={showPrescriptionEmail}
+        onOpenChange={setShowPrescriptionEmail}
+        patientName={patient ? `${patient.first_name} ${patient.last_name}` : ""}
+        prescription={prescription}
       />
 
       <InvestigationRequisitionDialog
