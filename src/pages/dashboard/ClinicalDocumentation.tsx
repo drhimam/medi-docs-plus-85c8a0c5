@@ -2352,6 +2352,10 @@ ${cleanPrescription}
         open={showSOAPEmail}
         onOpenChange={setShowSOAPEmail}
         patientName={patient ? `${patient.first_name} ${patient.last_name}` : ""}
+        patientEmail={patient?.email}
+        patientAge={patient?.date_of_birth ? differenceInYears(new Date(), new Date(patient.date_of_birth)) : undefined}
+        patientGender={patient?.gender}
+        patientContact={patient?.contact_number}
         soapNote={{ subjective, objective, assessment, plan }}
       />
 
