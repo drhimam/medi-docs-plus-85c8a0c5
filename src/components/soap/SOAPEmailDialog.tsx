@@ -4,15 +4,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Mail } from "lucide-react";
+import { Loader2, Mail, ChevronDown, Paperclip } from "lucide-react";
+import { generateSOAPPDFBase64 } from "@/lib/soapExport";
 
 interface SOAPEmailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   patientName: string;
   patientEmail?: string;
+  patientAge?: number;
+  patientGender?: string;
+  patientContact?: string;
   soapNote: {
     subjective: string;
     objective: string;
@@ -26,12 +32,26 @@ export function SOAPEmailDialog({
   onOpenChange,
   patientName,
   patientEmail,
+  patientAge,
+  patientGender,
+  patientContact,
   soapNote,
 }: SOAPEmailDialogProps) {
   const [recipientEmail, setRecipientEmail] = useState(patientEmail || "");
+  const [ccEmail, setCcEmail] = useState("");
+  const [bccEmail, setBccEmail] = useState("");
   const [subject, setSubject] = useState(`SOAP Note for ${patientName}`);
   const [additionalMessage, setAdditionalMessage] = useState("");
+  const [attachPdf, setAttachPdf] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [showCcBcc, setShowCcBcc] = useState(false);
+
+  const validateEmails = (emailString: string): boolean => {
+    if (!emailString.trim()) return true;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emails = emailString.split(',').map(e => e.trim()).filter(e => e);
+    return emails.every(email => emailRegex.test(email));
+  };
 
   const handleSend = async () => {
     if (!recipientEmail) {
@@ -43,12 +63,29 @@ export function SOAPEmailDialog({
       return;
     }
 
-    // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(recipientEmail)) {
       toast({
         title: "Error",
         description: "Please enter a valid email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!validateEmails(ccEmail)) {
+      toast({
+        title: "Error",
+        description: "Please enter valid CC email addresses (comma-separated)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!validateEmails(bccEmail)) {
+      toast({
+        title: "Error",
+        description: "Please enter valid BCC email addresses (comma-separated)",
         variant: "destructive",
       });
       return;
@@ -73,9 +110,27 @@ export function SOAPEmailDialog({
       const clinicName = profile?.clinic_name || "";
       const specialty = profile?.specialty || "";
 
+      // Generate PDF if requested
+      let pdfBase64: string | undefined;
+      if (attachPdf && patientAge && patientGender && patientContact) {
+        const [firstName, ...lastNameParts] = patientName.split(' ');
+        pdfBase64 = await generateSOAPPDFBase64(
+          soapNote,
+          {
+            firstName,
+            lastName: lastNameParts.join(' '),
+            age: patientAge,
+            gender: patientGender,
+            contact: patientContact,
+          }
+        );
+      }
+
       const { error } = await supabase.functions.invoke("send-soap-email", {
         body: {
           recipientEmail,
+          ccEmails: ccEmail ? ccEmail.split(',').map(e => e.trim()).filter(e => e) : [],
+          bccEmails: bccEmail ? bccEmail.split(',').map(e => e.trim()).filter(e => e) : [],
           subject,
           patientName,
           soapNote,
@@ -83,6 +138,8 @@ export function SOAPEmailDialog({
           doctorName,
           clinicName,
           specialty,
+          pdfBase64,
+          pdfFilename: pdfBase64 ? `SOAP_Note_${patientName.replace(/\s+/g, "_")}.pdf` : undefined,
         },
       });
 
@@ -90,7 +147,7 @@ export function SOAPEmailDialog({
 
       toast({
         title: "Email Sent",
-        description: `SOAP note successfully sent to ${recipientEmail}`,
+        description: `SOAP note successfully sent to ${recipientEmail}${ccEmail ? ` (CC: ${ccEmail})` : ''}`,
       });
       onOpenChange(false);
     } catch (error: any) {
@@ -107,7 +164,7 @@ export function SOAPEmailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5" />
@@ -130,6 +187,43 @@ export function SOAPEmailDialog({
             />
           </div>
 
+          <Collapsible open={showCcBcc} onOpenChange={setShowCcBcc}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="text-muted-foreground p-0 h-auto">
+                <ChevronDown className={`h-4 w-4 mr-1 transition-transform ${showCcBcc ? 'rotate-180' : ''}`} />
+                {showCcBcc ? 'Hide' : 'Add'} CC/BCC
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-3 mt-3">
+              <div className="space-y-2">
+                <Label htmlFor="cc">CC (comma-separated)</Label>
+                <Input
+                  id="cc"
+                  type="text"
+                  placeholder="colleague@example.com, specialist@example.com"
+                  value={ccEmail}
+                  onChange={(e) => setCcEmail(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Copy to referring physician or specialist
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="bcc">BCC (comma-separated)</Label>
+                <Input
+                  id="bcc"
+                  type="text"
+                  placeholder="records@clinic.com"
+                  value={bccEmail}
+                  onChange={(e) => setBccEmail(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Hidden copy for record keeping
+                </p>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
           <div className="space-y-2">
             <Label htmlFor="subject">Subject</Label>
             <Input
@@ -146,8 +240,20 @@ export function SOAPEmailDialog({
               placeholder="Add any additional notes or instructions for the recipient..."
               value={additionalMessage}
               onChange={(e) => setAdditionalMessage(e.target.value)}
-              className="min-h-[100px]"
+              className="min-h-[80px]"
             />
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="attachPdf"
+              checked={attachPdf}
+              onCheckedChange={(checked) => setAttachPdf(checked as boolean)}
+            />
+            <Label htmlFor="attachPdf" className="flex items-center gap-2 cursor-pointer">
+              <Paperclip className="h-4 w-4" />
+              Attach PDF version of SOAP note
+            </Label>
           </div>
 
           <div className="bg-muted/50 p-3 rounded-lg text-sm">

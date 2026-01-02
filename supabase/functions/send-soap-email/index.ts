@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@4.0.0";
+import { decode } from "https://deno.land/std@0.190.0/encoding/base64.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -11,6 +12,8 @@ const corsHeaders = {
 
 interface SOAPEmailRequest {
   recipientEmail: string;
+  ccEmails?: string[];
+  bccEmails?: string[];
   subject: string;
   patientName: string;
   soapNote: {
@@ -23,6 +26,8 @@ interface SOAPEmailRequest {
   doctorName: string;
   clinicName?: string;
   specialty?: string;
+  pdfBase64?: string;
+  pdfFilename?: string;
 }
 
 const formatContent = (text: string): string => {
@@ -67,6 +72,8 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const {
       recipientEmail,
+      ccEmails,
+      bccEmails,
       subject,
       patientName,
       soapNote,
@@ -74,9 +81,14 @@ const handler = async (req: Request): Promise<Response> => {
       doctorName,
       clinicName,
       specialty,
+      pdfBase64,
+      pdfFilename,
     }: SOAPEmailRequest = await req.json();
 
     console.log(`Sending SOAP note email to: ${recipientEmail}`);
+    if (ccEmails?.length) console.log(`CC: ${ccEmails.join(', ')}`);
+    if (bccEmails?.length) console.log(`BCC: ${bccEmails.join(', ')}`);
+    if (pdfBase64) console.log(`PDF attachment: ${pdfFilename}`);
 
     const currentDate = new Date().toLocaleDateString('en-US', {
       weekday: 'long',
@@ -104,6 +116,12 @@ const handler = async (req: Request): Promise<Response> => {
               ${clinicName ? `<p style="margin: 5px 0 0 0;"><strong>From:</strong> ${clinicName}</p>` : ''}
               <p style="margin: 5px 0 0 0;"><strong>Provider:</strong> ${doctorName}${specialty ? ` (${specialty})` : ''}</p>
             </div>
+
+            ${pdfBase64 ? `
+              <div style="background: #dbeafe; border-left: 4px solid #3b82f6; padding: 12px 15px; margin-bottom: 20px; border-radius: 0 6px 6px 0;">
+                <p style="margin: 0; font-size: 14px;">📎 <strong>PDF Attached:</strong> A PDF version of this SOAP note is attached to this email.</p>
+              </div>
+            ` : ''}
 
             ${additionalMessage ? `
               <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 15px; margin-bottom: 20px; border-radius: 0 6px 6px 0;">
@@ -158,12 +176,36 @@ const handler = async (req: Request): Promise<Response> => {
       </html>
     `;
 
-    const emailResponse = await resend.emails.send({
+    // Prepare email options
+    const emailOptions: any = {
       from: "Healthcare Provider <onboarding@resend.dev>",
       to: [recipientEmail],
       subject: subject,
       html: emailHtml,
-    });
+    };
+
+    // Add CC if provided
+    if (ccEmails && ccEmails.length > 0) {
+      emailOptions.cc = ccEmails;
+    }
+
+    // Add BCC if provided
+    if (bccEmails && bccEmails.length > 0) {
+      emailOptions.bcc = bccEmails;
+    }
+
+    // Add PDF attachment if provided
+    if (pdfBase64 && pdfFilename) {
+      const pdfBuffer = decode(pdfBase64);
+      emailOptions.attachments = [
+        {
+          filename: pdfFilename,
+          content: pdfBuffer,
+        },
+      ];
+    }
+
+    const emailResponse = await resend.emails.send(emailOptions);
 
     console.log("Email sent successfully:", emailResponse);
 
