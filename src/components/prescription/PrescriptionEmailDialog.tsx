@@ -4,16 +4,26 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Mail } from "lucide-react";
+import { Loader2, Mail, ChevronDown, Paperclip } from "lucide-react";
+import { generatePrescriptionPDFBase64 } from "@/lib/prescriptionExport";
 
 interface PrescriptionEmailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   patientName: string;
   patientEmail?: string;
+  patientId: string;
+  patientAge?: string;
+  patientContact?: string;
+  patientAddress?: string;
   prescription: string;
+  pdfSettings?: any;
+  logoDataUrl?: string;
+  signatureDataUrl?: string;
 }
 
 export function PrescriptionEmailDialog({
@@ -21,12 +31,30 @@ export function PrescriptionEmailDialog({
   onOpenChange,
   patientName,
   patientEmail,
+  patientId,
+  patientAge,
+  patientContact,
+  patientAddress,
   prescription,
+  pdfSettings,
+  logoDataUrl,
+  signatureDataUrl,
 }: PrescriptionEmailDialogProps) {
   const [recipientEmail, setRecipientEmail] = useState(patientEmail || "");
+  const [ccEmail, setCcEmail] = useState("");
+  const [bccEmail, setBccEmail] = useState("");
   const [subject, setSubject] = useState(`Prescription for ${patientName}`);
   const [additionalMessage, setAdditionalMessage] = useState("");
+  const [attachPdf, setAttachPdf] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [showCcBcc, setShowCcBcc] = useState(false);
+
+  const validateEmails = (emailString: string): boolean => {
+    if (!emailString.trim()) return true;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emails = emailString.split(',').map(e => e.trim()).filter(e => e);
+    return emails.every(email => emailRegex.test(email));
+  };
 
   const handleSend = async () => {
     if (!recipientEmail) {
@@ -38,12 +66,29 @@ export function PrescriptionEmailDialog({
       return;
     }
 
-    // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(recipientEmail)) {
       toast({
         title: "Error",
-        description: "Please enter a valid email address",
+        description: "Please enter a valid recipient email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!validateEmails(ccEmail)) {
+      toast({
+        title: "Error",
+        description: "Please enter valid CC email addresses (comma-separated)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!validateEmails(bccEmail)) {
+      toast({
+        title: "Error",
+        description: "Please enter valid BCC email addresses (comma-separated)",
         variant: "destructive",
       });
       return;
@@ -71,9 +116,27 @@ export function PrescriptionEmailDialog({
       const licenseNumber = profile?.license_number || "";
       const phone = profile?.phone || "";
 
+      // Generate PDF if requested
+      let pdfBase64: string | undefined;
+      if (attachPdf) {
+        pdfBase64 = await generatePrescriptionPDFBase64(
+          prescription,
+          patientId,
+          patientName,
+          patientAge,
+          patientContact,
+          patientAddress,
+          pdfSettings,
+          logoDataUrl,
+          signatureDataUrl
+        );
+      }
+
       const { error } = await supabase.functions.invoke("send-prescription-email", {
         body: {
           recipientEmail,
+          ccEmails: ccEmail ? ccEmail.split(',').map(e => e.trim()).filter(e => e) : [],
+          bccEmails: bccEmail ? bccEmail.split(',').map(e => e.trim()).filter(e => e) : [],
           subject,
           patientName,
           prescription,
@@ -84,6 +147,8 @@ export function PrescriptionEmailDialog({
           specialty,
           licenseNumber,
           phone,
+          pdfBase64,
+          pdfFilename: pdfBase64 ? `Prescription_${patientName.replace(/\s+/g, "_")}.pdf` : undefined,
         },
       });
 
@@ -91,7 +156,7 @@ export function PrescriptionEmailDialog({
 
       toast({
         title: "Email Sent",
-        description: `Prescription successfully sent to ${recipientEmail}`,
+        description: `Prescription successfully sent to ${recipientEmail}${ccEmail ? ` (CC: ${ccEmail})` : ''}`,
       });
       onOpenChange(false);
     } catch (error: any) {
@@ -114,7 +179,7 @@ export function PrescriptionEmailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5" />
@@ -137,6 +202,43 @@ export function PrescriptionEmailDialog({
             />
           </div>
 
+          <Collapsible open={showCcBcc} onOpenChange={setShowCcBcc}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="text-muted-foreground p-0 h-auto">
+                <ChevronDown className={`h-4 w-4 mr-1 transition-transform ${showCcBcc ? 'rotate-180' : ''}`} />
+                {showCcBcc ? 'Hide' : 'Add'} CC/BCC
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-3 mt-3">
+              <div className="space-y-2">
+                <Label htmlFor="cc">CC (comma-separated)</Label>
+                <Input
+                  id="cc"
+                  type="text"
+                  placeholder="pharmacy@example.com, doctor@example.com"
+                  value={ccEmail}
+                  onChange={(e) => setCcEmail(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Copy to pharmacy or referring physician
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="bcc">BCC (comma-separated)</Label>
+                <Input
+                  id="bcc"
+                  type="text"
+                  placeholder="records@clinic.com"
+                  value={bccEmail}
+                  onChange={(e) => setBccEmail(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Hidden copy for record keeping
+                </p>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
           <div className="space-y-2">
             <Label htmlFor="subject">Subject</Label>
             <Input
@@ -153,8 +255,20 @@ export function PrescriptionEmailDialog({
               placeholder="Add any additional notes or instructions for the recipient..."
               value={additionalMessage}
               onChange={(e) => setAdditionalMessage(e.target.value)}
-              className="min-h-[100px]"
+              className="min-h-[80px]"
             />
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="attachPdf"
+              checked={attachPdf}
+              onCheckedChange={(checked) => setAttachPdf(checked as boolean)}
+            />
+            <Label htmlFor="attachPdf" className="flex items-center gap-2 cursor-pointer">
+              <Paperclip className="h-4 w-4" />
+              Attach PDF version of prescription
+            </Label>
           </div>
 
           <div className="bg-muted/50 p-3 rounded-lg text-sm">

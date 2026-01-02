@@ -11,6 +11,8 @@ const corsHeaders = {
 
 interface PrescriptionEmailRequest {
   recipientEmail: string;
+  ccEmails?: string[];
+  bccEmails?: string[];
   subject: string;
   patientName: string;
   prescription: string;
@@ -21,32 +23,26 @@ interface PrescriptionEmailRequest {
   specialty?: string;
   licenseNumber?: string;
   phone?: string;
+  pdfBase64?: string;
+  pdfFilename?: string;
 }
 
 const formatPrescriptionContent = (html: string): string => {
   if (!html) return '<p style="color: #6b7280; font-style: italic;">No prescription details provided</p>';
   
-  // Convert HTML to email-safe format
   let content = html
-    // Handle line breaks
     .replace(/<br\s*\/?>/gi, '<br>')
-    // Handle paragraphs
     .replace(/<p>/gi, '<p style="margin: 8px 0;">')
-    // Handle bold
     .replace(/<strong>/gi, '<strong>')
     .replace(/<b>/gi, '<strong>')
     .replace(/<\/b>/gi, '</strong>')
-    // Handle italic
     .replace(/<em>/gi, '<em>')
     .replace(/<i>/gi, '<em>')
     .replace(/<\/i>/gi, '</em>')
-    // Handle underline
     .replace(/<u>/gi, '<u>')
-    // Handle lists
     .replace(/<ul>/gi, '<ul style="margin: 8px 0; padding-left: 20px;">')
     .replace(/<ol>/gi, '<ol style="margin: 8px 0; padding-left: 20px;">')
     .replace(/<li>/gi, '<li style="margin: 4px 0;">')
-    // Replace &nbsp; with spaces
     .replace(/&nbsp;/g, ' ');
   
   return content;
@@ -55,7 +51,6 @@ const formatPrescriptionContent = (html: string): string => {
 const handler = async (req: Request): Promise<Response> => {
   console.log("send-prescription-email function called");
 
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -63,6 +58,8 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const {
       recipientEmail,
+      ccEmails,
+      bccEmails,
       subject,
       patientName,
       prescription,
@@ -73,9 +70,14 @@ const handler = async (req: Request): Promise<Response> => {
       specialty,
       licenseNumber,
       phone,
+      pdfBase64,
+      pdfFilename,
     }: PrescriptionEmailRequest = await req.json();
 
     console.log(`Sending prescription email to: ${recipientEmail}`);
+    if (ccEmails?.length) console.log(`CC: ${ccEmails.join(', ')}`);
+    if (bccEmails?.length) console.log(`BCC: ${bccEmails.join(', ')}`);
+    if (pdfBase64) console.log("PDF attachment included");
 
     const currentDate = new Date().toLocaleDateString('en-US', {
       weekday: 'long',
@@ -123,9 +125,15 @@ const handler = async (req: Request): Promise<Response> => {
               </div>
             </div>
 
+            ${pdfBase64 ? `
+              <div style="background: #dbeafe; border-left: 4px solid #3b82f6; padding: 12px 15px; margin-bottom: 20px; border-radius: 0 6px 6px 0;">
+                <p style="margin: 0; font-size: 14px;">📎 <strong>PDF attachment included</strong> - A printable prescription document is attached to this email.</p>
+              </div>
+            ` : ''}
+
             <div style="border-top: 1px solid #e5e7eb; padding-top: 20px; margin-top: 20px;">
               <p style="color: #6b7280; font-size: 12px; text-align: center; margin: 0;">
-                This prescription was generated and sent electronically. Please present this email to your pharmacist. If you have any questions, please contact your healthcare provider.
+                This prescription was generated and sent electronically. Please present this email or the attached PDF to your pharmacist. If you have any questions, please contact your healthcare provider.
               </p>
             </div>
           </div>
@@ -133,12 +141,35 @@ const handler = async (req: Request): Promise<Response> => {
       </html>
     `;
 
-    const emailResponse = await resend.emails.send({
+    // Build email options
+    const emailOptions: any = {
       from: "Healthcare Provider <onboarding@resend.dev>",
       to: [recipientEmail],
       subject: subject,
       html: emailHtml,
-    });
+    };
+
+    // Add CC if provided
+    if (ccEmails && ccEmails.length > 0) {
+      emailOptions.cc = ccEmails;
+    }
+
+    // Add BCC if provided
+    if (bccEmails && bccEmails.length > 0) {
+      emailOptions.bcc = bccEmails;
+    }
+
+    // Add PDF attachment if provided
+    if (pdfBase64 && pdfFilename) {
+      emailOptions.attachments = [
+        {
+          filename: pdfFilename,
+          content: pdfBase64,
+        },
+      ];
+    }
+
+    const emailResponse = await resend.emails.send(emailOptions);
 
     console.log("Email sent successfully:", emailResponse);
 
