@@ -47,6 +47,7 @@ interface Patient {
   gender: string;
   blood_group: string;
   contact_number: string;
+  email?: string;
   address?: string;
   allergic_history_drug: any;
   allergic_history_food: any;
@@ -2358,6 +2359,11 @@ ${cleanPrescription}
         open={showPrescriptionEmail}
         onOpenChange={setShowPrescriptionEmail}
         patientName={patient ? `${patient.first_name} ${patient.last_name}` : ""}
+        patientEmail={patient?.email || undefined}
+        patientId={patient?.id || ""}
+        patientAge={patient?.date_of_birth ? `${differenceInYears(new Date(), new Date(patient.date_of_birth))}` : undefined}
+        patientContact={patient?.contact_number}
+        patientAddress={patient?.address || undefined}
         prescription={prescription}
       />
 
