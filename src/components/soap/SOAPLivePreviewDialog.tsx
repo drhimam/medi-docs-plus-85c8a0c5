@@ -124,7 +124,7 @@ export function SOAPLivePreviewDialog({
   const handlePrint = () => {
     if (!printRef.current) return;
 
-    const printContent = printRef.current.innerHTML;
+    const printContent = printRef.current.outerHTML;
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
@@ -134,23 +134,78 @@ export function SOAPLivePreviewDialog({
         <head>
           <title>SOAP Note - ${patient?.first_name} ${patient?.last_name}</title>
           <style>
-            @media print {
-              body { margin: 0; padding: 20px; }
-              @page { size: A4; margin: 15mm; }
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
             }
             body {
               font-family: ${getFontFamily()}, sans-serif;
               color: ${settings.body_text_color};
               font-size: ${settings.body_font_size}pt;
+              background: white;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
             }
-            .soap-container {
-              max-width: 595px;
+            @media print {
+              @page { size: A4; margin: 10mm; }
+              body { margin: 0; padding: 0; }
+            }
+            .print-wrapper {
+              display: flex;
+              justify-content: center;
+              padding: 0;
+            }
+            .print-wrapper > div {
+              width: 595px !important;
+              min-height: 842px !important;
+              transform: none !important;
+              box-shadow: none !important;
+              border: none !important;
               margin: 0 auto;
             }
+            p { margin: 0; }
+            .font-bold { font-weight: bold; }
+            .text-white { color: white; }
+            .text-center { text-align: center; }
+            .text-sm { font-size: 0.875rem; }
+            .text-xl { font-size: 1.25rem; }
+            .italic { font-style: italic; }
+            .flex { display: flex; }
+            .flex-1 { flex: 1; }
+            .flex-wrap { flex-wrap: wrap; }
+            .items-start { align-items: flex-start; }
+            .justify-between { justify-content: space-between; }
+            .gap-x-6 { column-gap: 1.5rem; }
+            .gap-y-1 { row-gap: 0.25rem; }
+            .space-y-4 > * + * { margin-top: 1rem; }
+            .mb-4 { margin-bottom: 1rem; }
+            .mt-1 { margin-top: 0.25rem; }
+            .mt-8 { margin-top: 2rem; }
+            .ml-4 { margin-left: 1rem; }
+            .mr-2 { margin-right: 0.5rem; }
+            .p-3 { padding: 0.75rem; }
+            .p-4 { padding: 1rem; }
+            .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+            .py-1\\.5 { padding-top: 0.375rem; padding-bottom: 0.375rem; }
+            .pt-4 { padding-top: 1rem; }
+            .rounded { border-radius: 0.25rem; }
+            .rounded-t { border-top-left-radius: 0.25rem; border-top-right-radius: 0.25rem; }
+            .rounded-b { border-bottom-left-radius: 0.25rem; border-bottom-right-radius: 0.25rem; }
+            .border { border: 1px solid #e5e7eb; }
+            .border-t { border-top: 1px solid #e5e7eb; }
+            .border-t-0 { border-top: none; }
+            .bg-gray-50 { background-color: #f9fafb; }
+            .bg-white { background-color: white; }
+            .text-gray-400 { color: #9ca3af; }
+            .relative { position: relative; }
+            strong { font-weight: bold; }
+            em { font-style: italic; }
+            img { max-width: 100%; height: auto; }
           </style>
         </head>
         <body>
-          <div class="soap-container">
+          <div class="print-wrapper">
             ${printContent}
           </div>
         </body>
@@ -162,7 +217,7 @@ export function SOAPLivePreviewDialog({
     setTimeout(() => {
       printWindow.print();
       printWindow.close();
-    }, 250);
+    }, 500);
   };
 
   const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.1, 2));

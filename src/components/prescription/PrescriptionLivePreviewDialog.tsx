@@ -194,9 +194,12 @@ export function PrescriptionLivePreviewDialog({
   const handlePrint = () => {
     if (!printRef.current) return;
 
-    const printContent = printRef.current.innerHTML;
+    const printContent = printRef.current.outerHTML;
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
+
+    const pageWidth = settings?.paper_size === "a4" ? "595px" : "612px";
+    const pageHeight = settings?.paper_size === "a4" ? "842px" : "792px";
 
     printWindow.document.write(`
       <!DOCTYPE html>
@@ -204,22 +207,80 @@ export function PrescriptionLivePreviewDialog({
         <head>
           <title>Prescription - ${patientName}</title>
           <style>
-            @media print {
-              body { margin: 0; padding: 20px; }
-              @page { size: ${settings?.paper_size === "a4" ? "A4" : "letter"}; margin: 20mm; }
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
             }
             body {
               font-family: ${settings?.body_font || "Courier New"}, monospace;
               color: ${settings?.body_text_color || "#333333"};
+              background: white;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
             }
-            .prescription-container {
-              max-width: ${settings?.paper_size === "a4" ? "595px" : "612px"};
+            @media print {
+              @page { 
+                size: ${settings?.paper_size === "a4" ? "A4" : "letter"}; 
+                margin: 10mm; 
+              }
+              body { margin: 0; padding: 0; }
+            }
+            .print-wrapper {
+              display: flex;
+              justify-content: center;
+              padding: 0;
+            }
+            .print-wrapper > div {
+              width: ${pageWidth} !important;
+              min-height: ${pageHeight} !important;
+              transform: none !important;
+              box-shadow: none !important;
+              border: none !important;
               margin: 0 auto;
             }
+            p { margin: 0; }
+            hr { border: none; border-top: 1px solid #d1d5db; margin: 8px 0; }
+            .font-bold { font-weight: bold; }
+            .italic { font-style: italic; }
+            .text-center { text-align: center; }
+            .text-xs { font-size: 0.75rem; }
+            .text-sm { font-size: 0.875rem; }
+            .whitespace-pre-wrap { white-space: pre-wrap; }
+            .flex { display: flex; }
+            .justify-between { justify-content: space-between; }
+            .justify-center { justify-content: center; }
+            .justify-start { justify-content: flex-start; }
+            .justify-end { justify-content: flex-end; }
+            .items-center { align-items: center; }
+            .gap-4 { gap: 1rem; }
+            .mb-2 { margin-bottom: 0.5rem; }
+            .mb-4 { margin-bottom: 1rem; }
+            .mt-2 { margin-top: 0.5rem; }
+            .mt-4 { margin-top: 1rem; }
+            .mt-8 { margin-top: 2rem; }
+            .mt-auto { margin-top: auto; }
+            .ml-4 { margin-left: 1rem; }
+            .mr-2 { margin-right: 0.5rem; }
+            .p-2 { padding: 0.5rem; }
+            .p-8 { padding: 2rem; }
+            .pb-4 { padding-bottom: 1rem; }
+            .pt-8 { padding-top: 2rem; }
+            .mx-auto { margin-left: auto; margin-right: auto; }
+            .ml-auto { margin-left: auto; }
+            .border { border: 1px solid #e5e7eb; }
+            .border-dashed { border-style: dashed; }
+            .border-gray-400 { border-color: #9ca3af; }
+            .border-gray-300 { border-color: #d1d5db; }
+            .inline-block { display: inline-block; }
+            .text-gray-500 { color: #6b7280; }
+            .relative { position: relative; }
+            .bg-white { background-color: white; }
+            img { max-width: 100%; height: auto; }
           </style>
         </head>
         <body>
-          <div class="prescription-container">
+          <div class="print-wrapper">
             ${printContent}
           </div>
         </body>
@@ -231,7 +292,7 @@ export function PrescriptionLivePreviewDialog({
     setTimeout(() => {
       printWindow.print();
       printWindow.close();
-    }, 250);
+    }, 500);
   };
 
   const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.1, 2));
