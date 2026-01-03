@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Save, X, FileText, Download, Sparkles, Eye, Edit, Loader2, MoreVertical, ArrowUpDown, ExternalLink, Trash2, Settings, CheckCircle, AlertCircle, FileDown, FileSearch, Stethoscope, FlaskConical, Palette, Copy, Mail } from "lucide-react";
+import { ArrowLeft, Save, X, FileText, Download, Sparkles, Eye, Edit, Loader2, MoreVertical, ArrowUpDown, ExternalLink, Trash2, Settings, CheckCircle, AlertCircle, FileDown, FileSearch, Stethoscope, FlaskConical, Palette, Copy, Mail, Cloud, CloudOff } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import TranscribeButton from "@/components/TranscribeButton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -127,12 +127,17 @@ export default function ClinicalDocumentation() {
   const assessmentRef = useRef<HTMLTextAreaElement>(null);
   const planRef = useRef<HTMLTextAreaElement>(null);
   const prescriptionEditorRef = useRef<RichTextEditorHandle>(null);
+  const autosaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [subjective, setSubjective] = useState("");
   const [objective, setObjective] = useState("");
   const [assessment, setAssessment] = useState("");
   const [plan, setPlan] = useState("");
   const [prescription, setPrescription] = useState("");
+  
+  // Autosave state
+  const [autosaveStatus, setAutosaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   
   // Track initial values to detect changes
   const [initialValues, setInitialValues] = useState({
@@ -142,6 +147,9 @@ export default function ClinicalDocumentation() {
     plan: "",
     prescription: "",
   });
+  
+  // Track if initial load is complete to prevent autosave on first render
+  const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
   
   // Vital signs state for Physical Exam Builder
   const [vitalSigns, setVitalSigns] = useState({
@@ -235,6 +243,7 @@ export default function ClinicalDocumentation() {
           plan: planVal,
           prescription: prescriptionVal,
         });
+        setIsInitialLoadComplete(true);
       }, 100);
     } catch (error: any) {
       console.error("Error fetching visit:", error);
@@ -683,6 +692,7 @@ export default function ClinicalDocumentation() {
 
   const handleSave = async () => {
     try {
+      setAutosaveStatus('saving');
       const { error } = await supabase
         .from("visits")
         .update({
@@ -704,13 +714,20 @@ export default function ClinicalDocumentation() {
         plan,
         prescription,
       });
+      
+      setAutosaveStatus('saved');
+      setLastSavedAt(new Date());
 
       toast({
         title: "Success",
         description: "Clinical documentation saved",
       });
+      
+      // Reset status after 2 seconds
+      setTimeout(() => setAutosaveStatus('idle'), 2000);
     } catch (error: any) {
       console.error("Error saving documentation:", error);
+      setAutosaveStatus('error');
       toast({
         title: "Error",
         description: "Failed to save clinical documentation",
@@ -718,6 +735,75 @@ export default function ClinicalDocumentation() {
       });
     }
   };
+
+  // Autosave function with debounce
+  const performAutosave = useCallback(async () => {
+    if (!visitId || !isInitialLoadComplete) return;
+    
+    try {
+      setAutosaveStatus('saving');
+      const { error } = await supabase
+        .from("visits")
+        .update({
+          soap_subjective: subjective,
+          soap_objective: objective,
+          soap_assessment: assessment,
+          soap_plan: plan,
+          prescription: prescription,
+        })
+        .eq("id", visitId);
+
+      if (error) throw error;
+
+      setInitialValues({
+        subjective,
+        objective,
+        assessment,
+        plan,
+        prescription,
+      });
+      
+      setAutosaveStatus('saved');
+      setLastSavedAt(new Date());
+      
+      // Reset status after 2 seconds
+      setTimeout(() => setAutosaveStatus('idle'), 2000);
+    } catch (error: any) {
+      console.error("Autosave error:", error);
+      setAutosaveStatus('error');
+    }
+  }, [visitId, subjective, objective, assessment, plan, prescription, isInitialLoadComplete]);
+
+  // Autosave effect - triggers 2 seconds after last change
+  useEffect(() => {
+    if (!isInitialLoadComplete) return;
+    
+    // Check if there are actual changes
+    const hasChanges = 
+      subjective !== initialValues.subjective ||
+      objective !== initialValues.objective ||
+      assessment !== initialValues.assessment ||
+      plan !== initialValues.plan ||
+      prescription !== initialValues.prescription;
+    
+    if (!hasChanges) return;
+    
+    // Clear previous timeout
+    if (autosaveTimeoutRef.current) {
+      clearTimeout(autosaveTimeoutRef.current);
+    }
+    
+    // Set new timeout for autosave
+    autosaveTimeoutRef.current = setTimeout(() => {
+      performAutosave();
+    }, 2000);
+    
+    return () => {
+      if (autosaveTimeoutRef.current) {
+        clearTimeout(autosaveTimeoutRef.current);
+      }
+    };
+  }, [subjective, objective, assessment, plan, prescription, isInitialLoadComplete, initialValues, performAutosave]);
 
   // Check if there are unsaved changes in SOAP notes or prescription
   const hasSoapChanges = () => {
@@ -1319,59 +1405,88 @@ ${cleanPrescription}
                 </div>
               </div>
             </div>
-            <TooltipProvider>
-              <DropdownMenu>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="icon">
-                        <MoreVertical className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                  </TooltipTrigger>
-                  <TooltipContent>Options</TooltipContent>
-                </Tooltip>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={exportSOAPToMarkdown}>
-                    <FileDown className="w-4 h-4 mr-2" />
-                    Export SOAP Note (MD)
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={exportSOAPToPDF}>
-                    <FileDown className="w-4 h-4 mr-2" />
-                    Export SOAP Note (PDF)
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={exportSOAPToPlainText}>
-                    <FileText className="w-4 h-4 mr-2" />
-                    Export SOAP Note (TXT)
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={exportPrescriptionToMarkdown}>
-                    <FileDown className="w-4 h-4 mr-2" />
-                    Export Prescription (MD)
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={exportPrescriptionToPDF}>
-                    <FileDown className="w-4 h-4 mr-2" />
-                    Export Prescription (PDF)
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setShowSOAPExportSettings(true)}>
-                    <Palette className="w-4 h-4 mr-2" />
-                    SOAP PDF Settings
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setIsSettingsOpen(true)}>
-                    <Settings className="w-4 h-4 mr-2" />
-                    Prescription Settings
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleSave}>
-                    <Save className="w-4 h-4 mr-2" />
-                    Save
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleClose}>
-                    <X className="w-4 h-4 mr-2" />
-                    Close
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </TooltipProvider>
+            <div className="flex items-center gap-3">
+              {/* Autosave Status Indicator */}
+              <div className="flex items-center gap-2 text-sm">
+                {autosaveStatus === 'saving' && (
+                  <span className="flex items-center gap-1.5 text-muted-foreground">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Saving...
+                  </span>
+                )}
+                {autosaveStatus === 'saved' && (
+                  <span className="flex items-center gap-1.5 text-green-600">
+                    <Cloud className="w-3.5 h-3.5" />
+                    Saved
+                  </span>
+                )}
+                {autosaveStatus === 'error' && (
+                  <span className="flex items-center gap-1.5 text-destructive">
+                    <CloudOff className="w-3.5 h-3.5" />
+                    Save failed
+                  </span>
+                )}
+                {autosaveStatus === 'idle' && lastSavedAt && (
+                  <span className="flex items-center gap-1.5 text-muted-foreground">
+                    <Cloud className="w-3.5 h-3.5" />
+                    Last saved {format(lastSavedAt, 'h:mm a')}
+                  </span>
+                )}
+              </div>
+              <TooltipProvider>
+                <DropdownMenu>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="icon">
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>Options</TooltipContent>
+                  </Tooltip>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={exportSOAPToMarkdown}>
+                      <FileDown className="w-4 h-4 mr-2" />
+                      Export SOAP Note (MD)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={exportSOAPToPDF}>
+                      <FileDown className="w-4 h-4 mr-2" />
+                      Export SOAP Note (PDF)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={exportSOAPToPlainText}>
+                      <FileText className="w-4 h-4 mr-2" />
+                      Export SOAP Note (TXT)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={exportPrescriptionToMarkdown}>
+                      <FileDown className="w-4 h-4 mr-2" />
+                      Export Prescription (MD)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={exportPrescriptionToPDF}>
+                      <FileDown className="w-4 h-4 mr-2" />
+                      Export Prescription (PDF)
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setShowSOAPExportSettings(true)}>
+                      <Palette className="w-4 h-4 mr-2" />
+                      SOAP PDF Settings
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setIsSettingsOpen(true)}>
+                      <Settings className="w-4 h-4 mr-2" />
+                      Prescription Settings
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleSave}>
+                      <Save className="w-4 h-4 mr-2" />
+                      Save
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleClose}>
+                      <X className="w-4 h-4 mr-2" />
+                      Close
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TooltipProvider>
+            </div>
           </div>
         </div>
 
