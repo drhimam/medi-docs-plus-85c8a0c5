@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Save, X, FileText, Download, Sparkles, Eye, Edit, Loader2, MoreVertical, ArrowUpDown, ExternalLink, Trash2, Settings, CheckCircle, AlertCircle, FileDown, FileSearch, Stethoscope, FlaskConical, Palette, Copy, Mail, Cloud, CloudOff } from "lucide-react";
+import { ArrowLeft, Save, X, FileText, Download, Sparkles, Eye, Edit, Loader2, MoreVertical, ArrowUpDown, ExternalLink, Trash2, Settings, CheckCircle, AlertCircle, FileDown, FileSearch, Stethoscope, FlaskConical, Palette, Copy, Mail, Cloud, CloudOff, History } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import TranscribeButton from "@/components/TranscribeButton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -34,6 +34,7 @@ import { SOAPExportSettingsDialog } from "@/components/soap/SOAPExportSettingsDi
 import { SOAPLivePreviewDialog } from "@/components/soap/SOAPLivePreviewDialog";
 import { SOAPEmailDialog } from "@/components/soap/SOAPEmailDialog";
 import { PrescriptionEmailDialog } from "@/components/prescription/PrescriptionEmailDialog";
+import { VersionHistoryDialog } from "@/components/visit/VersionHistoryDialog";
 import jsPDF from "jspdf";
 import { format, differenceInYears } from "date-fns";
 import DOMPurify from "dompurify";
@@ -138,6 +139,8 @@ export default function ClinicalDocumentation() {
   // Autosave state
   const [autosaveStatus, setAutosaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [autosaveEnabled, setAutosaveEnabled] = useState(true);
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
   
   // Track initial values to detect changes
   const [initialValues, setInitialValues] = useState({
@@ -184,8 +187,28 @@ export default function ClinicalDocumentation() {
     if (visitId) {
       fetchVisit();
       fetchDocuments();
+      fetchUserSettings();
     }
   }, [visitId]);
+
+  const fetchUserSettings = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data } = await supabase
+        .from("user_settings")
+        .select("autosave_enabled")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (data) {
+        setAutosaveEnabled(data.autosave_enabled ?? true);
+      }
+    } catch (error) {
+      console.error("Error fetching user settings:", error);
+    }
+  };
 
   const fetchVisit = async () => {
     try {
@@ -690,9 +713,44 @@ export default function ClinicalDocumentation() {
     }
   };
 
+  const saveVersion = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !visitId) return;
+
+      // Get the next version number
+      const { data: versions } = await supabase
+        .from("visit_versions")
+        .select("version_number")
+        .eq("visit_id", visitId)
+        .order("version_number", { ascending: false })
+        .limit(1);
+
+      const nextVersion = versions && versions.length > 0 ? versions[0].version_number + 1 : 1;
+
+      // Save current state as a version
+      await supabase.from("visit_versions").insert({
+        visit_id: visitId,
+        user_id: user.id,
+        soap_subjective: initialValues.subjective,
+        soap_objective: initialValues.objective,
+        soap_assessment: initialValues.assessment,
+        soap_plan: initialValues.plan,
+        prescription: initialValues.prescription,
+        version_number: nextVersion,
+      });
+    } catch (error) {
+      console.error("Error saving version:", error);
+    }
+  };
+
   const handleSave = async () => {
     try {
       setAutosaveStatus('saving');
+      
+      // Save current state as a version before updating
+      await saveVersion();
+      
       const { error } = await supabase
         .from("visits")
         .update({
@@ -736,6 +794,23 @@ export default function ClinicalDocumentation() {
     }
   };
 
+  const handleRestoreVersion = (version: {
+    subjective: string;
+    objective: string;
+    assessment: string;
+    plan: string;
+    prescription: string;
+  }) => {
+    // Save current state first, then restore
+    saveVersion().then(() => {
+      setSubjective(version.subjective);
+      setObjective(version.objective);
+      setAssessment(version.assessment);
+      setPlan(version.plan);
+      setPrescription(version.prescription);
+    });
+  };
+
   // Autosave function with debounce
   const performAutosave = useCallback(async () => {
     if (!visitId || !isInitialLoadComplete) return;
@@ -774,9 +849,9 @@ export default function ClinicalDocumentation() {
     }
   }, [visitId, subjective, objective, assessment, plan, prescription, isInitialLoadComplete]);
 
-  // Autosave effect - triggers 2 seconds after last change
+  // Autosave effect - triggers 2 seconds after last change (only if autosave is enabled)
   useEffect(() => {
-    if (!isInitialLoadComplete) return;
+    if (!isInitialLoadComplete || !autosaveEnabled) return;
     
     // Check if there are actual changes
     const hasChanges = 
@@ -803,7 +878,7 @@ export default function ClinicalDocumentation() {
         clearTimeout(autosaveTimeoutRef.current);
       }
     };
-  }, [subjective, objective, assessment, plan, prescription, isInitialLoadComplete, initialValues, performAutosave]);
+  }, [subjective, objective, assessment, plan, prescription, isInitialLoadComplete, initialValues, performAutosave, autosaveEnabled]);
 
   // Check if there are unsaved changes in SOAP notes or prescription
   const hasSoapChanges = () => {
@@ -1408,25 +1483,31 @@ ${cleanPrescription}
             <div className="flex items-center gap-3">
               {/* Autosave Status Indicator */}
               <div className="flex items-center gap-2 text-sm">
-                {autosaveStatus === 'saving' && (
+                {!autosaveEnabled && (
+                  <span className="flex items-center gap-1.5 text-muted-foreground">
+                    <CloudOff className="w-3.5 h-3.5" />
+                    Autosave off
+                  </span>
+                )}
+                {autosaveEnabled && autosaveStatus === 'saving' && (
                   <span className="flex items-center gap-1.5 text-muted-foreground">
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     Saving...
                   </span>
                 )}
-                {autosaveStatus === 'saved' && (
+                {autosaveEnabled && autosaveStatus === 'saved' && (
                   <span className="flex items-center gap-1.5 text-green-600">
                     <Cloud className="w-3.5 h-3.5" />
                     Saved
                   </span>
                 )}
-                {autosaveStatus === 'error' && (
+                {autosaveEnabled && autosaveStatus === 'error' && (
                   <span className="flex items-center gap-1.5 text-destructive">
                     <CloudOff className="w-3.5 h-3.5" />
                     Save failed
                   </span>
                 )}
-                {autosaveStatus === 'idle' && lastSavedAt && (
+                {autosaveEnabled && autosaveStatus === 'idle' && lastSavedAt && (
                   <span className="flex items-center gap-1.5 text-muted-foreground">
                     <Cloud className="w-3.5 h-3.5" />
                     Last saved {format(lastSavedAt, 'h:mm a')}
@@ -1467,6 +1548,10 @@ ${cleanPrescription}
                       Export Prescription (PDF)
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setShowVersionHistory(true)}>
+                      <History className="w-4 h-4 mr-2" />
+                      Version History
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setShowSOAPExportSettings(true)}>
                       <Palette className="w-4 h-4 mr-2" />
                       SOAP PDF Settings
@@ -2655,6 +2740,13 @@ ${cleanPrescription}
             });
           }
         }}
+      />
+
+      <VersionHistoryDialog
+        open={showVersionHistory}
+        onOpenChange={setShowVersionHistory}
+        visitId={visitId || ""}
+        onRestore={handleRestoreVersion}
       />
     </div>
   );
