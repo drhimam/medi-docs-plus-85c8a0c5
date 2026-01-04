@@ -729,7 +729,7 @@ ${
   return (
     <div className="min-h-screen bg-background">
       {/* Header Section */}
-      <Card className="p-6 border-b rounded-none shadow-sm">
+      <Card className="p-4 sm:p-6 border-b rounded-none shadow-sm">
         <Button 
           variant="ghost" 
           onClick={() => navigate("/dashboard/patients")}
@@ -738,23 +738,23 @@ ${
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Patients
         </Button>
-        <div className="flex justify-between items-start">
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold text-foreground">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+          <div className="space-y-2 flex-1 min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground break-words">
               {patient.first_name} {patient.last_name}
             </h1>
-            <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap gap-1 sm:gap-4 text-sm text-muted-foreground">
               <span>DOB: {patient.date_of_birth} ({calculateAge(patient.date_of_birth)} years)</span>
               <span>Health Card: {patient.health_card_number || "Not provided"}</span>
             </div>
             <div className="flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-destructive" />
-              <span className="text-sm">Allergies: {getAllergies()}</span>
+              <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0" />
+              <span className="text-sm break-words">Allergies: {getAllergies()}</span>
             </div>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon">
+              <Button variant="outline" size="icon" className="flex-shrink-0">
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -781,12 +781,12 @@ ${
       </Card>
 
       {/* Tabs Layout */}
-      <div className="p-8">
+      <div className="p-4 sm:p-8">
         <Tabs defaultValue="information" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="information">Patient Information</TabsTrigger>
-            <TabsTrigger value="visits">Visit History</TabsTrigger>
-            <TabsTrigger value="documents">Patient Documents</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 h-auto">
+            <TabsTrigger value="information" className="text-xs sm:text-sm py-2">Patient Information</TabsTrigger>
+            <TabsTrigger value="visits" className="text-xs sm:text-sm py-2">Visit History</TabsTrigger>
+            <TabsTrigger value="documents" className="text-xs sm:text-sm py-2">Patient Documents</TabsTrigger>
           </TabsList>
 
           {/* Tab 1: Patient Information */}
