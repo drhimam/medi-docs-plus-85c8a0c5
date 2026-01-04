@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Settings as SettingsIcon, Bell, Globe, Clock, Loader2, ArrowLeft, Moon, Sun, Monitor, Smartphone } from "lucide-react";
+import { Settings as SettingsIcon, Bell, Globe, Clock, Loader2, ArrowLeft, Moon, Sun, Monitor, Smartphone, Save } from "lucide-react";
 import { usePresetMobilePresentation } from "@/hooks/usePresetMobilePresentation";
 
 interface UserSettings {
@@ -20,6 +20,7 @@ interface UserSettings {
   language: string;
   date_format: string;
   time_format: string;
+  autosave_enabled: boolean;
 }
 
 const Settings = () => {
@@ -37,6 +38,7 @@ const Settings = () => {
     language: "en",
     date_format: "MM/dd/yyyy",
     time_format: "12h",
+    autosave_enabled: true,
   });
 
   useEffect(() => {
@@ -61,7 +63,10 @@ const Settings = () => {
       if (error && error.code !== "PGRST116") throw error;
 
       if (data) {
-        setSettings(data);
+        setSettings({
+          ...data,
+          autosave_enabled: data.autosave_enabled ?? true,
+        });
       } else {
         setSettings({
           user_id: user.id,
@@ -72,6 +77,7 @@ const Settings = () => {
           language: "en",
           date_format: "MM/dd/yyyy",
           time_format: "12h",
+          autosave_enabled: true,
         });
       }
     } catch (error) {
@@ -104,6 +110,7 @@ const Settings = () => {
             language: settings.language,
             date_format: settings.date_format,
             time_format: settings.time_format,
+            autosave_enabled: settings.autosave_enabled,
           })
           .eq("user_id", user.id);
 
@@ -120,6 +127,7 @@ const Settings = () => {
             language: settings.language,
             date_format: settings.date_format,
             time_format: settings.time_format,
+            autosave_enabled: settings.autosave_enabled,
           });
 
         if (error) throw error;
@@ -217,6 +225,33 @@ const Settings = () => {
               <Switch
                 checked={presentation === "drawer"}
                 onCheckedChange={(checked) => setPresentation(checked ? "drawer" : "modal")}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Autosave Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Save className="h-5 w-5" />
+              Autosave
+            </CardTitle>
+            <CardDescription>Configure automatic saving for clinical documentation</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <Label>Enable Autosave</Label>
+                <p className="text-sm text-muted-foreground">
+                  Automatically save SOAP notes and prescriptions as you type
+                </p>
+              </div>
+              <Switch
+                checked={settings.autosave_enabled}
+                onCheckedChange={(checked) =>
+                  setSettings({ ...settings, autosave_enabled: checked })
+                }
               />
             </div>
           </CardContent>

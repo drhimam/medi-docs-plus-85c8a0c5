@@ -879,6 +879,7 @@ export type Database = {
       user_settings: {
         Row: {
           appointment_reminders: boolean | null
+          autosave_enabled: boolean | null
           created_at: string
           date_format: string | null
           email_notifications: boolean | null
@@ -892,6 +893,7 @@ export type Database = {
         }
         Insert: {
           appointment_reminders?: boolean | null
+          autosave_enabled?: boolean | null
           created_at?: string
           date_format?: string | null
           email_notifications?: boolean | null
@@ -905,6 +907,7 @@ export type Database = {
         }
         Update: {
           appointment_reminders?: boolean | null
+          autosave_enabled?: boolean | null
           created_at?: string
           date_format?: string | null
           email_notifications?: boolean | null
@@ -917,6 +920,53 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      visit_versions: {
+        Row: {
+          created_at: string
+          id: string
+          prescription: string | null
+          soap_assessment: string | null
+          soap_objective: string | null
+          soap_plan: string | null
+          soap_subjective: string | null
+          user_id: string
+          version_number: number
+          visit_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          prescription?: string | null
+          soap_assessment?: string | null
+          soap_objective?: string | null
+          soap_plan?: string | null
+          soap_subjective?: string | null
+          user_id: string
+          version_number: number
+          visit_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          prescription?: string | null
+          soap_assessment?: string | null
+          soap_objective?: string | null
+          soap_plan?: string | null
+          soap_subjective?: string | null
+          user_id?: string
+          version_number?: number
+          visit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visit_versions_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       visits: {
         Row: {
