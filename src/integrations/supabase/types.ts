@@ -804,6 +804,119 @@ export type Database = {
         }
         Relationships: []
       }
+      sub_user_permissions: {
+        Row: {
+          can_access_ai_tools: boolean
+          can_access_appointments: boolean
+          can_access_clinical_docs: boolean
+          can_access_knowledge_base: boolean
+          can_access_patients: boolean
+          can_access_settings: boolean
+          can_create_appointments: boolean
+          can_create_patients: boolean
+          can_create_visits: boolean
+          can_delete_appointments: boolean
+          can_delete_patients: boolean
+          can_delete_visits: boolean
+          can_edit_appointments: boolean
+          can_edit_patients: boolean
+          can_edit_visits: boolean
+          can_export: boolean
+          created_at: string
+          id: string
+          sub_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          can_access_ai_tools?: boolean
+          can_access_appointments?: boolean
+          can_access_clinical_docs?: boolean
+          can_access_knowledge_base?: boolean
+          can_access_patients?: boolean
+          can_access_settings?: boolean
+          can_create_appointments?: boolean
+          can_create_patients?: boolean
+          can_create_visits?: boolean
+          can_delete_appointments?: boolean
+          can_delete_patients?: boolean
+          can_delete_visits?: boolean
+          can_edit_appointments?: boolean
+          can_edit_patients?: boolean
+          can_edit_visits?: boolean
+          can_export?: boolean
+          created_at?: string
+          id?: string
+          sub_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          can_access_ai_tools?: boolean
+          can_access_appointments?: boolean
+          can_access_clinical_docs?: boolean
+          can_access_knowledge_base?: boolean
+          can_access_patients?: boolean
+          can_access_settings?: boolean
+          can_create_appointments?: boolean
+          can_create_patients?: boolean
+          can_create_visits?: boolean
+          can_delete_appointments?: boolean
+          can_delete_patients?: boolean
+          can_delete_visits?: boolean
+          can_edit_appointments?: boolean
+          can_edit_patients?: boolean
+          can_edit_visits?: boolean
+          can_export?: boolean
+          created_at?: string
+          id?: string
+          sub_user_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sub_user_permissions_sub_user_id_fkey"
+            columns: ["sub_user_id"]
+            isOneToOne: false
+            referencedRelation: "sub_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sub_users: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          invite_expires_at: string | null
+          invite_token: string | null
+          owner_id: string
+          status: string
+          sub_user_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          invite_expires_at?: string | null
+          invite_token?: string | null
+          owner_id: string
+          status?: string
+          sub_user_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          invite_expires_at?: string | null
+          invite_token?: string | null
+          owner_id?: string
+          status?: string
+          sub_user_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           created_at: string
@@ -1072,6 +1185,7 @@ export type Database = {
     }
     Functions: {
       cleanup_old_reset_attempts: { Args: never; Returns: undefined }
+      get_effective_user_id: { Args: never; Returns: string }
       get_or_create_ai_usage: {
         Args: { p_user_id: string }
         Returns: {
@@ -1091,13 +1205,22 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      get_owner_id_for_sub_user: {
+        Args: { p_user_id: string }
+        Returns: string
+      }
       increment_ai_usage: {
         Args: { p_type: string; p_user_id: string }
         Returns: boolean
       }
+      is_sub_user_of: { Args: { p_owner_id: string }; Returns: boolean }
+      is_sub_user_owner: {
+        Args: { p_sub_user_record_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      user_role: "owner" | "sub_user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1224,6 +1347,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      user_role: ["owner", "sub_user"],
+    },
   },
 } as const

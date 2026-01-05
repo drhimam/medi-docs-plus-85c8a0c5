@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Settings as SettingsIcon, Bell, Globe, Clock, Loader2, ArrowLeft, Moon, Sun, Monitor, Smartphone, Save } from "lucide-react";
 import { usePresetMobilePresentation } from "@/hooks/usePresetMobilePresentation";
-
+import { SubUserManagement } from "@/components/settings/SubUserManagement";
+import { useSubUser } from "@/hooks/useSubUser";
 interface UserSettings {
   id?: string;
   user_id: string;
@@ -29,6 +30,7 @@ const Settings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const { presentation, setPresentation } = usePresetMobilePresentation();
+  const { isSubUser } = useSubUser();
   const [settings, setSettings] = useState<UserSettings>({
     user_id: "",
     theme: "system",
@@ -429,6 +431,9 @@ const Settings = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Sub-User Management - Only show for owners */}
+        {!isSubUser && <SubUserManagement />}
       </div>
 
       <div className="flex justify-end gap-4">

@@ -23,7 +23,8 @@ import {
   FileSpreadsheet,
   CheckSquare,
   StickyNote,
-  CalendarClock
+  CalendarClock,
+  Lock
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -60,6 +61,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TodoList } from "@/components/dashboard/TodoList";
 import { DeadlineTracker } from "@/components/dashboard/DeadlineTracker";
 import { StickyNotes } from "@/components/dashboard/StickyNotes";
+import { useSubUser } from "@/hooks/useSubUser";
 import React from "react";
 
 const Patients = lazy(() => import("./dashboard/Patients"));
@@ -80,6 +82,7 @@ const Dashboard = () => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { isSubUser, canAccess, canPerformAction, loading: subUserLoading } = useSubUser();
 
   useEffect(() => {
     checkUser();
@@ -151,33 +154,45 @@ const Dashboard = () => {
                 Dashboard
               </Button>
             </Link>
-            <Link to="/dashboard/patients">
-              <Button 
-                variant={isActive("/dashboard/patients") ? "default" : "ghost"}
-                className="gap-2"
-              >
-                <Users className="h-4 w-4" />
-                Patients
-              </Button>
-            </Link>
-            <Link to="/dashboard/ai-tools">
-              <Button 
-                variant={isActive("/dashboard/ai-tools") ? "default" : "ghost"}
-                className="gap-2"
-              >
-                <Sparkles className="h-4 w-4" />
-                AI Tools
-              </Button>
-            </Link>
-            <Link to="/dashboard/knowledge">
-              <Button 
-                variant={isActive("/dashboard/knowledge") ? "default" : "ghost"}
-                className="gap-2"
-              >
-                <BookOpen className="h-4 w-4" />
-                Knowledge Base
-              </Button>
-            </Link>
+            {canAccess("patients") && (
+              <Link to="/dashboard/patients">
+                <Button 
+                  variant={isActive("/dashboard/patients") ? "default" : "ghost"}
+                  className="gap-2"
+                >
+                  <Users className="h-4 w-4" />
+                  Patients
+                </Button>
+              </Link>
+            )}
+            {canAccess("ai-tools") && (
+              <Link to="/dashboard/ai-tools">
+                <Button 
+                  variant={isActive("/dashboard/ai-tools") ? "default" : "ghost"}
+                  className="gap-2"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  AI Tools
+                </Button>
+              </Link>
+            )}
+            {canAccess("knowledge") && (
+              <Link to="/dashboard/knowledge">
+                <Button 
+                  variant={isActive("/dashboard/knowledge") ? "default" : "ghost"}
+                  className="gap-2"
+                >
+                  <BookOpen className="h-4 w-4" />
+                  Knowledge Base
+                </Button>
+              </Link>
+            )}
+            {isSubUser && (
+              <Badge variant="secondary" className="ml-2 gap-1">
+                <Lock className="h-3 w-3" />
+                Team Member
+              </Badge>
+            )}
           </nav>
 
           {/* Mobile Navigation - Hamburger Menu */}
@@ -196,6 +211,12 @@ const Dashboard = () => {
                   </SheetTitle>
                 </SheetHeader>
                 <nav className="flex flex-col gap-2 mt-6">
+                  {isSubUser && (
+                    <Badge variant="secondary" className="mx-2 gap-1 justify-center">
+                      <Lock className="h-3 w-3" />
+                      Team Member Access
+                    </Badge>
+                  )}
                   <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)}>
                     <Button 
                       variant={isActive("/dashboard") && location.pathname === "/dashboard" ? "default" : "ghost"}
@@ -205,33 +226,39 @@ const Dashboard = () => {
                       Dashboard
                     </Button>
                   </Link>
-                  <Link to="/dashboard/patients" onClick={() => setMobileMenuOpen(false)}>
-                    <Button 
-                      variant={isActive("/dashboard/patients") ? "default" : "ghost"}
-                      className="w-full justify-start gap-2"
-                    >
-                      <Users className="h-4 w-4" />
-                      Patients
-                    </Button>
-                  </Link>
-                  <Link to="/dashboard/ai-tools" onClick={() => setMobileMenuOpen(false)}>
-                    <Button 
-                      variant={isActive("/dashboard/ai-tools") ? "default" : "ghost"}
-                      className="w-full justify-start gap-2"
-                    >
-                      <Sparkles className="h-4 w-4" />
-                      AI Tools
-                    </Button>
-                  </Link>
-                  <Link to="/dashboard/knowledge" onClick={() => setMobileMenuOpen(false)}>
-                    <Button 
-                      variant={isActive("/dashboard/knowledge") ? "default" : "ghost"}
-                      className="w-full justify-start gap-2"
-                    >
-                      <BookOpen className="h-4 w-4" />
-                      Knowledge Base
-                    </Button>
-                  </Link>
+                  {canAccess("patients") && (
+                    <Link to="/dashboard/patients" onClick={() => setMobileMenuOpen(false)}>
+                      <Button 
+                        variant={isActive("/dashboard/patients") ? "default" : "ghost"}
+                        className="w-full justify-start gap-2"
+                      >
+                        <Users className="h-4 w-4" />
+                        Patients
+                      </Button>
+                    </Link>
+                  )}
+                  {canAccess("ai-tools") && (
+                    <Link to="/dashboard/ai-tools" onClick={() => setMobileMenuOpen(false)}>
+                      <Button 
+                        variant={isActive("/dashboard/ai-tools") ? "default" : "ghost"}
+                        className="w-full justify-start gap-2"
+                      >
+                        <Sparkles className="h-4 w-4" />
+                        AI Tools
+                      </Button>
+                    </Link>
+                  )}
+                  {canAccess("knowledge") && (
+                    <Link to="/dashboard/knowledge" onClick={() => setMobileMenuOpen(false)}>
+                      <Button 
+                        variant={isActive("/dashboard/knowledge") ? "default" : "ghost"}
+                        className="w-full justify-start gap-2"
+                      >
+                        <BookOpen className="h-4 w-4" />
+                        Knowledge Base
+                      </Button>
+                    </Link>
+                  )}
                   
                   <div className="border-t my-4"></div>
                   
