@@ -7,12 +7,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useSubUser } from "@/hooks/useSubUser";
+import { useActivityLog } from "@/hooks/useActivityLog";
 
 interface DocumentUploadDialogProps {
   open: boolean;
   onClose: () => void;
   visitId: string;
   patientId: string;
+  patientName?: string;
   onUploadSuccess: () => void;
 }
 
@@ -21,6 +24,7 @@ export default function DocumentUploadDialog({
   onClose,
   visitId,
   patientId,
+  patientName,
   onUploadSuccess,
 }: DocumentUploadDialogProps) {
   const [documentDate, setDocumentDate] = useState("");
@@ -28,6 +32,8 @@ export default function DocumentUploadDialog({
   const [description, setDescription] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const { isSubUser, getOwnerIdForLogging } = useSubUser();
+  const { logActivity } = useActivityLog();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -84,7 +90,7 @@ export default function DocumentUploadDialog({
       if (uploadError) throw uploadError;
 
       // Create document record
-      const { error: dbError } = await supabase.from("documents").insert({
+      const { data: docData, error: dbError } = await supabase.from("documents").insert({
         visit_id: visitId,
         patient_id: patientId,
         user_id: user.id,
@@ -96,9 +102,24 @@ export default function DocumentUploadDialog({
         file_type: file.type,
         file_size: file.size,
         upload_date: new Date().toISOString(),
-      });
+      }).select().single();
 
       if (dbError) throw dbError;
+
+      // Log activity if sub-user
+      if (isSubUser && docData) {
+        const ownerId = await getOwnerIdForLogging();
+        if (ownerId) {
+          await logActivity(
+            ownerId,
+            "create",
+            "document",
+            docData.id,
+            patientName || "Unknown Patient",
+            `Uploaded ${documentType}: ${file.name}`
+          );
+        }
+      }
 
       toast({
         title: "Success",

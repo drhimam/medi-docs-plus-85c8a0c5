@@ -24,6 +24,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useSubUser } from "@/hooks/useSubUser";
+import { useActivityLog } from "@/hooks/useActivityLog";
 
 interface Appointment {
   id: string;
@@ -43,6 +45,8 @@ export default function Appointments() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const { isSubUser, getOwnerIdForLogging } = useSubUser();
+  const { logActivity } = useActivityLog();
 
   const fetchAppointments = async () => {
     try {
@@ -79,12 +83,29 @@ export default function Appointments() {
 
   const handleCancelAppointment = async (appointmentId: string) => {
     try {
+      const appointment = appointments.find(a => a.id === appointmentId);
+      
       const { error } = await supabase
         .from("appointments")
         .delete()
         .eq("id", appointmentId);
 
       if (error) throw error;
+      
+      // Log activity if sub-user
+      if (isSubUser && appointment) {
+        const ownerId = await getOwnerIdForLogging();
+        if (ownerId) {
+          await logActivity(
+            ownerId,
+            "delete",
+            "appointment",
+            appointmentId,
+            `${appointment.patients.first_name} ${appointment.patients.last_name}`,
+            `Cancelled appointment on ${format(new Date(appointment.appointment_date), "MMM dd, yyyy")} at ${appointment.appointment_time}`
+          );
+        }
+      }
       
       toast.success("Appointment cancelled");
       fetchAppointments();
@@ -96,12 +117,29 @@ export default function Appointments() {
 
   const handleCompleteAppointment = async (appointmentId: string) => {
     try {
+      const appointment = appointments.find(a => a.id === appointmentId);
+      
       const { error } = await supabase
         .from("appointments")
         .update({ status: "completed" })
         .eq("id", appointmentId);
 
       if (error) throw error;
+      
+      // Log activity if sub-user
+      if (isSubUser && appointment) {
+        const ownerId = await getOwnerIdForLogging();
+        if (ownerId) {
+          await logActivity(
+            ownerId,
+            "update",
+            "appointment",
+            appointmentId,
+            `${appointment.patients.first_name} ${appointment.patients.last_name}`,
+            `Marked appointment as complete on ${format(new Date(appointment.appointment_date), "MMM dd, yyyy")}`
+          );
+        }
+      }
       
       toast.success("Appointment marked as complete");
       fetchAppointments();

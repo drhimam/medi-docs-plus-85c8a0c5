@@ -39,6 +39,8 @@ import jsPDF from "jspdf";
 import { format, differenceInYears } from "date-fns";
 import DOMPurify from "dompurify";
 import { exportPrescriptionToPDF as exportPrescriptionWithSettings } from "@/lib/prescriptionExport";
+import { useSubUser } from "@/hooks/useSubUser";
+import { useActivityLog } from "@/hooks/useActivityLog";
 
 interface Patient {
   id: string;
@@ -94,6 +96,8 @@ interface Visit {
 export default function ClinicalDocumentation() {
   const { visitId } = useParams();
   const navigate = useNavigate();
+  const { isSubUser, getOwnerIdForLogging } = useSubUser();
+  const { logActivity } = useActivityLog();
   const [patient, setPatient] = useState<Patient | null>(null);
   const [visit, setVisit] = useState<Visit | null>(null);
   const [documents, setDocuments] = useState<any[]>([]);
@@ -1268,7 +1272,7 @@ ${separator}
     });
   };
 
-  const exportPrescriptionToMarkdown = () => {
+  const exportPrescriptionToMarkdown = async () => {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
     
     // Remove page break elements, convert HTML breaks to newlines, then strip remaining HTML tags
@@ -1296,6 +1300,21 @@ ${cleanPrescription}
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    
+    // Log activity if sub-user
+    if (isSubUser && patient) {
+      const ownerId = await getOwnerIdForLogging();
+      if (ownerId) {
+        await logActivity(
+          ownerId,
+          "export",
+          "prescription",
+          visitId,
+          `${patient.first_name} ${patient.last_name}`,
+          "Exported prescription as Markdown"
+        );
+      }
+    }
     
     toast({
       title: "Success",
@@ -1419,6 +1438,21 @@ ${cleanPrescription}
         logoDataUrl,
         signatureDataUrl
       );
+      
+      // Log activity if sub-user
+      if (isSubUser && patient) {
+        const ownerId = await getOwnerIdForLogging();
+        if (ownerId) {
+          await logActivity(
+            ownerId,
+            "export",
+            "prescription",
+            visitId,
+            `${patient.first_name} ${patient.last_name}`,
+            "Exported prescription as PDF"
+          );
+        }
+      }
       
       toast({
         title: "Success",
@@ -2399,6 +2433,7 @@ ${cleanPrescription}
         onClose={() => setIsUploadDialogOpen(false)}
         visitId={visitId!}
         patientId={patient.id}
+        patientName={`${patient.first_name} ${patient.last_name}`}
         onUploadSuccess={fetchDocuments}
       />
 

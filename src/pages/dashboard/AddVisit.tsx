@@ -516,6 +516,7 @@ export default function AddVisit() {
           onClose={() => setIsUploadDialogOpen(false)}
           visitId={visitId}
           patientId={patient.id}
+          patientName={`${patient.first_name} ${patient.last_name}`}
           onUploadSuccess={fetchDocuments}
         />
       )}

@@ -11,6 +11,8 @@ import { AppointmentScheduler } from "./AppointmentScheduler";
 import { TimeSlotSettings } from "./TimeSlotSettings";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useSubUser } from "@/hooks/useSubUser";
+import { useActivityLog } from "@/hooks/useActivityLog";
 
 interface AddAppointmentDialogProps {
   open: boolean;
@@ -31,6 +33,9 @@ export function AddAppointmentDialog({
   const [appointmentData, setAppointmentData] = useState<any>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [selectedPatientName, setSelectedPatientName] = useState<string>("");
+  const { isSubUser, getOwnerIdForLogging } = useSubUser();
+  const { logActivity } = useActivityLog();
 
   // Update selectedPatientId when preselectedPatientId changes
   useEffect(() => {
@@ -142,6 +147,24 @@ export function AddAppointmentDialog({
         // Don't fail the appointment creation if email fails
       }
 
+      // Log activity if sub-user
+      if (isSubUser) {
+        const ownerId = await getOwnerIdForLogging();
+        if (ownerId) {
+          const patientName = patientType === "new" && newPatientData 
+            ? `${newPatientData.first_name} ${newPatientData.last_name}` 
+            : selectedPatientName;
+          await logActivity(
+            ownerId,
+            "create",
+            "appointment",
+            newAppointment.id,
+            patientName,
+            `Created appointment for ${appointmentData.date} at ${appointmentData.time}: ${appointmentData.reason}`
+          );
+        }
+      }
+
       toast.success("Appointment created successfully");
       onSuccess();
       handleClose();
@@ -232,7 +255,10 @@ export function AddAppointmentDialog({
           {patientType === "existing" ? (
             <ExistingPatientSearch
               selectedPatientId={selectedPatientId}
-              onSelectPatient={setSelectedPatientId}
+              onSelectPatient={(id, name) => {
+                setSelectedPatientId(id);
+                if (name) setSelectedPatientName(name);
+              }}
             />
           ) : (
             <NewPatientForm

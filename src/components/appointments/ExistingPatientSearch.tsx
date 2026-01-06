@@ -18,7 +18,7 @@ interface Patient {
 
 interface ExistingPatientSearchProps {
   selectedPatientId: string | null;
-  onSelectPatient: (patientId: string) => void;
+  onSelectPatient: (patientId: string, patientName?: string) => void;
 }
 
 export function ExistingPatientSearch({
@@ -78,7 +78,13 @@ export function ExistingPatientSearch({
 
       {patients.length > 0 && (
         <Card className="p-4 max-h-[300px] overflow-y-auto">
-          <RadioGroup value={selectedPatientId || ""} onValueChange={onSelectPatient}>
+          <RadioGroup 
+            value={selectedPatientId || ""} 
+            onValueChange={(value) => {
+              const patient = patients.find(p => p.id === value);
+              onSelectPatient(value, patient ? `${patient.first_name} ${patient.last_name}` : undefined);
+            }}
+          >
             {patients.map((patient) => (
               <div
                 key={patient.id}
