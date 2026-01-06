@@ -7,6 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { ArrowLeft, ChevronLeft, ChevronRight, FastForward, MoreVertical, Printer, Save, Trash2, X } from "lucide-react";
+import { useSubUser } from "@/hooks/useSubUser";
+import { useActivityLog } from "@/hooks/useActivityLog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -127,6 +129,8 @@ const DEFAULT_VALUES: PatientFormData = {
 
 const AddPatient = () => {
   const navigate = useNavigate();
+  const { isSubUser, getOwnerIdForLogging } = useSubUser();
+  const { logActivity } = useActivityLog();
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [noKnownAllergies, setNoKnownAllergies] = useState(false);
@@ -365,6 +369,21 @@ const AddPatient = () => {
           .from("patient_drafts")
           .delete()
           .eq("id", draftId);
+      }
+
+      // Log activity if sub-user
+      if (isSubUser) {
+        const ownerId = await getOwnerIdForLogging();
+        if (ownerId) {
+          await logActivity(
+            ownerId,
+            "create",
+            "patient",
+            undefined,
+            `${data.first_name} ${data.last_name}`,
+            "Created new patient record"
+          );
+        }
       }
 
       toast.success("Patient added successfully!");

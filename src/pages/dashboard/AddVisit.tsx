@@ -3,6 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useSubUser } from "@/hooks/useSubUser";
+import { useActivityLog } from "@/hooks/useActivityLog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -19,6 +21,8 @@ import DocumentUploadDialog from "@/components/visit/DocumentUploadDialog";
 export default function AddVisit() {
   const { patientId } = useParams();
   const navigate = useNavigate();
+  const { isSubUser, getOwnerIdForLogging } = useSubUser();
+  const { logActivity } = useActivityLog();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -175,6 +179,22 @@ export default function AddVisit() {
       if (error) throw error;
 
       setVisitId(data.id);
+      
+      // Log activity if sub-user
+      if (isSubUser && patient) {
+        const ownerId = await getOwnerIdForLogging();
+        if (ownerId) {
+          await logActivity(
+            ownerId,
+            "create",
+            "visit",
+            data.id,
+            `Visit for ${patient.first_name} ${patient.last_name}`,
+            `Created ${formData.visitType} visit: ${formData.reasonForVisit}`
+          );
+        }
+      }
+      
       toast({
         title: "Success",
         description: "Visit created successfully",

@@ -3,6 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useSubUser } from "@/hooks/useSubUser";
+import { useActivityLog } from "@/hooks/useActivityLog";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -80,6 +82,8 @@ type PatientFormData = z.infer<typeof patientSchema>;
 const EditPatient = () => {
   const navigate = useNavigate();
   const { patientId } = useParams<{ patientId: string }>();
+  const { isSubUser, getOwnerIdForLogging } = useSubUser();
+  const { logActivity } = useActivityLog();
   const [loading, setLoading] = useState(false);
   const [fetchingData, setFetchingData] = useState(true);
   const [showOngoingConditionsDialog, setShowOngoingConditionsDialog] = useState(false);
@@ -267,6 +271,21 @@ const EditPatient = () => {
         .eq("id", patientId);
 
       if (error) throw error;
+
+      // Log activity if sub-user
+      if (isSubUser) {
+        const ownerId = await getOwnerIdForLogging();
+        if (ownerId) {
+          await logActivity(
+            ownerId,
+            "update",
+            "patient",
+            patientId,
+            `${data.first_name} ${data.last_name}`,
+            "Updated patient record"
+          );
+        }
+      }
 
       toast.success("Patient updated successfully!");
       navigate(`/dashboard/patients/${patientId}`);

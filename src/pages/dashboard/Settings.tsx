@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Settings as SettingsIcon, Bell, Globe, Clock, Loader2, ArrowLeft, Moon, Sun, Monitor, Smartphone, Save } from "lucide-react";
 import { usePresetMobilePresentation } from "@/hooks/usePresetMobilePresentation";
 import { SubUserManagement } from "@/components/settings/SubUserManagement";
+import { SubUserActivityLog } from "@/components/settings/SubUserActivityLog";
 import { useSubUser } from "@/hooks/useSubUser";
 interface UserSettings {
   id?: string;
@@ -434,6 +435,9 @@ const Settings = () => {
 
         {/* Sub-User Management - Only show for owners */}
         {!isSubUser && <SubUserManagement />}
+        
+        {/* Activity Log - Only show for owners */}
+        {!isSubUser && <SubUserActivityLog />}
       </div>
 
       <div className="flex justify-end gap-4">
