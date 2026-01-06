@@ -7,9 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Activity, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useActivityLog } from "@/hooks/useActivityLog";
 
 const AcceptInvite = () => {
   const navigate = useNavigate();
+  const { logActivity } = useActivityLog();
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");
 
@@ -86,10 +88,20 @@ const AcceptInvite = () => {
         })
         .eq("id", inviteData.id);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast.success("Invitation accepted! You now have access to the team.");
-      navigate("/dashboard");
+        // Log the login activity
+        await logActivity(
+          inviteData.owner_id,
+          "login",
+          "session",
+          undefined,
+          "Sub-user joined team",
+          "Accepted invitation and activated account"
+        );
+
+        toast.success("Invitation accepted! You now have access to the team.");
+        navigate("/dashboard");
     } catch (error: any) {
       console.error("Error accepting invite:", error);
       toast.error(error.message || "Failed to accept invitation");
@@ -162,6 +174,16 @@ const AcceptInvite = () => {
         if (updateError) {
           console.error("Error updating sub_user:", updateError);
         }
+
+        // Log the login activity
+        await logActivity(
+          inviteData.owner_id,
+          "login",
+          "session",
+          undefined,
+          "Sub-user registered and joined",
+          "New account created via invitation"
+        );
 
         toast.success("Account created! Welcome to the team.");
         navigate("/dashboard");

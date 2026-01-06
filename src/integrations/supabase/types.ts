@@ -804,6 +804,42 @@ export type Database = {
         }
         Relationships: []
       }
+      sub_user_activity_log: {
+        Row: {
+          action_type: string
+          created_at: string
+          details: string | null
+          entity_id: string | null
+          entity_name: string | null
+          entity_type: string
+          id: string
+          owner_id: string
+          sub_user_id: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          details?: string | null
+          entity_id?: string | null
+          entity_name?: string | null
+          entity_type: string
+          id?: string
+          owner_id: string
+          sub_user_id: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          details?: string | null
+          entity_id?: string | null
+          entity_name?: string | null
+          entity_type?: string
+          id?: string
+          owner_id?: string
+          sub_user_id?: string
+        }
+        Relationships: []
+      }
       sub_user_permissions: {
         Row: {
           can_access_ai_tools: boolean

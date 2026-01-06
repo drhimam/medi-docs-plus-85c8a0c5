@@ -205,6 +205,13 @@ export function useSubUser() {
     fetchSubUserStatus();
   }, [fetchSubUserStatus]);
 
+  // Helper to get owner_id for activity logging (returns current user id if owner, or ownerId if sub-user)
+  const getOwnerIdForLogging = useCallback(async (): Promise<string | null> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+    return ownerId || user.id;
+  }, [ownerId]);
+
   return {
     isSubUser,
     isOwner,
@@ -216,6 +223,7 @@ export function useSubUser() {
     canPerformAction,
     fetchMySubUsers,
     refetch: fetchSubUserStatus,
+    getOwnerIdForLogging,
     DEFAULT_PERMISSIONS,
   };
 }
