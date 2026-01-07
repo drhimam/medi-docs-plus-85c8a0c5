@@ -924,7 +924,7 @@ export default function ClinicalDocumentation() {
     }
   };
 
-  const exportSOAPToMarkdown = () => {
+  const exportSOAPToMarkdown = async () => {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
     const content = `# SOAP Note
 **Visit ID:** ${visitId}
@@ -958,6 +958,14 @@ ${plan}
       title: "Success",
       description: "SOAP note exported as Markdown",
     });
+
+    // Log activity for sub-users
+    if (isSubUser) {
+      const ownerId = await getOwnerIdForLogging();
+      if (ownerId) {
+        logActivity(ownerId, "export", "visit", visitId, `${patient?.first_name} ${patient?.last_name}`, "Exported SOAP note as Markdown");
+      }
+    }
   };
 
   const exportSOAPToPDF = async () => {
@@ -1206,9 +1214,17 @@ ${plan}
       title: "Success",
       description: "SOAP note exported as PDF",
     });
+
+    // Log activity for sub-users
+    if (isSubUser) {
+      const ownerId = await getOwnerIdForLogging();
+      if (ownerId) {
+        logActivity(ownerId, "export", "visit", visitId, `${patient?.first_name} ${patient?.last_name}`, "Exported SOAP note as PDF");
+      }
+    }
   };
 
-  const exportSOAPToPlainText = () => {
+  const exportSOAPToPlainText = async () => {
     if (!patient) return;
     
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
@@ -1270,6 +1286,14 @@ ${separator}
       title: "Success",
       description: "SOAP note exported as plain text",
     });
+
+    // Log activity for sub-users
+    if (isSubUser) {
+      const ownerId = await getOwnerIdForLogging();
+      if (ownerId) {
+        logActivity(ownerId, "export", "visit", visitId, `${patient?.first_name} ${patient?.last_name}`, "Exported SOAP note as TXT");
+      }
+    }
   };
 
   const exportPrescriptionToMarkdown = async () => {
