@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useSubUser } from "@/hooks/useSubUser";
+import { useActivityLog } from "@/hooks/useActivityLog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -112,6 +114,8 @@ interface Document {
 const PatientDetail = () => {
   const { patientId } = useParams();
   const navigate = useNavigate();
+  const { isSubUser, getOwnerIdForLogging } = useSubUser();
+  const { logActivity } = useActivityLog();
   const [patient, setPatient] = useState<Patient | null>(null);
   const [visits, setVisits] = useState<Visit[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -266,6 +270,9 @@ const PatientDetail = () => {
   const handleDelete = async () => {
     if (!confirm("Are you sure you want to delete this patient?")) return;
     
+    // Store patient name before deletion for logging
+    const patientName = patient ? `${patient.first_name} ${patient.last_name}` : undefined;
+    
     try {
       const { error } = await (supabase as any)
         .from("patients")
@@ -273,6 +280,15 @@ const PatientDetail = () => {
         .eq("id", patientId);
 
       if (error) throw error;
+      
+      // Log activity for sub-users
+      if (isSubUser) {
+        const ownerId = await getOwnerIdForLogging();
+        if (ownerId) {
+          logActivity(ownerId, "delete", "patient", patientId, patientName, "Deleted patient record");
+        }
+      }
+      
       toast.success("Patient deleted successfully");
       navigate("/dashboard/patients");
     } catch (error: any) {
