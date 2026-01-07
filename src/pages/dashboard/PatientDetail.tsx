@@ -121,6 +121,7 @@ const PatientDetail = () => {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [documentToDelete, setDocumentToDelete] = useState<Document | null>(null);
+  const [visitToDelete, setVisitToDelete] = useState<Visit | null>(null);
 
   useEffect(() => {
     fetchPatient();
@@ -239,6 +240,36 @@ const PatientDetail = () => {
       console.error(error);
     } finally {
       setDocumentToDelete(null);
+    }
+  };
+
+  const handleDeleteVisit = async () => {
+    if (!visitToDelete) return;
+    
+    try {
+      const { error } = await supabase
+        .from('visits')
+        .delete()
+        .eq('id', visitToDelete.id);
+
+      if (error) throw error;
+
+      // Log activity for sub-users
+      if (isSubUser && patient) {
+        const ownerId = await getOwnerIdForLogging();
+        if (ownerId) {
+          const visitName = `${visitToDelete.visit_type} visit for ${patient.first_name} ${patient.last_name}`;
+          await logActivity(ownerId, "delete", "visit", visitToDelete.id, visitName, `Deleted visit: ${visitToDelete.reason_for_visit}`);
+        }
+      }
+
+      setVisits(visits.filter(v => v.id !== visitToDelete.id));
+      toast.success("Visit deleted");
+    } catch (error: any) {
+      toast.error("Failed to delete visit");
+      console.error(error);
+    } finally {
+      setVisitToDelete(null);
     }
   };
 
@@ -1045,14 +1076,23 @@ ${
                     {visit.soap_assessment || "Not completed"}
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => navigate(`/dashboard/clinical-documentation/${visit.id}`)}
-                    >
-                      <Eye className="mr-2 h-4 w-4" />
-                      View
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => navigate(`/dashboard/clinical-documentation/${visit.id}`)}>
+                          <Eye className="mr-2 h-4 w-4" />
+                          View
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive" onClick={() => setVisitToDelete(visit)}>
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))
@@ -1180,6 +1220,23 @@ ${
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteDocument} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!visitToDelete} onOpenChange={(open) => !open && setVisitToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Visit</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this {visitToDelete?.visit_type} visit? This will also delete all associated documents and records. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteVisit} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
