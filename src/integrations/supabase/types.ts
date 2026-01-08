@@ -402,6 +402,54 @@ export type Database = {
         }
         Relationships: []
       }
+      patient_intake_submissions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          form_data: Json
+          id: string
+          intake_token: string
+          patient_email: string
+          patient_name: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          submitted_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          form_data?: Json
+          id?: string
+          intake_token?: string
+          patient_email: string
+          patient_name?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          form_data?: Json
+          id?: string
+          intake_token?: string
+          patient_email?: string
+          patient_name?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       patients: {
         Row: {
           accidents_injuries: string | null

@@ -75,6 +75,7 @@ const KnowledgeBase = lazy(() => import("./dashboard/KnowledgeBase"));
 const Profile = lazy(() => import("./dashboard/Profile"));
 const Settings = lazy(() => import("./dashboard/Settings"));
 const Subscription = lazy(() => import("./dashboard/Subscription"));
+const PatientIntakeManagement = lazy(() => import("./dashboard/PatientIntakeManagement"));
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -155,15 +156,26 @@ const Dashboard = () => {
               </Button>
             </Link>
             {canAccess("patients") && (
-              <Link to="/dashboard/patients">
-                <Button 
-                  variant={isActive("/dashboard/patients") ? "default" : "ghost"}
-                  className="gap-2"
-                >
-                  <Users className="h-4 w-4" />
-                  Patients
-                </Button>
-              </Link>
+              <>
+                <Link to="/dashboard/patients">
+                  <Button 
+                    variant={isActive("/dashboard/patients") ? "default" : "ghost"}
+                    className="gap-2"
+                  >
+                    <Users className="h-4 w-4" />
+                    Patients
+                  </Button>
+                </Link>
+                <Link to="/dashboard/patient-intake">
+                  <Button 
+                    variant={isActive("/dashboard/patient-intake") ? "default" : "ghost"}
+                    className="gap-2"
+                  >
+                    <FileText className="h-4 w-4" />
+                    Intake Forms
+                  </Button>
+                </Link>
+              </>
             )}
             {canAccess("ai-tools") && (
               <Link to="/dashboard/ai-tools">
@@ -419,6 +431,7 @@ const Dashboard = () => {
             <Route path="patients/:patientId/edit" element={<EditPatient />} />
             <Route path="patients/:patientId" element={<PatientDetail />} />
             <Route path="patients/:patientId/add-visit" element={<AddVisit />} />
+            <Route path="patient-intake" element={<PatientIntakeManagement />} />
             <Route path="clinical-documentation/:visitId" element={<ClinicalDocumentation />} />
             <Route path="ai-tools" element={<AITools />} />
             <Route path="knowledge/*" element={<KnowledgeBase />} />
