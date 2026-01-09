@@ -434,6 +434,46 @@ const Dashboard = () => {
 };
 
 const DashboardHome = () => {
+  const [pendingIntakeCount, setPendingIntakeCount] = useState(0);
+
+  useEffect(() => {
+    const fetchPendingIntakeCount = async () => {
+      try {
+        const { count, error } = await supabase
+          .from('patient_intake_submissions')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'submitted');
+        
+        if (!error && count !== null) {
+          setPendingIntakeCount(count);
+        }
+      } catch (error) {
+        console.error('Error fetching pending intake count:', error);
+      }
+    };
+
+    fetchPendingIntakeCount();
+
+    // Subscribe to realtime changes
+    const channel = supabase
+      .channel('intake-submissions-count')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'patient_intake_submissions'
+        },
+        () => {
+          fetchPendingIntakeCount();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
   const [appointments, setAppointments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -512,9 +552,17 @@ const DashboardHome = () => {
             <CalendarClock className="h-4 w-4" />
             <span className="hidden sm:inline">Deadline Tracker</span>
           </TabsTrigger>
-          <TabsTrigger value="intake" className="gap-2">
+          <TabsTrigger value="intake" className="gap-2 relative">
             <ClipboardList className="h-4 w-4" />
             <span className="hidden sm:inline">Patient Intake</span>
+            {pendingIntakeCount > 0 && (
+              <Badge 
+                variant="destructive" 
+                className="absolute -top-2 -right-2 h-5 min-w-5 px-1.5 flex items-center justify-center text-xs"
+              >
+                {pendingIntakeCount > 99 ? '99+' : pendingIntakeCount}
+              </Badge>
+            )}
           </TabsTrigger>
         </TabsList>
 
