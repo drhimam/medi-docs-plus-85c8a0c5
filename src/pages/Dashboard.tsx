@@ -22,9 +22,9 @@ import {
   FileText,
   FileSpreadsheet,
   CheckSquare,
-  StickyNote,
   CalendarClock,
-  Lock
+  Lock,
+  ClipboardList
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -60,8 +60,8 @@ import { exportAppointmentsToPdf } from "@/lib/exportToPdf";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TodoList } from "@/components/dashboard/TodoList";
 import { DeadlineTracker } from "@/components/dashboard/DeadlineTracker";
-import { StickyNotes } from "@/components/dashboard/StickyNotes";
 import { useSubUser } from "@/hooks/useSubUser";
+import PatientIntakeManagement from "./dashboard/PatientIntakeManagement";
 import React from "react";
 
 const Patients = lazy(() => import("./dashboard/Patients"));
@@ -75,7 +75,7 @@ const KnowledgeBase = lazy(() => import("./dashboard/KnowledgeBase"));
 const Profile = lazy(() => import("./dashboard/Profile"));
 const Settings = lazy(() => import("./dashboard/Settings"));
 const Subscription = lazy(() => import("./dashboard/Subscription"));
-const PatientIntakeManagement = lazy(() => import("./dashboard/PatientIntakeManagement"));
+
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -156,26 +156,15 @@ const Dashboard = () => {
               </Button>
             </Link>
             {canAccess("patients") && (
-              <>
-                <Link to="/dashboard/patients">
-                  <Button 
-                    variant={isActive("/dashboard/patients") ? "default" : "ghost"}
-                    className="gap-2"
-                  >
-                    <Users className="h-4 w-4" />
-                    Patients
-                  </Button>
-                </Link>
-                <Link to="/dashboard/patient-intake">
-                  <Button 
-                    variant={isActive("/dashboard/patient-intake") ? "default" : "ghost"}
-                    className="gap-2"
-                  >
-                    <FileText className="h-4 w-4" />
-                    Intake Forms
-                  </Button>
-                </Link>
-              </>
+              <Link to="/dashboard/patients">
+                <Button 
+                  variant={isActive("/dashboard/patients") ? "default" : "ghost"}
+                  className="gap-2"
+                >
+                  <Users className="h-4 w-4" />
+                  Patients
+                </Button>
+              </Link>
             )}
             {canAccess("ai-tools") && (
               <Link to="/dashboard/ai-tools">
@@ -431,7 +420,6 @@ const Dashboard = () => {
             <Route path="patients/:patientId/edit" element={<EditPatient />} />
             <Route path="patients/:patientId" element={<PatientDetail />} />
             <Route path="patients/:patientId/add-visit" element={<AddVisit />} />
-            <Route path="patient-intake" element={<PatientIntakeManagement />} />
             <Route path="clinical-documentation/:visitId" element={<ClinicalDocumentation />} />
             <Route path="ai-tools" element={<AITools />} />
             <Route path="knowledge/*" element={<KnowledgeBase />} />
@@ -524,9 +512,9 @@ const DashboardHome = () => {
             <CalendarClock className="h-4 w-4" />
             <span className="hidden sm:inline">Deadline Tracker</span>
           </TabsTrigger>
-          <TabsTrigger value="notes" className="gap-2">
-            <StickyNote className="h-4 w-4" />
-            <span className="hidden sm:inline">Sticky Notes</span>
+          <TabsTrigger value="intake" className="gap-2">
+            <ClipboardList className="h-4 w-4" />
+            <span className="hidden sm:inline">Patient Intake</span>
           </TabsTrigger>
         </TabsList>
 
@@ -741,9 +729,9 @@ const DashboardHome = () => {
           <DeadlineTracker />
         </TabsContent>
 
-        {/* Sticky Notes Tab */}
-        <TabsContent value="notes" className="space-y-6">
-          <StickyNotes />
+        {/* Patient Intake Tab */}
+        <TabsContent value="intake" className="space-y-6">
+          <PatientIntakeManagement />
         </TabsContent>
       </Tabs>
 
