@@ -141,7 +141,7 @@ const Dashboard = () => {
           {/* Logo */}
           <div className="flex items-center gap-2">
             <Activity className="h-6 w-6 md:h-7 md:w-7 text-primary" />
-            <h1 className="text-lg md:text-xl font-bold text-foreground">aiMedipedia</h1>
+            <h1 className="text-lg md:text-xl font-bold text-foreground">eDoctorDesk</h1>
           </div>
 
           {/* Desktop Navigation Links */}
@@ -208,7 +208,7 @@ const Dashboard = () => {
                 <SheetHeader>
                   <SheetTitle className="flex items-center gap-2">
                     <Activity className="h-6 w-6 text-primary" />
-                    <span>aiMedipedia</span>
+                    <span>eDoctorDesk</span>
                   </SheetTitle>
                 </SheetHeader>
                 <nav className="flex flex-col gap-2 mt-6">

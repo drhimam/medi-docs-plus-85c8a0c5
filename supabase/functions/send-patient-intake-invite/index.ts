@@ -42,7 +42,7 @@ const handler = async (req: Request): Promise<Response> => {
     const doctorInfo = doctorName ? `Dr. ${doctorName}` : "Your healthcare provider";
 
     const emailResponse = await resend.emails.send({
-      from: "aiMedipedia <onboarding@resend.dev>",
+      from: "eDoctorDesk <onboarding@resend.dev>",
       to: [patientEmail],
       subject: `Patient Intake Form - ${clinicInfo}`,
       html: `
@@ -107,7 +107,7 @@ const handler = async (req: Request): Promise<Response> => {
                   <tr>
                     <td style="background-color: #f9fafb; padding: 20px 40px; border-top: 1px solid #e5e7eb;">
                       <p style="margin: 0; color: #6b7280; font-size: 12px; text-align: center;">
-                        This is an automated message from aiMedipedia. Please do not reply to this email.
+                        This is an automated message from eDoctorDesk. Please do not reply to this email.
                       </p>
                     </td>
                   </tr>

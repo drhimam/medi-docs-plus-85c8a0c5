@@ -261,7 +261,7 @@ const PatientIntake = () => {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Activity className="h-8 w-8 text-primary" />
-            <h1 className="text-2xl font-bold text-foreground">aiMedipedia</h1>
+            <h1 className="text-2xl font-bold text-foreground">eDoctorDesk</h1>
           </div>
           <h2 className="text-xl text-muted-foreground">Patient Intake Form</h2>
         </div>

@@ -1,6 +1,6 @@
 import * as React from "react";
 
-const STORAGE_KEY = "aimedipedia:preset_mobile_presentation";
+const STORAGE_KEY = "edoctordesk:preset_mobile_presentation";
 
 type MobilePresetPresentation = "modal" | "drawer";
 

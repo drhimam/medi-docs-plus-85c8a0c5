@@ -180,7 +180,7 @@ export default function Subscription() {
               Upgrade from Free to Pro using PayPal (manual activation, may require up to 24 hours).
             </p>
             <p className="text-sm text-muted-foreground">
-              1. Complete the payment via PayPal using the button below. 2. Then email us your aiMedipedia account email and PayPal receipt so we can upgrade your plan.
+              1. Complete the payment via PayPal using the button below. 2. Then email us your eDoctorDesk account email and PayPal receipt so we can upgrade your plan.
             </p>
             <div className="flex flex-col sm:flex-row sm:items-center gap-4">
               <Button 
@@ -190,7 +190,7 @@ export default function Subscription() {
                 Pay with PayPal
               </Button>
               <p className="text-xs text-muted-foreground">
-                For users in Bangladesh or regions without PayPal access, please contact us via WhatsApp +1 647-428-7540, email support@aimedipedia.com, or the contact form on the Contact page to arrange payment and activation.
+                For users in Bangladesh or regions without PayPal access, please contact us via WhatsApp +1 647-428-7540, email support@edoctordesk.com, or the contact form on the Contact page to arrange payment and activation.
               </p>
             </div>
           </CardContent>
