@@ -37,14 +37,14 @@ serve(async (req) => {
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
   <div style="text-align: center; margin-bottom: 30px;">
-    <h1 style="color: #2563eb; margin: 0;">aiMedipedia</h1>
+    <h1 style="color: #2563eb; margin: 0;">eDoctorDesk</h1>
     <p style="color: #666; margin-top: 5px;">Medical Practice Management</p>
   </div>
   
   <div style="background: #f8fafc; border-radius: 8px; padding: 30px; margin-bottom: 20px;">
     <h2 style="margin-top: 0;">You've been invited!</h2>
     <p>
-      <strong>${ownerEmail}</strong> has invited you to join their medical practice team on aiMedipedia.
+      <strong>${ownerEmail}</strong> has invited you to join their medical practice team on eDoctorDesk.
     </p>
     <p>
       As a team member, you'll have restricted access to help manage the practice according to the permissions set by the account owner.
@@ -60,7 +60,7 @@ serve(async (req) => {
   </div>
   
   <div style="text-align: center; font-size: 12px; color: #999;">
-    <p>aiMedipedia - Simplifying Medical Practice Management</p>
+    <p>eDoctorDesk - Simplifying Medical Practice Management</p>
   </div>
 </body>
 </html>`;
@@ -72,9 +72,9 @@ serve(async (req) => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "aiMedipedia <onboarding@resend.dev>",
+        from: "eDoctorDesk <onboarding@resend.dev>",
         to: [email],
-        subject: "You've been invited to join aiMedipedia",
+        subject: "You've been invited to join eDoctorDesk",
         html: emailHtml,
       }),
     });

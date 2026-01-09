@@ -45,7 +45,7 @@ const Index = () => {
           <nav className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Activity className="h-8 w-8 text-primary" />
-              <h1 className="text-2xl font-bold text-primary">aiMedipedia</h1>
+              <h1 className="text-2xl font-bold text-primary">eDoctorDesk</h1>
             </div>
             <div className="flex gap-4">
               <Link to="/login">
@@ -114,7 +114,7 @@ const Index = () => {
             Ready to Transform Your Practice?
           </h3>
           <p className="mb-8 text-xl text-muted-foreground">
-            Join healthcare professionals who trust AiMediPedia for their daily documentation needs
+            Join healthcare professionals who trust eDoctorDesk for their daily documentation needs
           </p>
           <Link to="/register">
             <Button size="lg" className="text-lg">
@@ -127,7 +127,7 @@ const Index = () => {
       {/* Footer */}
       <footer className="border-t py-8">
         <div className="container mx-auto px-6 text-center text-sm text-muted-foreground">
-          <p>© 2025 AiMediPedia. All rights reserved.</p>
+          <p>© 2025 eDoctorDesk. All rights reserved.</p>
           <p className="mt-2">Professional medical documentation platform</p>
         </div>
       </footer>
