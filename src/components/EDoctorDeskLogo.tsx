@@ -17,58 +17,27 @@ export const EDoctorDeskLogo = ({ className, animate = false }: EDoctorDeskLogoP
         className
       )}
     >
-      {/* Stethoscope head (circular part) */}
+      {/* Simple stethoscope icon */}
+      <path
+        d="M4.5 4.5C4.5 3.67 5.17 3 6 3C6.83 3 7.5 3.67 7.5 4.5V10C7.5 12.48 9.52 14.5 12 14.5C14.48 14.5 16.5 12.48 16.5 10V4.5C16.5 3.67 17.17 3 18 3C18.83 3 19.5 3.67 19.5 4.5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
       <circle
-        cx="8"
-        cy="16"
+        cx="12"
+        cy="18"
         r="3"
         stroke="currentColor"
         strokeWidth="2"
-        fill="none"
+        fill="currentColor"
+        fillOpacity="0.2"
       />
-      {/* Stethoscope tubing */}
       <path
-        d="M11 16C11 16 13 16 14 14C15 12 15 8 15 6"
+        d="M12 14.5V15"
         stroke="currentColor"
         strokeWidth="2"
         strokeLinecap="round"
-        fill="none"
-      />
-      <path
-        d="M5 16C5 16 3 16 2 14C1 12 1 8 1 6"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        fill="none"
-      />
-      {/* Ear pieces */}
-      <circle cx="15" cy="5" r="1.5" fill="currentColor" />
-      <circle cx="1" cy="5" r="1.5" fill="currentColor" />
-      {/* Digital/E element - representing electronic */}
-      <rect
-        x="17"
-        y="8"
-        width="6"
-        height="8"
-        rx="1"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        fill="none"
-      />
-      {/* E letter inside the screen */}
-      <path
-        d="M19 10H21.5M19 12H21M19 14H21.5"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-      {/* Heart pulse line connecting stethoscope to digital */}
-      <path
-        d="M8 13L9 11L10 13L11.5 9L13 13"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
       />
     </svg>
   );
