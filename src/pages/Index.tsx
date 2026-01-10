@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Activity, FileText, Pill, BookOpen, Users, Shield } from "lucide-react";
+import { FileText, Pill, BookOpen, Users, Shield, Stethoscope } from "lucide-react";
 import { Link } from "react-router-dom";
+import { EDoctorDeskLogo } from "@/components/EDoctorDeskLogo";
 
 const Index = () => {
   const features = [
@@ -11,7 +12,7 @@ const Index = () => {
       description: "Comprehensive patient records with complete medical history, medications, and social history"
     },
     {
-      icon: Activity,
+      icon: Stethoscope,
       title: "Visit Tracking",
       description: "Document patient visits with detailed HPI, vital signs, and physical examinations"
     },
@@ -44,7 +45,7 @@ const Index = () => {
         <div className="container mx-auto px-6 py-4">
           <nav className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Activity className="h-8 w-8 text-primary" />
+              <EDoctorDeskLogo className="h-8 w-8" />
               <h1 className="text-2xl font-bold text-primary">eDoctorDesk</h1>
             </div>
             <div className="flex gap-4">

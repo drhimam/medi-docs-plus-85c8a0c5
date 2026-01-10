@@ -3,7 +3,6 @@ import { Navigate, Route, Routes, Link, useNavigate, useLocation } from "react-r
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { 
-  Activity, 
   Users, 
   BookOpen, 
   LogOut,
@@ -24,8 +23,10 @@ import {
   CheckSquare,
   CalendarClock,
   Lock,
-  ClipboardList
+  ClipboardList,
+  Loader2
 } from "lucide-react";
+import { EDoctorDeskLogo } from "@/components/EDoctorDeskLogo";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -116,7 +117,7 @@ const Dashboard = () => {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
-          <Activity className="h-12 w-12 animate-pulse text-primary mx-auto mb-4" />
+          <EDoctorDeskLogo className="h-12 w-12 mx-auto mb-4" animate />
           <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
@@ -138,9 +139,8 @@ const Dashboard = () => {
       {/* Top Navigation Bar */}
       <header className="border-b bg-card">
         <div className="flex items-center justify-between px-4 md:px-6 py-4">
-          {/* Logo */}
           <div className="flex items-center gap-2">
-            <Activity className="h-6 w-6 md:h-7 md:w-7 text-primary" />
+            <EDoctorDeskLogo className="h-6 w-6 md:h-7 md:w-7" />
             <h1 className="text-lg md:text-xl font-bold text-foreground">eDoctorDesk</h1>
           </div>
 
@@ -207,7 +207,7 @@ const Dashboard = () => {
               <SheetContent side="left" className="w-[280px] sm:w-[320px]">
                 <SheetHeader>
                   <SheetTitle className="flex items-center gap-2">
-                    <Activity className="h-6 w-6 text-primary" />
+                    <EDoctorDeskLogo className="h-6 w-6" />
                     <span>eDoctorDesk</span>
                   </SheetTitle>
                 </SheetHeader>
@@ -410,7 +410,7 @@ const Dashboard = () => {
       <main className="flex-1 overflow-auto p-4 md:p-6">
         <Suspense fallback={
           <div className="flex items-center justify-center py-12">
-            <Activity className="h-8 w-8 animate-pulse text-primary" />
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         }>
           <Routes>
