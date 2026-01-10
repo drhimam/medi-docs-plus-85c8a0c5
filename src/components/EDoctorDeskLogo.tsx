@@ -17,27 +17,33 @@ export const EDoctorDeskLogo = ({ className, animate = false }: EDoctorDeskLogoP
         className
       )}
     >
-      {/* Simple stethoscope icon */}
-      <path
-        d="M4.5 4.5C4.5 3.67 5.17 3 6 3C6.83 3 7.5 3.67 7.5 4.5V10C7.5 12.48 9.52 14.5 12 14.5C14.48 14.5 16.5 12.48 16.5 10V4.5C16.5 3.67 17.17 3 18 3C18.83 3 19.5 3.67 19.5 4.5"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <circle
-        cx="12"
-        cy="18"
-        r="3"
-        stroke="currentColor"
-        strokeWidth="2"
+      {/* Modern rounded square background */}
+      <rect
+        x="2"
+        y="2"
+        width="20"
+        height="20"
+        rx="5"
         fill="currentColor"
-        fillOpacity="0.2"
-      />
-      <path
-        d="M12 14.5V15"
+        fillOpacity="0.1"
         stroke="currentColor"
-        strokeWidth="2"
+        strokeWidth="1.5"
+      />
+      {/* Medical cross */}
+      <path
+        d="M12 6V18M6 12H18"
+        stroke="currentColor"
+        strokeWidth="2.5"
         strokeLinecap="round"
+      />
+      {/* Heartbeat pulse overlay */}
+      <path
+        d="M6 12L8.5 12L10 9L12 15L14 9L15.5 12L18 12"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
       />
     </svg>
   );
