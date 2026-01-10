@@ -11,8 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Activity, CheckCircle, AlertCircle, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { CheckCircle, AlertCircle, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { EDoctorDeskLogo } from "@/components/EDoctorDeskLogo";
 
 const patientSchema = z.object({
   first_name: z.string().min(1, "First name is required").max(100),
@@ -197,7 +198,7 @@ const PatientIntake = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="text-center">
-          <Activity className="h-12 w-12 animate-pulse text-primary mx-auto mb-4" />
+          <EDoctorDeskLogo className="h-12 w-12 mx-auto mb-4" animate />
           <p className="text-muted-foreground">Loading intake form...</p>
         </div>
       </div>
@@ -260,7 +261,7 @@ const PatientIntake = () => {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
-            <Activity className="h-8 w-8 text-primary" />
+            <EDoctorDeskLogo className="h-8 w-8" />
             <h1 className="text-2xl font-bold text-foreground">eDoctorDesk</h1>
           </div>
           <h2 className="text-xl text-muted-foreground">Patient Intake Form</h2>
