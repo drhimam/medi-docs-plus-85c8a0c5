@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -11,8 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { CheckCircle, AlertCircle, Clock, ChevronLeft, ChevronRight, ListPlus, Save, AlertTriangle } from "lucide-react";
+import { CheckCircle, AlertCircle, Clock, ChevronLeft, ChevronRight, ListPlus, Save, AlertTriangle, Printer, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { EDoctorDeskLogo } from "@/components/EDoctorDeskLogo";
 import {
@@ -106,6 +107,10 @@ const PatientIntake = () => {
   const [showSubmitWarning, setShowSubmitWarning] = useState(false);
   const [noKnownAllergies, setNoKnownAllergies] = useState(false);
   const [hasSavedDraft, setHasSavedDraft] = useState(false);
+  const [lastAutoSave, setLastAutoSave] = useState<Date | null>(null);
+  const [isAutoSaving, setIsAutoSaving] = useState(false);
+  const autoSaveIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const printRef = useRef<HTMLDivElement>(null);
 
   // Dialog states for Medical History (Step 2)
   const [showOngoingConditionsDialog, setShowOngoingConditionsDialog] = useState(false);
@@ -190,6 +195,9 @@ const PatientIntake = () => {
           reset(draftData.formData);
           setCurrentStep(draftData.currentStep || 1);
           setHasSavedDraft(true);
+          if (draftData.savedAt) {
+            setLastAutoSave(new Date(draftData.savedAt));
+          }
           toast.info("Previous progress restored! Continue where you left off.");
         } catch (error) {
           console.error("Error loading saved draft:", error);
@@ -197,6 +205,73 @@ const PatientIntake = () => {
       }
     }
   }, [token, status, reset]);
+
+  // Auto-save every 30 seconds
+  const performAutoSave = useCallback(() => {
+    const data = watch();
+    const hasAnyData = data.first_name || data.last_name || data.contact_number;
+    if (hasAnyData && token && status === "valid") {
+      setIsAutoSaving(true);
+      localStorage.setItem(`patient_intake_draft_${token}`, JSON.stringify({
+        formData: data,
+        currentStep,
+        savedAt: new Date().toISOString()
+      }));
+      setLastAutoSave(new Date());
+      setHasSavedDraft(true);
+      setTimeout(() => setIsAutoSaving(false), 1000);
+    }
+  }, [token, currentStep, status, watch]);
+
+  useEffect(() => {
+    if (status === "valid") {
+      autoSaveIntervalRef.current = setInterval(() => {
+        performAutoSave();
+      }, 30000); // Auto-save every 30 seconds
+    }
+
+    return () => {
+      if (autoSaveIntervalRef.current) {
+        clearInterval(autoSaveIntervalRef.current);
+      }
+    };
+  }, [status, performAutoSave]);
+
+  // Calculate completion percentage
+  const calculateCompletionPercentage = useCallback(() => {
+    const data = watch();
+    const allFields = [
+      "first_name", "last_name", "date_of_birth", "gender", "contact_number",
+      "email", "address", "blood_group", "health_card_number",
+      "medical_history_ongoing", "medical_history_past", "surgical_history",
+      "hospitalization_history", "family_history", "mental_health_history",
+      "birth_history", "developmental_history", "childhood_illnesses",
+      "accidents_injuries", "preventive_screening_history",
+      "ongoing_medications", "supplements", "vaccinations",
+      "allergic_history_food", "allergic_history_drug", "allergic_history_env",
+      "smoking_status", "alcohol_consumption", "recreational_drug_use",
+      "exercise_habits", "diet", "occupation", "living_environment"
+    ];
+
+    // Required fields have more weight
+    const requiredFields = ["first_name", "last_name", "date_of_birth", "gender", "contact_number", "smoking_status", "alcohol_consumption"];
+    
+    let filledCount = 0;
+    let totalWeight = 0;
+
+    allFields.forEach(field => {
+      const isRequired = requiredFields.includes(field);
+      const weight = isRequired ? 2 : 1;
+      totalWeight += weight;
+      
+      const value = data[field as keyof PatientFormData];
+      if (value && value !== "") {
+        filledCount += weight;
+      }
+    });
+
+    return Math.round((filledCount / totalWeight) * 100);
+  }, [watch]);
 
   const checkIntakeStatus = async () => {
     if (!token) {
@@ -243,12 +318,14 @@ const PatientIntake = () => {
     const isValid = await trigger(requiredFields as (keyof PatientFormData)[]);
     if (isValid && currentStep < STEPS.length) {
       setCurrentStep(currentStep + 1);
+      performAutoSave(); // Save on step change
     }
   };
 
   const handlePrevious = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
+      performAutoSave(); // Save on step change
     }
   };
 
@@ -260,7 +337,50 @@ const PatientIntake = () => {
       savedAt: new Date().toISOString()
     }));
     setHasSavedDraft(true);
+    setLastAutoSave(new Date());
     toast.success("Progress saved! You can come back and continue later.");
+  };
+
+  const handlePrint = () => {
+    const printContent = printRef.current;
+    if (!printContent) return;
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast.error("Please allow popups to print");
+      return;
+    }
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Patient Intake Form</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; font-size: 12px; }
+            .print-form { max-width: 800px; margin: 0 auto; }
+            .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 10px; }
+            .header h1 { margin: 0; font-size: 20px; }
+            .header p { margin: 5px 0 0; color: #666; }
+            h2 { font-size: 14px; border-bottom: 1px solid #ccc; padding-bottom: 4px; margin-top: 16px; color: #333; }
+            .section { margin-bottom: 20px; }
+            .field { margin-bottom: 8px; }
+            .field-label { font-weight: bold; display: inline-block; min-width: 180px; }
+            .field-value { display: inline-block; }
+            .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+            .full-width { grid-column: span 2; }
+            .empty-value { color: #999; font-style: italic; }
+            .signature-section { margin-top: 40px; padding-top: 20px; border-top: 2px solid #000; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+            .signature-line { border-bottom: 1px solid #000; margin-top: 50px; text-align: center; padding-top: 5px; }
+            .date-printed { text-align: right; font-size: 10px; color: #666; margin-bottom: 10px; }
+            @media print { @page { margin: 0.5in; } }
+          </style>
+        </head>
+        <body>${printContent.innerHTML}</body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
   };
 
   const handleSubmitClick = async () => {
@@ -358,26 +478,58 @@ const PatientIntake = () => {
   }
 
   const formData = watch();
+  const completionPercentage = calculateCompletionPercentage();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
       <div className="max-w-3xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <div className="flex items-center justify-center gap-2 mb-4">
             <EDoctorDeskLogo className="h-8 w-8" />
             <h1 className="text-2xl font-bold text-foreground">eDoctorDesk</h1>
           </div>
           <h2 className="text-xl text-muted-foreground">Patient Intake Form</h2>
-          {hasSavedDraft && (
-            <Badge variant="secondary" className="mt-2">
-              <Save className="h-3 w-3 mr-1" />
-              Progress saved
-            </Badge>
-          )}
+          <div className="flex items-center justify-center gap-2 mt-2">
+            {isAutoSaving && (
+              <Badge variant="outline" className="animate-pulse">
+                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                Auto-saving...
+              </Badge>
+            )}
+            {hasSavedDraft && !isAutoSaving && (
+              <Badge variant="secondary">
+                <Save className="h-3 w-3 mr-1" />
+                {lastAutoSave ? `Saved ${lastAutoSave.toLocaleTimeString()}` : "Progress saved"}
+              </Badge>
+            )}
+          </div>
         </div>
 
-        {/* Progress */}
+        {/* Completion Progress */}
+        <Card className="mb-6">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium">Form Completion</span>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-primary">{completionPercentage}%</span>
+                <Button type="button" variant="outline" size="sm" onClick={handlePrint}>
+                  <Printer className="h-4 w-4 mr-2" />
+                  Print Form
+                </Button>
+              </div>
+            </div>
+            <Progress value={completionPercentage} className="h-2" />
+            <p className="text-xs text-muted-foreground mt-1">
+              {completionPercentage < 30 && "Just getting started - keep going!"}
+              {completionPercentage >= 30 && completionPercentage < 60 && "Great progress! You're almost halfway there."}
+              {completionPercentage >= 60 && completionPercentage < 90 && "Excellent! Just a few more sections to complete."}
+              {completionPercentage >= 90 && "Almost done! Review your information before submitting."}
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Step Progress */}
         <div className="flex justify-center mb-8">
           <div className="flex items-center gap-2">
             {STEPS.map((step, index) => (
@@ -964,6 +1116,190 @@ const PatientIntake = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Hidden Printable Form */}
+      <div className="hidden">
+        <div ref={printRef} className="print-form">
+          <div className="date-printed">Printed on: {new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()}</div>
+          <div className="header">
+            <h1>Patient Intake Form</h1>
+            <p>eDoctorDesk - Medical Records</p>
+          </div>
+
+          <div className="section">
+            <h2>Personal Information</h2>
+            <div className="grid">
+              <div className="field">
+                <span className="field-label">Full Name:</span>
+                <span className="field-value">{formData.first_name} {formData.last_name || <span className="empty-value">Not provided</span>}</span>
+              </div>
+              <div className="field">
+                <span className="field-label">Date of Birth:</span>
+                <span className="field-value">{formData.date_of_birth || <span className="empty-value">Not provided</span>}</span>
+              </div>
+              <div className="field">
+                <span className="field-label">Gender:</span>
+                <span className="field-value">{formData.gender || <span className="empty-value">Not provided</span>}</span>
+              </div>
+              <div className="field">
+                <span className="field-label">Contact Number:</span>
+                <span className="field-value">{formData.contact_number || <span className="empty-value">Not provided</span>}</span>
+              </div>
+              <div className="field">
+                <span className="field-label">Email:</span>
+                <span className="field-value">{formData.email || <span className="empty-value">Not provided</span>}</span>
+              </div>
+              <div className="field">
+                <span className="field-label">Blood Group:</span>
+                <span className="field-value">{formData.blood_group || <span className="empty-value">Not provided</span>}</span>
+              </div>
+              <div className="field full-width">
+                <span className="field-label">Address:</span>
+                <span className="field-value">{formData.address || <span className="empty-value">Not provided</span>}</span>
+              </div>
+              <div className="field">
+                <span className="field-label">Health Card Number:</span>
+                <span className="field-value">{formData.health_card_number || <span className="empty-value">Not provided</span>}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="section">
+            <h2>Medical History</h2>
+            <div className="field full-width">
+              <span className="field-label">Ongoing Conditions:</span>
+              <span className="field-value">{formData.medical_history_ongoing || <span className="empty-value">None reported</span>}</span>
+            </div>
+            <div className="field full-width">
+              <span className="field-label">Past Medical History:</span>
+              <span className="field-value">{formData.medical_history_past || <span className="empty-value">None reported</span>}</span>
+            </div>
+            <div className="field full-width">
+              <span className="field-label">Surgical History:</span>
+              <span className="field-value">{formData.surgical_history || <span className="empty-value">None reported</span>}</span>
+            </div>
+            <div className="field full-width">
+              <span className="field-label">Hospitalization History:</span>
+              <span className="field-value">{formData.hospitalization_history || <span className="empty-value">None reported</span>}</span>
+            </div>
+            <div className="field full-width">
+              <span className="field-label">Family History:</span>
+              <span className="field-value">{formData.family_history || <span className="empty-value">None reported</span>}</span>
+            </div>
+            <div className="field full-width">
+              <span className="field-label">Mental Health History:</span>
+              <span className="field-value">{formData.mental_health_history || <span className="empty-value">None reported</span>}</span>
+            </div>
+          </div>
+
+          <div className="section">
+            <h2>Past History</h2>
+            <div className="field full-width">
+              <span className="field-label">Birth History:</span>
+              <span className="field-value">{formData.birth_history || <span className="empty-value">Not provided</span>}</span>
+            </div>
+            <div className="field full-width">
+              <span className="field-label">Developmental History:</span>
+              <span className="field-value">{formData.developmental_history || <span className="empty-value">Not provided</span>}</span>
+            </div>
+            <div className="field full-width">
+              <span className="field-label">Childhood Illnesses:</span>
+              <span className="field-value">{formData.childhood_illnesses || <span className="empty-value">None reported</span>}</span>
+            </div>
+            <div className="field full-width">
+              <span className="field-label">Accidents/Injuries:</span>
+              <span className="field-value">{formData.accidents_injuries || <span className="empty-value">None reported</span>}</span>
+            </div>
+            {formData.gender === "FEMALE" && (
+              <div className="field full-width">
+                <span className="field-label">Menstrual/Pregnancy History:</span>
+                <span className="field-value">{formData.menstrual_pregnancy_history || <span className="empty-value">Not provided</span>}</span>
+              </div>
+            )}
+            <div className="field full-width">
+              <span className="field-label">Preventive Screening:</span>
+              <span className="field-value">{formData.preventive_screening_history || <span className="empty-value">None reported</span>}</span>
+            </div>
+          </div>
+
+          <div className="section">
+            <h2>Medications & Supplements</h2>
+            <div className="field full-width">
+              <span className="field-label">Current Medications:</span>
+              <span className="field-value">{formData.ongoing_medications || <span className="empty-value">None</span>}</span>
+            </div>
+            <div className="field full-width">
+              <span className="field-label">Supplements:</span>
+              <span className="field-value">{formData.supplements || <span className="empty-value">None</span>}</span>
+            </div>
+            <div className="field full-width">
+              <span className="field-label">Vaccinations:</span>
+              <span className="field-value">{formData.vaccinations || <span className="empty-value">None reported</span>}</span>
+            </div>
+          </div>
+
+          <div className="section">
+            <h2>Allergies</h2>
+            <div className="field full-width">
+              <span className="field-label">Drug Allergies:</span>
+              <span className="field-value">{formData.allergic_history_drug || <span className="empty-value">None known</span>}</span>
+            </div>
+            <div className="field full-width">
+              <span className="field-label">Food Allergies:</span>
+              <span className="field-value">{formData.allergic_history_food || <span className="empty-value">None known</span>}</span>
+            </div>
+            <div className="field full-width">
+              <span className="field-label">Environmental Allergies:</span>
+              <span className="field-value">{formData.allergic_history_env || <span className="empty-value">None known</span>}</span>
+            </div>
+          </div>
+
+          <div className="section">
+            <h2>Lifestyle & Social History</h2>
+            <div className="grid">
+              <div className="field">
+                <span className="field-label">Smoking Status:</span>
+                <span className="field-value">{formData.smoking_status || <span className="empty-value">Not provided</span>}</span>
+              </div>
+              <div className="field">
+                <span className="field-label">Alcohol Consumption:</span>
+                <span className="field-value">{formData.alcohol_consumption || <span className="empty-value">Not provided</span>}</span>
+              </div>
+            </div>
+            <div className="field full-width">
+              <span className="field-label">Recreational Drug Use:</span>
+              <span className="field-value">{formData.recreational_drug_use || <span className="empty-value">None</span>}</span>
+            </div>
+            <div className="field full-width">
+              <span className="field-label">Exercise Habits:</span>
+              <span className="field-value">{formData.exercise_habits || <span className="empty-value">Not provided</span>}</span>
+            </div>
+            <div className="field full-width">
+              <span className="field-label">Diet:</span>
+              <span className="field-value">{formData.diet || <span className="empty-value">Not provided</span>}</span>
+            </div>
+            <div className="grid">
+              <div className="field">
+                <span className="field-label">Occupation:</span>
+                <span className="field-value">{formData.occupation || <span className="empty-value">Not provided</span>}</span>
+              </div>
+              <div className="field">
+                <span className="field-label">Living Environment:</span>
+                <span className="field-value">{formData.living_environment || <span className="empty-value">Not provided</span>}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="signature-section">
+            <div>
+              <div className="signature-line">Patient Signature</div>
+            </div>
+            <div>
+              <div className="signature-line">Date</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
