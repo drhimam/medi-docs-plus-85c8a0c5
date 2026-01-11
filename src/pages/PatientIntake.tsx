@@ -10,10 +10,42 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { CheckCircle, AlertCircle, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { CheckCircle, AlertCircle, Clock, ChevronLeft, ChevronRight, ListPlus, Save, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { EDoctorDeskLogo } from "@/components/EDoctorDeskLogo";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+// Import dialogs
+import { OngoingConditionsDialog } from "@/components/patient/OngoingConditionsDialog";
+import { PastConditionsDialog } from "@/components/patient/PastConditionsDialog";
+import { SurgicalHistoryDialog } from "@/components/patient/SurgicalHistoryDialog";
+import { HospitalizationHistoryDialog } from "@/components/patient/HospitalizationHistoryDialog";
+import FamilyHistoryDialog from "@/components/patient/FamilyHistoryDialog";
+import { MentalHealthHistoryDialog } from "@/components/patient/MentalHealthHistoryDialog";
+import { BirthHistoryDialog } from "@/components/patient/BirthHistoryDialog";
+import { DevelopmentalHistoryDialog } from "@/components/patient/DevelopmentalHistoryDialog";
+import { ChildhoodIllnessesDialog } from "@/components/patient/ChildhoodIllnessesDialog";
+import { AccidentsInjuriesDialog } from "@/components/patient/AccidentsInjuriesDialog";
+import { PreventiveScreeningDialog } from "@/components/patient/PreventiveScreeningDialog";
+import { MenstrualPregnancyHistoryDialog } from "@/components/patient/MenstrualPregnancyHistoryDialog";
+import { MedicationsDialog } from "@/components/patient/MedicationsDialog";
+import { SupplementsDialog } from "@/components/patient/SupplementsDialog";
+import { VaccinationHistoryDialog } from "@/components/patient/VaccinationHistoryDialog";
+import { DrugAllergyDialog } from "@/components/patient/DrugAllergyDialog";
+import { FoodAllergyDialog } from "@/components/patient/FoodAllergyDialog";
+import { EnvironmentalAllergyDialog } from "@/components/patient/EnvironmentalAllergyDialog";
+import { SocialHistoryDialog, SocialHistoryData } from "@/components/patient/SocialHistoryDialog";
 
 const patientSchema = z.object({
   first_name: z.string().min(1, "First name is required").max(100),
@@ -71,8 +103,40 @@ const PatientIntake = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [status, setStatus] = useState<"valid" | "expired" | "submitted" | "not_found">("valid");
   const [submission, setSubmission] = useState<any>(null);
+  const [showSubmitWarning, setShowSubmitWarning] = useState(false);
+  const [noKnownAllergies, setNoKnownAllergies] = useState(false);
+  const [hasSavedDraft, setHasSavedDraft] = useState(false);
 
-  const { register, handleSubmit, watch, setValue, formState: { errors }, trigger } = useForm<PatientFormData>({
+  // Dialog states for Medical History (Step 2)
+  const [showOngoingConditionsDialog, setShowOngoingConditionsDialog] = useState(false);
+  const [showPastConditionsDialog, setShowPastConditionsDialog] = useState(false);
+  const [showSurgicalHistoryDialog, setShowSurgicalHistoryDialog] = useState(false);
+  const [showHospitalizationDialog, setShowHospitalizationDialog] = useState(false);
+  const [showFamilyHistoryDialog, setShowFamilyHistoryDialog] = useState(false);
+  const [showMentalHealthDialog, setShowMentalHealthDialog] = useState(false);
+
+  // Dialog states for Past History (Step 3)
+  const [showBirthHistoryDialog, setShowBirthHistoryDialog] = useState(false);
+  const [showDevelopmentalHistoryDialog, setShowDevelopmentalHistoryDialog] = useState(false);
+  const [showChildhoodIllnessesDialog, setShowChildhoodIllnessesDialog] = useState(false);
+  const [showAccidentsInjuriesDialog, setShowAccidentsInjuriesDialog] = useState(false);
+  const [showPreventiveScreeningDialog, setShowPreventiveScreeningDialog] = useState(false);
+  const [showMenstrualPregnancyDialog, setShowMenstrualPregnancyDialog] = useState(false);
+
+  // Dialog states for Medications (Step 4)
+  const [showMedicationsDialog, setShowMedicationsDialog] = useState(false);
+  const [showSupplementsDialog, setShowSupplementsDialog] = useState(false);
+  const [showVaccinationDialog, setShowVaccinationDialog] = useState(false);
+
+  // Dialog states for Allergies (Step 5)
+  const [showDrugAllergyDialog, setShowDrugAllergyDialog] = useState(false);
+  const [showFoodAllergyDialog, setShowFoodAllergyDialog] = useState(false);
+  const [showEnvAllergyDialog, setShowEnvAllergyDialog] = useState(false);
+
+  // Dialog state for Social History (Step 6)
+  const [showSocialHistoryDialog, setShowSocialHistoryDialog] = useState(false);
+
+  const { register, handleSubmit, watch, setValue, formState: { errors }, trigger, reset } = useForm<PatientFormData>({
     resolver: zodResolver(patientSchema),
     defaultValues: {
       first_name: "",
@@ -115,6 +179,24 @@ const PatientIntake = () => {
   useEffect(() => {
     checkIntakeStatus();
   }, [token]);
+
+  // Load saved draft from localStorage
+  useEffect(() => {
+    if (token && status === "valid") {
+      const savedDraft = localStorage.getItem(`patient_intake_draft_${token}`);
+      if (savedDraft) {
+        try {
+          const draftData = JSON.parse(savedDraft);
+          reset(draftData.formData);
+          setCurrentStep(draftData.currentStep || 1);
+          setHasSavedDraft(true);
+          toast.info("Previous progress restored! Continue where you left off.");
+        } catch (error) {
+          console.error("Error loading saved draft:", error);
+        }
+      }
+    }
+  }, [token, status, reset]);
 
   const checkIntakeStatus = async () => {
     if (!token) {
@@ -170,6 +252,24 @@ const PatientIntake = () => {
     }
   };
 
+  const handleSaveForLater = () => {
+    const data = formData;
+    localStorage.setItem(`patient_intake_draft_${token}`, JSON.stringify({
+      formData: data,
+      currentStep,
+      savedAt: new Date().toISOString()
+    }));
+    setHasSavedDraft(true);
+    toast.success("Progress saved! You can come back and continue later.");
+  };
+
+  const handleSubmitClick = async () => {
+    const isValid = await trigger();
+    if (isValid) {
+      setShowSubmitWarning(true);
+    }
+  };
+
   const onSubmit = async (data: PatientFormData) => {
     setSubmitting(true);
     try {
@@ -185,12 +285,16 @@ const PatientIntake = () => {
         throw new Error(response.data.error);
       }
 
+      // Clear saved draft on successful submission
+      localStorage.removeItem(`patient_intake_draft_${token}`);
+      
       setStatus("submitted");
       toast.success("Your intake form has been submitted successfully!");
     } catch (error: any) {
       toast.error(error.message || "Failed to submit intake form");
     } finally {
       setSubmitting(false);
+      setShowSubmitWarning(false);
     }
   };
 
@@ -265,6 +369,12 @@ const PatientIntake = () => {
             <h1 className="text-2xl font-bold text-foreground">eDoctorDesk</h1>
           </div>
           <h2 className="text-xl text-muted-foreground">Patient Intake Form</h2>
+          {hasSavedDraft && (
+            <Badge variant="secondary" className="mt-2">
+              <Save className="h-3 w-3 mr-1" />
+              Progress saved
+            </Badge>
+          )}
         </div>
 
         {/* Progress */}
@@ -374,28 +484,94 @@ const PatientIntake = () => {
               {currentStep === 2 && (
                 <div className="grid gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="medical_history_ongoing">Current/Ongoing Conditions</Label>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="medical_history_ongoing">Current/Ongoing Conditions</Label>
+                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowOngoingConditionsDialog(true)}>
+                        <ListPlus className="h-4 w-4" />
+                      </Button>
+                    </div>
                     <Textarea {...register("medical_history_ongoing")} placeholder="List any current medical conditions" rows={3} />
+                    <OngoingConditionsDialog
+                      open={showOngoingConditionsDialog}
+                      onOpenChange={setShowOngoingConditionsDialog}
+                      onInsert={(text) => setValue("medical_history_ongoing", text)}
+                      currentValue={formData.medical_history_ongoing}
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="medical_history_past">Past Medical Conditions</Label>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="medical_history_past">Past Medical Conditions</Label>
+                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowPastConditionsDialog(true)}>
+                        <ListPlus className="h-4 w-4" />
+                      </Button>
+                    </div>
                     <Textarea {...register("medical_history_past")} placeholder="List any past medical conditions" rows={3} />
+                    <PastConditionsDialog
+                      open={showPastConditionsDialog}
+                      onOpenChange={setShowPastConditionsDialog}
+                      onInsert={(text) => setValue("medical_history_past", text)}
+                      currentValue={formData.medical_history_past}
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="surgical_history">Surgical History</Label>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="surgical_history">Surgical History</Label>
+                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowSurgicalHistoryDialog(true)}>
+                        <ListPlus className="h-4 w-4" />
+                      </Button>
+                    </div>
                     <Textarea {...register("surgical_history")} placeholder="List any surgeries you've had" rows={3} />
+                    <SurgicalHistoryDialog
+                      open={showSurgicalHistoryDialog}
+                      onOpenChange={setShowSurgicalHistoryDialog}
+                      onInsert={(text) => setValue("surgical_history", text)}
+                      currentValue={formData.surgical_history}
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="hospitalization_history">Hospitalization History</Label>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="hospitalization_history">Hospitalization History</Label>
+                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowHospitalizationDialog(true)}>
+                        <ListPlus className="h-4 w-4" />
+                      </Button>
+                    </div>
                     <Textarea {...register("hospitalization_history")} placeholder="List any hospitalizations" rows={3} />
+                    <HospitalizationHistoryDialog
+                      open={showHospitalizationDialog}
+                      onOpenChange={setShowHospitalizationDialog}
+                      onInsert={(text) => setValue("hospitalization_history", text)}
+                      currentValue={formData.hospitalization_history}
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="family_history">Family Medical History</Label>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="family_history">Family Medical History</Label>
+                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowFamilyHistoryDialog(true)}>
+                        <ListPlus className="h-4 w-4" />
+                      </Button>
+                    </div>
                     <Textarea {...register("family_history")} placeholder="List any relevant family medical history" rows={3} />
+                    <FamilyHistoryDialog
+                      open={showFamilyHistoryDialog}
+                      onOpenChange={setShowFamilyHistoryDialog}
+                      onInsert={(text) => setValue("family_history", text)}
+                      currentValue={formData.family_history || ""}
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="mental_health_history">Mental Health History</Label>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="mental_health_history">Mental Health History</Label>
+                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowMentalHealthDialog(true)}>
+                        <ListPlus className="h-4 w-4" />
+                      </Button>
+                    </div>
                     <Textarea {...register("mental_health_history")} placeholder="Any mental health conditions or treatments" rows={3} />
+                    <MentalHealthHistoryDialog
+                      open={showMentalHealthDialog}
+                      onOpenChange={setShowMentalHealthDialog}
+                      onInsert={(text) => setValue("mental_health_history", text)}
+                      currentValue={formData.mental_health_history}
+                    />
                   </div>
                 </div>
               )}
@@ -404,30 +580,96 @@ const PatientIntake = () => {
               {currentStep === 3 && (
                 <div className="grid gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="birth_history">Birth History</Label>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="birth_history">Birth History</Label>
+                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowBirthHistoryDialog(true)}>
+                        <ListPlus className="h-4 w-4" />
+                      </Button>
+                    </div>
                     <Textarea {...register("birth_history")} placeholder="Birth history details (if relevant)" rows={3} />
+                    <BirthHistoryDialog
+                      open={showBirthHistoryDialog}
+                      onOpenChange={setShowBirthHistoryDialog}
+                      onInsert={(text) => setValue("birth_history", text)}
+                      currentValue={formData.birth_history}
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="developmental_history">Developmental History</Label>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="developmental_history">Developmental History</Label>
+                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowDevelopmentalHistoryDialog(true)}>
+                        <ListPlus className="h-4 w-4" />
+                      </Button>
+                    </div>
                     <Textarea {...register("developmental_history")} placeholder="Developmental milestones (if relevant)" rows={3} />
+                    <DevelopmentalHistoryDialog
+                      open={showDevelopmentalHistoryDialog}
+                      onOpenChange={setShowDevelopmentalHistoryDialog}
+                      onInsert={(text) => setValue("developmental_history", text)}
+                      currentValue={formData.developmental_history}
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="childhood_illnesses">Childhood Illnesses</Label>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="childhood_illnesses">Childhood Illnesses</Label>
+                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowChildhoodIllnessesDialog(true)}>
+                        <ListPlus className="h-4 w-4" />
+                      </Button>
+                    </div>
                     <Textarea {...register("childhood_illnesses")} placeholder="Any significant childhood illnesses" rows={3} />
+                    <ChildhoodIllnessesDialog
+                      open={showChildhoodIllnessesDialog}
+                      onOpenChange={setShowChildhoodIllnessesDialog}
+                      onInsert={(text) => setValue("childhood_illnesses", text)}
+                      currentValue={formData.childhood_illnesses}
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="accidents_injuries">Accidents/Injuries</Label>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="accidents_injuries">Accidents/Injuries</Label>
+                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowAccidentsInjuriesDialog(true)}>
+                        <ListPlus className="h-4 w-4" />
+                      </Button>
+                    </div>
                     <Textarea {...register("accidents_injuries")} placeholder="Any significant accidents or injuries" rows={3} />
+                    <AccidentsInjuriesDialog
+                      open={showAccidentsInjuriesDialog}
+                      onOpenChange={setShowAccidentsInjuriesDialog}
+                      onInsert={(text) => setValue("accidents_injuries", text)}
+                      currentValue={formData.accidents_injuries}
+                    />
                   </div>
                   {formData.gender === "FEMALE" && (
                     <div className="space-y-2">
-                      <Label htmlFor="menstrual_pregnancy_history">Menstrual/Pregnancy History</Label>
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor="menstrual_pregnancy_history">Menstrual/Pregnancy History</Label>
+                        <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowMenstrualPregnancyDialog(true)}>
+                          <ListPlus className="h-4 w-4" />
+                        </Button>
+                      </div>
                       <Textarea {...register("menstrual_pregnancy_history")} placeholder="Menstrual and pregnancy history" rows={3} />
+                      <MenstrualPregnancyHistoryDialog
+                        open={showMenstrualPregnancyDialog}
+                        onOpenChange={setShowMenstrualPregnancyDialog}
+                        onInsert={(text) => setValue("menstrual_pregnancy_history", text)}
+                        currentValue={formData.menstrual_pregnancy_history}
+                      />
                     </div>
                   )}
                   <div className="space-y-2">
-                    <Label htmlFor="preventive_screening_history">Preventive Screening History</Label>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="preventive_screening_history">Preventive Screening History</Label>
+                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowPreventiveScreeningDialog(true)}>
+                        <ListPlus className="h-4 w-4" />
+                      </Button>
+                    </div>
                     <Textarea {...register("preventive_screening_history")} placeholder="Recent screenings (mammogram, colonoscopy, etc.)" rows={3} />
+                    <PreventiveScreeningDialog
+                      open={showPreventiveScreeningDialog}
+                      onOpenChange={setShowPreventiveScreeningDialog}
+                      onInsert={(text) => setValue("preventive_screening_history", text)}
+                      currentValue={formData.preventive_screening_history}
+                    />
                   </div>
                 </div>
               )}
@@ -436,16 +678,52 @@ const PatientIntake = () => {
               {currentStep === 4 && (
                 <div className="grid gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="ongoing_medications">Current Medications</Label>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="ongoing_medications">Current Medications</Label>
+                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowMedicationsDialog(true)}>
+                        <ListPlus className="h-4 w-4" />
+                      </Button>
+                    </div>
                     <Textarea {...register("ongoing_medications")} placeholder="List all current medications (name, dose, frequency)" rows={4} />
+                    <p className="text-sm text-muted-foreground">Separate multiple items with commas</p>
+                    <MedicationsDialog
+                      open={showMedicationsDialog}
+                      onOpenChange={setShowMedicationsDialog}
+                      onInsert={(text) => setValue("ongoing_medications", text)}
+                      currentValue={formData.ongoing_medications}
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="supplements">Supplements & Vitamins</Label>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="supplements">Supplements & Vitamins</Label>
+                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowSupplementsDialog(true)}>
+                        <ListPlus className="h-4 w-4" />
+                      </Button>
+                    </div>
                     <Textarea {...register("supplements")} placeholder="List any supplements or vitamins you take" rows={3} />
+                    <p className="text-sm text-muted-foreground">Separate multiple items with commas</p>
+                    <SupplementsDialog
+                      open={showSupplementsDialog}
+                      onOpenChange={setShowSupplementsDialog}
+                      onInsert={(text) => setValue("supplements", text)}
+                      currentValue={formData.supplements}
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="vaccinations">Vaccination History</Label>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="vaccinations">Vaccination History</Label>
+                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowVaccinationDialog(true)}>
+                        <ListPlus className="h-4 w-4" />
+                      </Button>
+                    </div>
                     <Textarea {...register("vaccinations")} placeholder="List recent vaccinations" rows={3} />
+                    <p className="text-sm text-muted-foreground">Separate multiple items with commas</p>
+                    <VaccinationHistoryDialog
+                      open={showVaccinationDialog}
+                      onOpenChange={setShowVaccinationDialog}
+                      onInsert={(text) => setValue("vaccinations", text)}
+                      currentValue={formData.vaccinations}
+                    />
                   </div>
                 </div>
               )}
@@ -453,85 +731,188 @@ const PatientIntake = () => {
               {/* Step 5: Allergies */}
               {currentStep === 5 && (
                 <div className="grid gap-4">
+                  <div className="flex items-center space-x-2 p-3 bg-muted/50 rounded-md">
+                    <Checkbox
+                      id="nkda"
+                      checked={noKnownAllergies}
+                      onCheckedChange={(checked) => {
+                        setNoKnownAllergies(checked === true);
+                        if (checked) {
+                          setValue("allergic_history_drug", "NKDA (No Known Drug Allergies)");
+                          setValue("allergic_history_food", "NKFA (No Known Food Allergies)");
+                          setValue("allergic_history_env", "NKEA (No Known Environmental Allergies)");
+                        } else {
+                          setValue("allergic_history_drug", "");
+                          setValue("allergic_history_food", "");
+                          setValue("allergic_history_env", "");
+                        }
+                      }}
+                    />
+                    <Label htmlFor="nkda" className="font-medium cursor-pointer">
+                      No Known Allergies (NKDA)
+                    </Label>
+                  </div>
                   <div className="space-y-2">
-                    <Label htmlFor="allergic_history_drug">Drug Allergies</Label>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="allergic_history_drug">Drug Allergies</Label>
+                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowDrugAllergyDialog(true)}>
+                        <ListPlus className="h-4 w-4" />
+                      </Button>
+                    </div>
                     <Textarea {...register("allergic_history_drug")} placeholder="List any drug allergies and reactions" rows={3} />
+                    <p className="text-sm text-muted-foreground">Separate multiple items with commas</p>
+                    <DrugAllergyDialog
+                      open={showDrugAllergyDialog}
+                      onOpenChange={setShowDrugAllergyDialog}
+                      onInsert={(text) => setValue("allergic_history_drug", text)}
+                      currentValue={formData.allergic_history_drug}
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="allergic_history_food">Food Allergies</Label>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="allergic_history_food">Food Allergies</Label>
+                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowFoodAllergyDialog(true)}>
+                        <ListPlus className="h-4 w-4" />
+                      </Button>
+                    </div>
                     <Textarea {...register("allergic_history_food")} placeholder="List any food allergies and reactions" rows={3} />
+                    <p className="text-sm text-muted-foreground">Separate multiple items with commas</p>
+                    <FoodAllergyDialog
+                      open={showFoodAllergyDialog}
+                      onOpenChange={setShowFoodAllergyDialog}
+                      onInsert={(text) => setValue("allergic_history_food", text)}
+                      currentValue={formData.allergic_history_food}
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="allergic_history_env">Environmental Allergies</Label>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="allergic_history_env">Environmental Allergies</Label>
+                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowEnvAllergyDialog(true)}>
+                        <ListPlus className="h-4 w-4" />
+                      </Button>
+                    </div>
                     <Textarea {...register("allergic_history_env")} placeholder="List any environmental allergies (pollen, dust, etc.)" rows={3} />
+                    <p className="text-sm text-muted-foreground">Separate multiple items with commas</p>
+                    <EnvironmentalAllergyDialog
+                      open={showEnvAllergyDialog}
+                      onOpenChange={setShowEnvAllergyDialog}
+                      onInsert={(text) => setValue("allergic_history_env", text)}
+                      currentValue={formData.allergic_history_env}
+                    />
                   </div>
                 </div>
               )}
 
               {/* Step 6: Lifestyle */}
               {currentStep === 6 && (
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="smoking_status">Smoking Status *</Label>
-                    <Select value={formData.smoking_status} onValueChange={(value) => setValue("smoking_status", value as any)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="NEVER">Never Smoked</SelectItem>
-                        <SelectItem value="FORMER">Former Smoker</SelectItem>
-                        <SelectItem value="CURRENT">Current Smoker</SelectItem>
-                      </SelectContent>
-                    </Select>
+                <div className="grid gap-4">
+                  <div className="flex justify-end">
+                    <Button type="button" variant="outline" size="sm" onClick={() => setShowSocialHistoryDialog(true)}>
+                      <ListPlus className="h-4 w-4 mr-2" />
+                      Use Preset
+                    </Button>
+                    <SocialHistoryDialog
+                      open={showSocialHistoryDialog}
+                      onOpenChange={setShowSocialHistoryDialog}
+                      onInsert={(data: SocialHistoryData) => {
+                        if (data.smokingStatus) {
+                          setValue("smoking_status", data.smokingStatus as "NEVER" | "FORMER" | "CURRENT");
+                        }
+                        if (data.alcoholConsumption) {
+                          setValue("alcohol_consumption", data.alcoholConsumption as "NEVER" | "OCCASIONAL" | "MODERATE" | "HEAVY");
+                        }
+                        if (data.recreationalDrugUse) {
+                          setValue("recreational_drug_use", data.recreationalDrugUse);
+                        }
+                        if (data.exerciseHabits) {
+                          setValue("exercise_habits", data.exerciseHabits);
+                        }
+                        if (data.diet) {
+                          setValue("diet", data.diet);
+                        }
+                        if (data.livingEnvironment) {
+                          setValue("living_environment", data.livingEnvironment);
+                        }
+                      }}
+                    />
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="smoking_status">Smoking Status *</Label>
+                      <Select value={formData.smoking_status} onValueChange={(value) => setValue("smoking_status", value as any)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="NEVER">Never Smoked</SelectItem>
+                          <SelectItem value="FORMER">Former Smoker</SelectItem>
+                          <SelectItem value="CURRENT">Current Smoker</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="alcohol_consumption">Alcohol Consumption *</Label>
+                      <Select value={formData.alcohol_consumption} onValueChange={(value) => setValue("alcohol_consumption", value as any)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select consumption" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="NEVER">Never</SelectItem>
+                          <SelectItem value="OCCASIONAL">Occasional</SelectItem>
+                          <SelectItem value="MODERATE">Moderate</SelectItem>
+                          <SelectItem value="HEAVY">Heavy</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="alcohol_consumption">Alcohol Consumption *</Label>
-                    <Select value={formData.alcohol_consumption} onValueChange={(value) => setValue("alcohol_consumption", value as any)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select consumption" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="NEVER">Never</SelectItem>
-                        <SelectItem value="OCCASIONAL">Occasional</SelectItem>
-                        <SelectItem value="MODERATE">Moderate</SelectItem>
-                        <SelectItem value="HEAVY">Heavy</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2 md:col-span-2">
                     <Label htmlFor="recreational_drug_use">Recreational Drug Use</Label>
                     <Textarea {...register("recreational_drug_use")} placeholder="Any recreational drug use (current or past)" rows={2} />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="exercise_habits">Exercise Habits</Label>
-                    <Textarea {...register("exercise_habits")} placeholder="Describe your exercise routine" rows={2} />
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="exercise_habits">Exercise Habits</Label>
+                      <Textarea {...register("exercise_habits")} placeholder="Describe your exercise routine" rows={2} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="diet">Diet</Label>
+                      <Textarea {...register("diet")} placeholder="Describe your typical diet" rows={2} />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="diet">Diet</Label>
-                    <Textarea {...register("diet")} placeholder="Describe your typical diet" rows={2} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="occupation">Occupation</Label>
-                    <Input {...register("occupation")} placeholder="Your occupation" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="living_environment">Living Environment</Label>
-                    <Input {...register("living_environment")} placeholder="Describe your living situation" />
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="occupation">Occupation</Label>
+                      <Input {...register("occupation")} placeholder="Your occupation" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="living_environment">Living Environment</Label>
+                      <Input {...register("living_environment")} placeholder="Describe your living situation" />
+                    </div>
                   </div>
                 </div>
               )}
 
               {/* Navigation Buttons */}
-              <div className="flex justify-between mt-8">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handlePrevious}
-                  disabled={currentStep === 1}
-                >
-                  <ChevronLeft className="h-4 w-4 mr-2" />
-                  Previous
-                </Button>
+              <div className="flex flex-col sm:flex-row justify-between gap-4 mt-8">
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handlePrevious}
+                    disabled={currentStep === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-2" />
+                    Previous
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleSaveForLater}
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    Save for Later
+                  </Button>
+                </div>
                 
                 {currentStep < STEPS.length ? (
                   <Button type="button" onClick={handleNext}>
@@ -539,7 +920,7 @@ const PatientIntake = () => {
                     <ChevronRight className="h-4 w-4 ml-2" />
                   </Button>
                 ) : (
-                  <Button type="submit" disabled={submitting}>
+                  <Button type="button" onClick={handleSubmitClick} disabled={submitting}>
                     {submitting ? "Submitting..." : "Submit Form"}
                   </Button>
                 )}
@@ -552,6 +933,37 @@ const PatientIntake = () => {
           Your information is secure and will only be shared with your healthcare provider.
         </p>
       </div>
+
+      {/* Submission Warning Dialog */}
+      <AlertDialog open={showSubmitWarning} onOpenChange={setShowSubmitWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Confirm Submission
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                You are about to submit your patient intake form. Please ensure that:
+              </p>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>All information provided is accurate and complete</li>
+                <li>You have reviewed all sections of the form</li>
+                <li>Any allergies or current medications are correctly listed</li>
+              </ul>
+              <p className="font-medium text-foreground">
+                Once submitted, you will not be able to make changes. Your healthcare provider will review this information.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Go Back & Review</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSubmit(onSubmit)} disabled={submitting}>
+              {submitting ? "Submitting..." : "Yes, Submit Form"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
