@@ -46,8 +46,10 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  Mail
+  Mail,
+  Printer
 } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -422,84 +424,17 @@ const PatientIntakeManagement = () => {
                         <TableCell>{getStatusBadge(submission)}</TableCell>
                         <TableCell>{format(new Date(submission.created_at), "MMM d, yyyy")}</TableCell>
                         <TableCell>{format(new Date(submission.expires_at), "MMM d, yyyy")}</TableCell>
-                        <TableCell className="text-right space-x-2">
-                          {submission.status === "submitted" && (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => {
-                                  setSelectedSubmission(submission);
-                                  setShowViewDialog(true);
-                                }}
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="text-green-600"
-                                onClick={() => {
-                                  setSelectedSubmission(submission);
-                                  setShowApproveDialog(true);
-                                }}
-                              >
-                                <Check className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="text-destructive"
-                                onClick={() => {
-                                  setSelectedSubmission(submission);
-                                  setShowRejectDialog(true);
-                                }}
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </>
-                          )}
-                          {submission.status === "pending" && new Date(submission.expires_at) > new Date() && (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => {
-                                  const link = `${window.location.origin}/patient-intake/${submission.intake_token}`;
-                                  navigator.clipboard.writeText(link);
-                                  toast.success("Link copied");
-                                }}
-                              >
-                                <Copy className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => resendInvite(submission)}
-                              >
-                                <Mail className="h-4 w-4" />
-                              </Button>
-                            </>
-                          )}
-                          {(submission.status === "approved" || submission.status === "rejected") && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => {
-                                setSelectedSubmission(submission);
-                                setShowViewDialog(true);
-                              }}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          )}
+                        <TableCell className="text-right">
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="text-destructive"
-                            onClick={() => handleDelete(submission)}
+                            onClick={() => {
+                              setSelectedSubmission(submission);
+                              setShowViewDialog(true);
+                            }}
+                            title="View Details"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Eye className="h-4 w-4" />
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -573,111 +508,333 @@ const PatientIntakeManagement = () => {
         </DialogContent>
       </Dialog>
 
-      {/* View Submission Dialog */}
+      {/* View Submission Dialog - Full Form View */}
       <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
-        <DialogContent className="max-w-2xl max-h-[80vh]">
+        <DialogContent className="max-w-4xl max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle>Patient Intake Submission</DialogTitle>
-            <DialogDescription>
-              {selectedSubmission?.patient_name || selectedSubmission?.patient_email}
-            </DialogDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle className="text-xl">
+                  Patient Intake Review
+                </DialogTitle>
+                <DialogDescription className="flex items-center gap-2 mt-1">
+                  {selectedSubmission?.patient_name || selectedSubmission?.patient_email}
+                  {selectedSubmission && getStatusBadge(selectedSubmission)}
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
-          <ScrollArea className="max-h-[60vh]">
+          
+          <ScrollArea className="max-h-[65vh] pr-4">
             {selectedSubmission?.form_data && (
-              <div className="space-y-4 pr-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-muted-foreground">First Name</Label>
-                    <p className="font-medium">{selectedSubmission.form_data.first_name}</p>
-                  </div>
-                  <div>
-                    <Label className="text-muted-foreground">Last Name</Label>
-                    <p className="font-medium">{selectedSubmission.form_data.last_name}</p>
-                  </div>
-                  <div>
-                    <Label className="text-muted-foreground">Date of Birth</Label>
-                    <p className="font-medium">{selectedSubmission.form_data.date_of_birth}</p>
-                  </div>
-                  <div>
-                    <Label className="text-muted-foreground">Gender</Label>
-                    <p className="font-medium">{selectedSubmission.form_data.gender}</p>
-                  </div>
-                  <div>
-                    <Label className="text-muted-foreground">Contact Number</Label>
-                    <p className="font-medium">{selectedSubmission.form_data.contact_number}</p>
-                  </div>
-                  <div>
-                    <Label className="text-muted-foreground">Email</Label>
-                    <p className="font-medium">{selectedSubmission.form_data.email || "—"}</p>
+              <div className="space-y-6">
+                {/* Personal Information Section */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                    <span className="bg-primary/10 text-primary px-2 py-1 rounded text-sm">1</span>
+                    Personal Information
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 bg-muted/30 p-4 rounded-lg">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">First Name</Label>
+                      <p className="font-medium">{selectedSubmission.form_data.first_name || "—"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Last Name</Label>
+                      <p className="font-medium">{selectedSubmission.form_data.last_name || "—"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Date of Birth</Label>
+                      <p className="font-medium">{selectedSubmission.form_data.date_of_birth || "—"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Gender</Label>
+                      <p className="font-medium">{selectedSubmission.form_data.gender || "—"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Contact Number</Label>
+                      <p className="font-medium">{selectedSubmission.form_data.contact_number || "—"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Email</Label>
+                      <p className="font-medium">{selectedSubmission.form_data.email || "—"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Blood Group</Label>
+                      <p className="font-medium">{selectedSubmission.form_data.blood_group || "—"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Health Card Number</Label>
+                      <p className="font-medium">{selectedSubmission.form_data.health_card_number || "—"}</p>
+                    </div>
+                    <div className="col-span-2 md:col-span-3">
+                      <Label className="text-xs text-muted-foreground">Address</Label>
+                      <p className="font-medium">{selectedSubmission.form_data.address || "—"}</p>
+                    </div>
                   </div>
                 </div>
-                
-                {selectedSubmission.form_data.address && (
-                  <div>
-                    <Label className="text-muted-foreground">Address</Label>
-                    <p className="font-medium">{selectedSubmission.form_data.address}</p>
-                  </div>
-                )}
 
-                {selectedSubmission.form_data.medical_history_ongoing && (
-                  <div>
-                    <Label className="text-muted-foreground">Current Medical Conditions</Label>
-                    <p className="font-medium">{selectedSubmission.form_data.medical_history_ongoing}</p>
-                  </div>
-                )}
+                <Separator />
 
-                {selectedSubmission.form_data.ongoing_medications && (
-                  <div>
-                    <Label className="text-muted-foreground">Current Medications</Label>
-                    <p className="font-medium">{selectedSubmission.form_data.ongoing_medications}</p>
+                {/* Medical History Section */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                    <span className="bg-primary/10 text-primary px-2 py-1 rounded text-sm">2</span>
+                    Medical History
+                  </h3>
+                  <div className="space-y-3 bg-muted/30 p-4 rounded-lg">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Ongoing Medical Conditions</Label>
+                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.medical_history_ongoing || "None reported"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Past Medical History</Label>
+                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.medical_history_past || "None reported"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Surgical History</Label>
+                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.surgical_history || "None reported"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Hospitalization History</Label>
+                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.hospitalization_history || "None reported"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Family Medical History</Label>
+                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.family_history || "None reported"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Mental Health History</Label>
+                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.mental_health_history || "None reported"}</p>
+                    </div>
                   </div>
-                )}
+                </div>
 
-                {selectedSubmission.form_data.allergic_history_drug && (
-                  <div>
-                    <Label className="text-muted-foreground">Drug Allergies</Label>
-                    <p className="font-medium">{selectedSubmission.form_data.allergic_history_drug}</p>
-                  </div>
-                )}
+                <Separator />
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-muted-foreground">Smoking Status</Label>
-                    <p className="font-medium">{selectedSubmission.form_data.smoking_status}</p>
+                {/* Past History Section */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                    <span className="bg-primary/10 text-primary px-2 py-1 rounded text-sm">3</span>
+                    Past History
+                  </h3>
+                  <div className="space-y-3 bg-muted/30 p-4 rounded-lg">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Birth History</Label>
+                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.birth_history || "Not provided"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Developmental History</Label>
+                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.developmental_history || "Not provided"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Childhood Illnesses</Label>
+                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.childhood_illnesses || "None reported"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Accidents/Injuries</Label>
+                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.accidents_injuries || "None reported"}</p>
+                    </div>
+                    {selectedSubmission.form_data.gender === "FEMALE" && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Menstrual/Pregnancy History</Label>
+                        <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.menstrual_pregnancy_history || "Not provided"}</p>
+                      </div>
+                    )}
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Preventive Screening History</Label>
+                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.preventive_screening_history || "None reported"}</p>
+                    </div>
                   </div>
-                  <div>
-                    <Label className="text-muted-foreground">Alcohol Consumption</Label>
-                    <p className="font-medium">{selectedSubmission.form_data.alcohol_consumption}</p>
+                </div>
+
+                <Separator />
+
+                {/* Medications Section */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                    <span className="bg-primary/10 text-primary px-2 py-1 rounded text-sm">4</span>
+                    Medications & Supplements
+                  </h3>
+                  <div className="space-y-3 bg-muted/30 p-4 rounded-lg">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Current Medications</Label>
+                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.ongoing_medications || "None"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Supplements & Vitamins</Label>
+                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.supplements || "None"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Vaccination History</Label>
+                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.vaccinations || "Not provided"}</p>
+                    </div>
                   </div>
+                </div>
+
+                <Separator />
+
+                {/* Allergies Section */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                    <span className="bg-primary/10 text-primary px-2 py-1 rounded text-sm">5</span>
+                    Allergies
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-muted/30 p-4 rounded-lg">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Drug Allergies</Label>
+                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.allergic_history_drug || "None known"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Food Allergies</Label>
+                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.allergic_history_food || "None known"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Environmental Allergies</Label>
+                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.allergic_history_env || "None known"}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Lifestyle Section */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                    <span className="bg-primary/10 text-primary px-2 py-1 rounded text-sm">6</span>
+                    Lifestyle & Social History
+                  </h3>
+                  <div className="space-y-3 bg-muted/30 p-4 rounded-lg">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Smoking Status</Label>
+                        <p className="font-medium">{selectedSubmission.form_data.smoking_status || "—"}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Alcohol Consumption</Label>
+                        <p className="font-medium">{selectedSubmission.form_data.alcohol_consumption || "—"}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Occupation</Label>
+                        <p className="font-medium">{selectedSubmission.form_data.occupation || "—"}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Living Environment</Label>
+                        <p className="font-medium">{selectedSubmission.form_data.living_environment || "—"}</p>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Recreational Drug Use</Label>
+                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.recreational_drug_use || "None"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Exercise Habits</Label>
+                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.exercise_habits || "Not provided"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Diet</Label>
+                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.diet || "Not provided"}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Submission Info */}
+                <Separator />
+                <div className="text-sm text-muted-foreground space-y-1">
+                  <p>Created: {selectedSubmission.created_at ? format(new Date(selectedSubmission.created_at), "MMM d, yyyy 'at' h:mm a") : "—"}</p>
+                  {selectedSubmission.submitted_at && (
+                    <p>Submitted: {format(new Date(selectedSubmission.submitted_at), "MMM d, yyyy 'at' h:mm a")}</p>
+                  )}
+                  {selectedSubmission.reviewed_at && (
+                    <p>Reviewed: {format(new Date(selectedSubmission.reviewed_at), "MMM d, yyyy 'at' h:mm a")}</p>
+                  )}
                 </div>
               </div>
             )}
           </ScrollArea>
-          {selectedSubmission?.status === "submitted" && (
-            <DialogFooter>
-              <Button
-                variant="outline"
-                className="text-destructive"
-                onClick={() => {
-                  setShowViewDialog(false);
-                  setShowRejectDialog(true);
-                }}
-              >
-                <X className="h-4 w-4 mr-2" />
-                Reject
-              </Button>
-              <Button
-                className="bg-green-600 hover:bg-green-700"
-                onClick={() => {
-                  setShowViewDialog(false);
-                  setShowApproveDialog(true);
-                }}
-              >
-                <Check className="h-4 w-4 mr-2" />
-                Approve & Add Patient
-              </Button>
-            </DialogFooter>
-          )}
+          
+          {/* Action Footer */}
+          <div className="border-t pt-4 mt-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              {/* Left actions */}
+              <div className="flex items-center gap-2">
+                {selectedSubmission?.status === "pending" && new Date(selectedSubmission.expires_at) > new Date() && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const link = `${window.location.origin}/patient-intake/${selectedSubmission.intake_token}`;
+                        navigator.clipboard.writeText(link);
+                        toast.success("Link copied to clipboard");
+                      }}
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy Link
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        resendInvite(selectedSubmission);
+                      }}
+                    >
+                      <Mail className="h-4 w-4 mr-2" />
+                      Resend Email
+                    </Button>
+                  </>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-destructive hover:text-destructive"
+                  onClick={() => {
+                    if (selectedSubmission) {
+                      handleDelete(selectedSubmission);
+                      setShowViewDialog(false);
+                    }
+                  }}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </Button>
+              </div>
+              
+              {/* Right actions - Approve/Reject for submitted forms */}
+              <div className="flex items-center gap-2">
+                {selectedSubmission?.status === "submitted" && (
+                  <>
+                    <Button
+                      variant="outline"
+                      className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+                      onClick={() => {
+                        setShowViewDialog(false);
+                        setShowRejectDialog(true);
+                      }}
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Reject
+                    </Button>
+                    <Button
+                      className="bg-green-600 hover:bg-green-700"
+                      onClick={() => {
+                        setShowViewDialog(false);
+                        setShowApproveDialog(true);
+                      }}
+                    >
+                      <Check className="h-4 w-4 mr-2" />
+                      Approve & Add Patient
+                    </Button>
+                  </>
+                )}
+                {(selectedSubmission?.status === "approved" || selectedSubmission?.status === "rejected" || selectedSubmission?.status === "pending") && (
+                  <Button variant="outline" onClick={() => setShowViewDialog(false)}>
+                    Close
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
