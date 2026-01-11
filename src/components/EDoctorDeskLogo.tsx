@@ -12,7 +12,7 @@ export const EDoctorDeskLogo = ({ className, animate = false }: EDoctorDeskLogoP
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={cn(
-        "text-primary",
+        "text-primary group",
         animate && "animate-pulse",
         className
       )}
@@ -28,49 +28,53 @@ export const EDoctorDeskLogo = ({ className, animate = false }: EDoctorDeskLogoP
         fillOpacity="0.1"
         stroke="currentColor"
         strokeWidth="1.5"
+        className="transition-all duration-300 group-hover:fillOpacity-20"
       />
-      {/* DNA double helix - left strand */}
-      <path
-        d="M8 5C8 5 10 7 12 7C14 7 16 5 16 5"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        fill="none"
-      />
-      <path
-        d="M8 9C8 9 10 11 12 11C14 11 16 9 16 9"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        fill="none"
-      />
-      <path
-        d="M8 13C8 13 10 15 12 15C14 15 16 13 16 13"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        fill="none"
-      />
-      <path
-        d="M8 17C8 17 10 19 12 19C14 19 16 17 16 17"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        fill="none"
-      />
-      {/* DNA vertical strands */}
-      <path
-        d="M8 5V17"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-      <path
-        d="M16 5V17"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
+      {/* DNA double helix with hover animation */}
+      <g className="origin-center transition-transform duration-500 group-hover:rotate-[360deg]">
+        {/* DNA rungs */}
+        <path
+          d="M8 5C8 5 10 7 12 7C14 7 16 5 16 5"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          fill="none"
+        />
+        <path
+          d="M8 9C8 9 10 11 12 11C14 11 16 9 16 9"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          fill="none"
+        />
+        <path
+          d="M8 13C8 13 10 15 12 15C14 15 16 13 16 13"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          fill="none"
+        />
+        <path
+          d="M8 17C8 17 10 19 12 19C14 19 16 17 16 17"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          fill="none"
+        />
+        {/* DNA vertical strands */}
+        <path
+          d="M8 5V17"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+        <path
+          d="M16 5V17"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+      </g>
     </svg>
   );
 };
