@@ -47,8 +47,18 @@ import {
   XCircle,
   AlertCircle,
   Mail,
-  Printer
+  Printer,
+  Edit,
+  Save
 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -80,6 +90,9 @@ const PatientIntakeManagement = () => {
   const [generatedLink, setGeneratedLink] = useState("");
   const [activeTab, setActiveTab] = useState("pending");
   const [profile, setProfile] = useState<any>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedFormData, setEditedFormData] = useState<any>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchSubmissions();
@@ -352,6 +365,169 @@ const PatientIntakeManagement = () => {
     return <Badge variant="outline"><Clock className="h-3 w-3 mr-1" /> Pending</Badge>;
   };
 
+  const startEditing = () => {
+    if (selectedSubmission) {
+      setEditedFormData({ ...selectedSubmission.form_data });
+      setIsEditing(true);
+    }
+  };
+
+  const cancelEditing = () => {
+    setEditedFormData(null);
+    setIsEditing(false);
+  };
+
+  const updateFormField = (field: string, value: string) => {
+    setEditedFormData((prev: any) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const saveEditedData = async () => {
+    if (!selectedSubmission || !editedFormData) return;
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("patient_intake_submissions")
+        .update({ 
+          form_data: editedFormData,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", selectedSubmission.id);
+
+      if (error) throw error;
+
+      // Update local state
+      setSelectedSubmission({
+        ...selectedSubmission,
+        form_data: editedFormData,
+      });
+      setIsEditing(false);
+      setEditedFormData(null);
+      toast.success("Form data updated successfully");
+      fetchSubmissions();
+    } catch (error: any) {
+      toast.error("Failed to save changes");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const printIntakeForm = () => {
+    if (!selectedSubmission?.form_data) return;
+
+    const formData = selectedSubmission.form_data;
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast.error("Please allow popups to print");
+      return;
+    }
+
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Patient Intake Form - ${formData.first_name} ${formData.last_name}</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { font-family: Arial, sans-serif; padding: 40px; font-size: 12px; line-height: 1.5; }
+          h1 { font-size: 24px; margin-bottom: 8px; border-bottom: 2px solid #333; padding-bottom: 8px; }
+          h2 { font-size: 16px; margin: 20px 0 10px; color: #333; background: #f5f5f5; padding: 8px; border-left: 4px solid #0066cc; }
+          .header-info { color: #666; margin-bottom: 20px; }
+          .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+          .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px; }
+          .field { margin-bottom: 8px; }
+          .field-label { font-size: 10px; color: #666; text-transform: uppercase; margin-bottom: 2px; }
+          .field-value { font-weight: 500; }
+          .full-width { grid-column: 1 / -1; }
+          .section { margin-bottom: 20px; padding: 12px; background: #fafafa; border-radius: 4px; }
+          @media print { body { padding: 20px; } }
+        </style>
+      </head>
+      <body>
+        <h1>Patient Intake Form</h1>
+        <div class="header-info">
+          <p>Submitted: ${selectedSubmission.submitted_at ? format(new Date(selectedSubmission.submitted_at), "MMMM d, yyyy 'at' h:mm a") : "Not yet submitted"}</p>
+          ${profile?.clinic_name ? `<p>Clinic: ${profile.clinic_name}</p>` : ''}
+        </div>
+
+        <h2>Personal Information</h2>
+        <div class="section">
+          <div class="grid">
+            <div class="field"><div class="field-label">First Name</div><div class="field-value">${formData.first_name || '—'}</div></div>
+            <div class="field"><div class="field-label">Last Name</div><div class="field-value">${formData.last_name || '—'}</div></div>
+            <div class="field"><div class="field-label">Date of Birth</div><div class="field-value">${formData.date_of_birth || '—'}</div></div>
+            <div class="field"><div class="field-label">Gender</div><div class="field-value">${formData.gender || '—'}</div></div>
+            <div class="field"><div class="field-label">Contact Number</div><div class="field-value">${formData.contact_number || '—'}</div></div>
+            <div class="field"><div class="field-label">Email</div><div class="field-value">${formData.email || '—'}</div></div>
+            <div class="field"><div class="field-label">Blood Group</div><div class="field-value">${formData.blood_group || '—'}</div></div>
+            <div class="field"><div class="field-label">Health Card Number</div><div class="field-value">${formData.health_card_number || '—'}</div></div>
+            <div class="field full-width"><div class="field-label">Address</div><div class="field-value">${formData.address || '—'}</div></div>
+          </div>
+        </div>
+
+        <h2>Medical History</h2>
+        <div class="section">
+          <div class="field"><div class="field-label">Ongoing Medical Conditions</div><div class="field-value">${formData.medical_history_ongoing || 'None reported'}</div></div>
+          <div class="field"><div class="field-label">Past Medical History</div><div class="field-value">${formData.medical_history_past || 'None reported'}</div></div>
+          <div class="field"><div class="field-label">Surgical History</div><div class="field-value">${formData.surgical_history || 'None reported'}</div></div>
+          <div class="field"><div class="field-label">Hospitalization History</div><div class="field-value">${formData.hospitalization_history || 'None reported'}</div></div>
+          <div class="field"><div class="field-label">Family Medical History</div><div class="field-value">${formData.family_history || 'None reported'}</div></div>
+          <div class="field"><div class="field-label">Mental Health History</div><div class="field-value">${formData.mental_health_history || 'None reported'}</div></div>
+        </div>
+
+        <h2>Past History</h2>
+        <div class="section">
+          <div class="field"><div class="field-label">Birth History</div><div class="field-value">${formData.birth_history || 'Not provided'}</div></div>
+          <div class="field"><div class="field-label">Developmental History</div><div class="field-value">${formData.developmental_history || 'Not provided'}</div></div>
+          <div class="field"><div class="field-label">Childhood Illnesses</div><div class="field-value">${formData.childhood_illnesses || 'None reported'}</div></div>
+          <div class="field"><div class="field-label">Accidents/Injuries</div><div class="field-value">${formData.accidents_injuries || 'None reported'}</div></div>
+          ${formData.gender === "FEMALE" ? `<div class="field"><div class="field-label">Menstrual/Pregnancy History</div><div class="field-value">${formData.menstrual_pregnancy_history || 'Not provided'}</div></div>` : ''}
+          <div class="field"><div class="field-label">Preventive Screening History</div><div class="field-value">${formData.preventive_screening_history || 'None reported'}</div></div>
+        </div>
+
+        <h2>Medications & Supplements</h2>
+        <div class="section">
+          <div class="field"><div class="field-label">Current Medications</div><div class="field-value">${formData.ongoing_medications || 'None'}</div></div>
+          <div class="field"><div class="field-label">Supplements & Vitamins</div><div class="field-value">${formData.supplements || 'None'}</div></div>
+          <div class="field"><div class="field-label">Vaccination History</div><div class="field-value">${formData.vaccinations || 'Not provided'}</div></div>
+        </div>
+
+        <h2>Allergies</h2>
+        <div class="section">
+          <div class="grid">
+            <div class="field"><div class="field-label">Drug Allergies</div><div class="field-value">${formData.allergic_history_drug || 'None known'}</div></div>
+            <div class="field"><div class="field-label">Food Allergies</div><div class="field-value">${formData.allergic_history_food || 'None known'}</div></div>
+            <div class="field"><div class="field-label">Environmental Allergies</div><div class="field-value">${formData.allergic_history_env || 'None known'}</div></div>
+          </div>
+        </div>
+
+        <h2>Lifestyle & Social History</h2>
+        <div class="section">
+          <div class="grid">
+            <div class="field"><div class="field-label">Smoking Status</div><div class="field-value">${formData.smoking_status || '—'}</div></div>
+            <div class="field"><div class="field-label">Alcohol Consumption</div><div class="field-value">${formData.alcohol_consumption || '—'}</div></div>
+            <div class="field"><div class="field-label">Occupation</div><div class="field-value">${formData.occupation || '—'}</div></div>
+          </div>
+          <div class="field"><div class="field-label">Recreational Drug Use</div><div class="field-value">${formData.recreational_drug_use || 'None'}</div></div>
+          <div class="field"><div class="field-label">Exercise Habits</div><div class="field-value">${formData.exercise_habits || 'Not provided'}</div></div>
+          <div class="field"><div class="field-label">Diet</div><div class="field-value">${formData.diet || 'Not provided'}</div></div>
+          <div class="field"><div class="field-label">Living Environment</div><div class="field-value">${formData.living_environment || '—'}</div></div>
+        </div>
+
+        <script>
+          window.onload = function() { window.print(); }
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+  };
+
   const filteredSubmissions = submissions.filter(s => {
     if (activeTab === "pending") return s.status === "pending" && new Date(s.expires_at) > new Date();
     if (activeTab === "submitted") return s.status === "submitted";
@@ -362,6 +538,8 @@ const PatientIntakeManagement = () => {
 
   const pendingCount = submissions.filter(s => s.status === "pending" && new Date(s.expires_at) > new Date()).length;
   const submittedCount = submissions.filter(s => s.status === "submitted").length;
+
+  const currentFormData = isEditing ? editedFormData : selectedSubmission?.form_data;
 
   return (
     <div className="space-y-6">
@@ -509,24 +687,72 @@ const PatientIntakeManagement = () => {
       </Dialog>
 
       {/* View Submission Dialog - Full Form View */}
-      <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
+      <Dialog open={showViewDialog} onOpenChange={(open) => {
+        setShowViewDialog(open);
+        if (!open) {
+          setIsEditing(false);
+          setEditedFormData(null);
+        }
+      }}>
         <DialogContent className="max-w-4xl max-h-[90vh]">
           <DialogHeader>
             <div className="flex items-center justify-between">
               <div>
-                <DialogTitle className="text-xl">
+                <DialogTitle className="text-xl flex items-center gap-2">
                   Patient Intake Review
+                  {isEditing && <Badge className="bg-amber-500">Editing</Badge>}
                 </DialogTitle>
                 <DialogDescription className="flex items-center gap-2 mt-1">
                   {selectedSubmission?.patient_name || selectedSubmission?.patient_email}
                   {selectedSubmission && getStatusBadge(selectedSubmission)}
                 </DialogDescription>
               </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={printIntakeForm}
+                  disabled={!selectedSubmission?.form_data}
+                >
+                  <Printer className="h-4 w-4 mr-2" />
+                  Print
+                </Button>
+                {selectedSubmission?.status === "submitted" && !isEditing && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={startEditing}
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit
+                  </Button>
+                )}
+                {isEditing && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={cancelEditing}
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={saveEditedData}
+                      disabled={saving}
+                    >
+                      <Save className="h-4 w-4 mr-2" />
+                      {saving ? "Saving..." : "Save Changes"}
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
           </DialogHeader>
           
           <ScrollArea className="max-h-[65vh] pr-4">
-            {selectedSubmission?.form_data && (
+            {currentFormData && (
               <div className="space-y-6">
                 {/* Personal Information Section */}
                 <div>
@@ -537,39 +763,135 @@ const PatientIntakeManagement = () => {
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4 bg-muted/30 p-4 rounded-lg">
                     <div>
                       <Label className="text-xs text-muted-foreground">First Name</Label>
-                      <p className="font-medium">{selectedSubmission.form_data.first_name || "—"}</p>
+                      {isEditing ? (
+                        <Input
+                          value={currentFormData.first_name || ""}
+                          onChange={(e) => updateFormField("first_name", e.target.value)}
+                          className="mt-1"
+                        />
+                      ) : (
+                        <p className="font-medium">{currentFormData.first_name || "—"}</p>
+                      )}
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Last Name</Label>
-                      <p className="font-medium">{selectedSubmission.form_data.last_name || "—"}</p>
+                      {isEditing ? (
+                        <Input
+                          value={currentFormData.last_name || ""}
+                          onChange={(e) => updateFormField("last_name", e.target.value)}
+                          className="mt-1"
+                        />
+                      ) : (
+                        <p className="font-medium">{currentFormData.last_name || "—"}</p>
+                      )}
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Date of Birth</Label>
-                      <p className="font-medium">{selectedSubmission.form_data.date_of_birth || "—"}</p>
+                      {isEditing ? (
+                        <Input
+                          type="date"
+                          value={currentFormData.date_of_birth || ""}
+                          onChange={(e) => updateFormField("date_of_birth", e.target.value)}
+                          className="mt-1"
+                        />
+                      ) : (
+                        <p className="font-medium">{currentFormData.date_of_birth || "—"}</p>
+                      )}
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Gender</Label>
-                      <p className="font-medium">{selectedSubmission.form_data.gender || "—"}</p>
+                      {isEditing ? (
+                        <Select
+                          value={currentFormData.gender || ""}
+                          onValueChange={(value) => updateFormField("gender", value)}
+                        >
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="Select gender" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="MALE">Male</SelectItem>
+                            <SelectItem value="FEMALE">Female</SelectItem>
+                            <SelectItem value="OTHER">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <p className="font-medium">{currentFormData.gender || "—"}</p>
+                      )}
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Contact Number</Label>
-                      <p className="font-medium">{selectedSubmission.form_data.contact_number || "—"}</p>
+                      {isEditing ? (
+                        <Input
+                          value={currentFormData.contact_number || ""}
+                          onChange={(e) => updateFormField("contact_number", e.target.value)}
+                          className="mt-1"
+                        />
+                      ) : (
+                        <p className="font-medium">{currentFormData.contact_number || "—"}</p>
+                      )}
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Email</Label>
-                      <p className="font-medium">{selectedSubmission.form_data.email || "—"}</p>
+                      {isEditing ? (
+                        <Input
+                          type="email"
+                          value={currentFormData.email || ""}
+                          onChange={(e) => updateFormField("email", e.target.value)}
+                          className="mt-1"
+                        />
+                      ) : (
+                        <p className="font-medium">{currentFormData.email || "—"}</p>
+                      )}
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Blood Group</Label>
-                      <p className="font-medium">{selectedSubmission.form_data.blood_group || "—"}</p>
+                      {isEditing ? (
+                        <Select
+                          value={currentFormData.blood_group || ""}
+                          onValueChange={(value) => updateFormField("blood_group", value)}
+                        >
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="Select blood group" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="A+">A+</SelectItem>
+                            <SelectItem value="A-">A-</SelectItem>
+                            <SelectItem value="B+">B+</SelectItem>
+                            <SelectItem value="B-">B-</SelectItem>
+                            <SelectItem value="AB+">AB+</SelectItem>
+                            <SelectItem value="AB-">AB-</SelectItem>
+                            <SelectItem value="O+">O+</SelectItem>
+                            <SelectItem value="O-">O-</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <p className="font-medium">{currentFormData.blood_group || "—"}</p>
+                      )}
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Health Card Number</Label>
-                      <p className="font-medium">{selectedSubmission.form_data.health_card_number || "—"}</p>
+                      {isEditing ? (
+                        <Input
+                          value={currentFormData.health_card_number || ""}
+                          onChange={(e) => updateFormField("health_card_number", e.target.value)}
+                          className="mt-1"
+                        />
+                      ) : (
+                        <p className="font-medium">{currentFormData.health_card_number || "—"}</p>
+                      )}
                     </div>
                     <div className="col-span-2 md:col-span-3">
                       <Label className="text-xs text-muted-foreground">Address</Label>
-                      <p className="font-medium">{selectedSubmission.form_data.address || "—"}</p>
+                      {isEditing ? (
+                        <Textarea
+                          value={currentFormData.address || ""}
+                          onChange={(e) => updateFormField("address", e.target.value)}
+                          className="mt-1"
+                          rows={2}
+                        />
+                      ) : (
+                        <p className="font-medium">{currentFormData.address || "—"}</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -585,27 +907,81 @@ const PatientIntakeManagement = () => {
                   <div className="space-y-3 bg-muted/30 p-4 rounded-lg">
                     <div>
                       <Label className="text-xs text-muted-foreground">Ongoing Medical Conditions</Label>
-                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.medical_history_ongoing || "None reported"}</p>
+                      {isEditing ? (
+                        <Textarea
+                          value={currentFormData.medical_history_ongoing || ""}
+                          onChange={(e) => updateFormField("medical_history_ongoing", e.target.value)}
+                          className="mt-1"
+                          rows={2}
+                        />
+                      ) : (
+                        <p className="font-medium whitespace-pre-wrap">{currentFormData.medical_history_ongoing || "None reported"}</p>
+                      )}
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Past Medical History</Label>
-                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.medical_history_past || "None reported"}</p>
+                      {isEditing ? (
+                        <Textarea
+                          value={currentFormData.medical_history_past || ""}
+                          onChange={(e) => updateFormField("medical_history_past", e.target.value)}
+                          className="mt-1"
+                          rows={2}
+                        />
+                      ) : (
+                        <p className="font-medium whitespace-pre-wrap">{currentFormData.medical_history_past || "None reported"}</p>
+                      )}
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Surgical History</Label>
-                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.surgical_history || "None reported"}</p>
+                      {isEditing ? (
+                        <Textarea
+                          value={currentFormData.surgical_history || ""}
+                          onChange={(e) => updateFormField("surgical_history", e.target.value)}
+                          className="mt-1"
+                          rows={2}
+                        />
+                      ) : (
+                        <p className="font-medium whitespace-pre-wrap">{currentFormData.surgical_history || "None reported"}</p>
+                      )}
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Hospitalization History</Label>
-                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.hospitalization_history || "None reported"}</p>
+                      {isEditing ? (
+                        <Textarea
+                          value={currentFormData.hospitalization_history || ""}
+                          onChange={(e) => updateFormField("hospitalization_history", e.target.value)}
+                          className="mt-1"
+                          rows={2}
+                        />
+                      ) : (
+                        <p className="font-medium whitespace-pre-wrap">{currentFormData.hospitalization_history || "None reported"}</p>
+                      )}
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Family Medical History</Label>
-                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.family_history || "None reported"}</p>
+                      {isEditing ? (
+                        <Textarea
+                          value={currentFormData.family_history || ""}
+                          onChange={(e) => updateFormField("family_history", e.target.value)}
+                          className="mt-1"
+                          rows={2}
+                        />
+                      ) : (
+                        <p className="font-medium whitespace-pre-wrap">{currentFormData.family_history || "None reported"}</p>
+                      )}
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Mental Health History</Label>
-                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.mental_health_history || "None reported"}</p>
+                      {isEditing ? (
+                        <Textarea
+                          value={currentFormData.mental_health_history || ""}
+                          onChange={(e) => updateFormField("mental_health_history", e.target.value)}
+                          className="mt-1"
+                          rows={2}
+                        />
+                      ) : (
+                        <p className="font-medium whitespace-pre-wrap">{currentFormData.mental_health_history || "None reported"}</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -621,29 +997,83 @@ const PatientIntakeManagement = () => {
                   <div className="space-y-3 bg-muted/30 p-4 rounded-lg">
                     <div>
                       <Label className="text-xs text-muted-foreground">Birth History</Label>
-                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.birth_history || "Not provided"}</p>
+                      {isEditing ? (
+                        <Textarea
+                          value={currentFormData.birth_history || ""}
+                          onChange={(e) => updateFormField("birth_history", e.target.value)}
+                          className="mt-1"
+                          rows={2}
+                        />
+                      ) : (
+                        <p className="font-medium whitespace-pre-wrap">{currentFormData.birth_history || "Not provided"}</p>
+                      )}
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Developmental History</Label>
-                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.developmental_history || "Not provided"}</p>
+                      {isEditing ? (
+                        <Textarea
+                          value={currentFormData.developmental_history || ""}
+                          onChange={(e) => updateFormField("developmental_history", e.target.value)}
+                          className="mt-1"
+                          rows={2}
+                        />
+                      ) : (
+                        <p className="font-medium whitespace-pre-wrap">{currentFormData.developmental_history || "Not provided"}</p>
+                      )}
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Childhood Illnesses</Label>
-                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.childhood_illnesses || "None reported"}</p>
+                      {isEditing ? (
+                        <Textarea
+                          value={currentFormData.childhood_illnesses || ""}
+                          onChange={(e) => updateFormField("childhood_illnesses", e.target.value)}
+                          className="mt-1"
+                          rows={2}
+                        />
+                      ) : (
+                        <p className="font-medium whitespace-pre-wrap">{currentFormData.childhood_illnesses || "None reported"}</p>
+                      )}
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Accidents/Injuries</Label>
-                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.accidents_injuries || "None reported"}</p>
+                      {isEditing ? (
+                        <Textarea
+                          value={currentFormData.accidents_injuries || ""}
+                          onChange={(e) => updateFormField("accidents_injuries", e.target.value)}
+                          className="mt-1"
+                          rows={2}
+                        />
+                      ) : (
+                        <p className="font-medium whitespace-pre-wrap">{currentFormData.accidents_injuries || "None reported"}</p>
+                      )}
                     </div>
-                    {selectedSubmission.form_data.gender === "FEMALE" && (
+                    {(currentFormData.gender === "FEMALE" || isEditing) && (
                       <div>
                         <Label className="text-xs text-muted-foreground">Menstrual/Pregnancy History</Label>
-                        <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.menstrual_pregnancy_history || "Not provided"}</p>
+                        {isEditing ? (
+                          <Textarea
+                            value={currentFormData.menstrual_pregnancy_history || ""}
+                            onChange={(e) => updateFormField("menstrual_pregnancy_history", e.target.value)}
+                            className="mt-1"
+                            rows={2}
+                          />
+                        ) : (
+                          <p className="font-medium whitespace-pre-wrap">{currentFormData.menstrual_pregnancy_history || "Not provided"}</p>
+                        )}
                       </div>
                     )}
                     <div>
                       <Label className="text-xs text-muted-foreground">Preventive Screening History</Label>
-                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.preventive_screening_history || "None reported"}</p>
+                      {isEditing ? (
+                        <Textarea
+                          value={currentFormData.preventive_screening_history || ""}
+                          onChange={(e) => updateFormField("preventive_screening_history", e.target.value)}
+                          className="mt-1"
+                          rows={2}
+                        />
+                      ) : (
+                        <p className="font-medium whitespace-pre-wrap">{currentFormData.preventive_screening_history || "None reported"}</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -659,15 +1089,45 @@ const PatientIntakeManagement = () => {
                   <div className="space-y-3 bg-muted/30 p-4 rounded-lg">
                     <div>
                       <Label className="text-xs text-muted-foreground">Current Medications</Label>
-                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.ongoing_medications || "None"}</p>
+                      {isEditing ? (
+                        <Textarea
+                          value={currentFormData.ongoing_medications || ""}
+                          onChange={(e) => updateFormField("ongoing_medications", e.target.value)}
+                          className="mt-1"
+                          rows={2}
+                          placeholder="Comma-separated list"
+                        />
+                      ) : (
+                        <p className="font-medium whitespace-pre-wrap">{currentFormData.ongoing_medications || "None"}</p>
+                      )}
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Supplements & Vitamins</Label>
-                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.supplements || "None"}</p>
+                      {isEditing ? (
+                        <Textarea
+                          value={currentFormData.supplements || ""}
+                          onChange={(e) => updateFormField("supplements", e.target.value)}
+                          className="mt-1"
+                          rows={2}
+                          placeholder="Comma-separated list"
+                        />
+                      ) : (
+                        <p className="font-medium whitespace-pre-wrap">{currentFormData.supplements || "None"}</p>
+                      )}
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Vaccination History</Label>
-                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.vaccinations || "Not provided"}</p>
+                      {isEditing ? (
+                        <Textarea
+                          value={currentFormData.vaccinations || ""}
+                          onChange={(e) => updateFormField("vaccinations", e.target.value)}
+                          className="mt-1"
+                          rows={2}
+                          placeholder="Comma-separated list"
+                        />
+                      ) : (
+                        <p className="font-medium whitespace-pre-wrap">{currentFormData.vaccinations || "Not provided"}</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -683,15 +1143,45 @@ const PatientIntakeManagement = () => {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-muted/30 p-4 rounded-lg">
                     <div>
                       <Label className="text-xs text-muted-foreground">Drug Allergies</Label>
-                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.allergic_history_drug || "None known"}</p>
+                      {isEditing ? (
+                        <Textarea
+                          value={currentFormData.allergic_history_drug || ""}
+                          onChange={(e) => updateFormField("allergic_history_drug", e.target.value)}
+                          className="mt-1"
+                          rows={2}
+                          placeholder="Comma-separated list"
+                        />
+                      ) : (
+                        <p className="font-medium whitespace-pre-wrap">{currentFormData.allergic_history_drug || "None known"}</p>
+                      )}
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Food Allergies</Label>
-                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.allergic_history_food || "None known"}</p>
+                      {isEditing ? (
+                        <Textarea
+                          value={currentFormData.allergic_history_food || ""}
+                          onChange={(e) => updateFormField("allergic_history_food", e.target.value)}
+                          className="mt-1"
+                          rows={2}
+                          placeholder="Comma-separated list"
+                        />
+                      ) : (
+                        <p className="font-medium whitespace-pre-wrap">{currentFormData.allergic_history_food || "None known"}</p>
+                      )}
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Environmental Allergies</Label>
-                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.allergic_history_env || "None known"}</p>
+                      {isEditing ? (
+                        <Textarea
+                          value={currentFormData.allergic_history_env || ""}
+                          onChange={(e) => updateFormField("allergic_history_env", e.target.value)}
+                          className="mt-1"
+                          rows={2}
+                          placeholder="Comma-separated list"
+                        />
+                      ) : (
+                        <p className="font-medium whitespace-pre-wrap">{currentFormData.allergic_history_env || "None known"}</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -708,32 +1198,108 @@ const PatientIntakeManagement = () => {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div>
                         <Label className="text-xs text-muted-foreground">Smoking Status</Label>
-                        <p className="font-medium">{selectedSubmission.form_data.smoking_status || "—"}</p>
+                        {isEditing ? (
+                          <Select
+                            value={currentFormData.smoking_status || ""}
+                            onValueChange={(value) => updateFormField("smoking_status", value)}
+                          >
+                            <SelectTrigger className="mt-1">
+                              <SelectValue placeholder="Select" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="NEVER">Never</SelectItem>
+                              <SelectItem value="FORMER">Former</SelectItem>
+                              <SelectItem value="CURRENT">Current</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <p className="font-medium">{currentFormData.smoking_status || "—"}</p>
+                        )}
                       </div>
                       <div>
                         <Label className="text-xs text-muted-foreground">Alcohol Consumption</Label>
-                        <p className="font-medium">{selectedSubmission.form_data.alcohol_consumption || "—"}</p>
+                        {isEditing ? (
+                          <Select
+                            value={currentFormData.alcohol_consumption || ""}
+                            onValueChange={(value) => updateFormField("alcohol_consumption", value)}
+                          >
+                            <SelectTrigger className="mt-1">
+                              <SelectValue placeholder="Select" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="NONE">None</SelectItem>
+                              <SelectItem value="OCCASIONAL">Occasional</SelectItem>
+                              <SelectItem value="MODERATE">Moderate</SelectItem>
+                              <SelectItem value="HEAVY">Heavy</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <p className="font-medium">{currentFormData.alcohol_consumption || "—"}</p>
+                        )}
                       </div>
                       <div>
                         <Label className="text-xs text-muted-foreground">Occupation</Label>
-                        <p className="font-medium">{selectedSubmission.form_data.occupation || "—"}</p>
+                        {isEditing ? (
+                          <Input
+                            value={currentFormData.occupation || ""}
+                            onChange={(e) => updateFormField("occupation", e.target.value)}
+                            className="mt-1"
+                          />
+                        ) : (
+                          <p className="font-medium">{currentFormData.occupation || "—"}</p>
+                        )}
                       </div>
                       <div>
                         <Label className="text-xs text-muted-foreground">Living Environment</Label>
-                        <p className="font-medium">{selectedSubmission.form_data.living_environment || "—"}</p>
+                        {isEditing ? (
+                          <Input
+                            value={currentFormData.living_environment || ""}
+                            onChange={(e) => updateFormField("living_environment", e.target.value)}
+                            className="mt-1"
+                          />
+                        ) : (
+                          <p className="font-medium">{currentFormData.living_environment || "—"}</p>
+                        )}
                       </div>
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Recreational Drug Use</Label>
-                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.recreational_drug_use || "None"}</p>
+                      {isEditing ? (
+                        <Textarea
+                          value={currentFormData.recreational_drug_use || ""}
+                          onChange={(e) => updateFormField("recreational_drug_use", e.target.value)}
+                          className="mt-1"
+                          rows={2}
+                        />
+                      ) : (
+                        <p className="font-medium whitespace-pre-wrap">{currentFormData.recreational_drug_use || "None"}</p>
+                      )}
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Exercise Habits</Label>
-                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.exercise_habits || "Not provided"}</p>
+                      {isEditing ? (
+                        <Textarea
+                          value={currentFormData.exercise_habits || ""}
+                          onChange={(e) => updateFormField("exercise_habits", e.target.value)}
+                          className="mt-1"
+                          rows={2}
+                        />
+                      ) : (
+                        <p className="font-medium whitespace-pre-wrap">{currentFormData.exercise_habits || "Not provided"}</p>
+                      )}
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Diet</Label>
-                      <p className="font-medium whitespace-pre-wrap">{selectedSubmission.form_data.diet || "Not provided"}</p>
+                      {isEditing ? (
+                        <Textarea
+                          value={currentFormData.diet || ""}
+                          onChange={(e) => updateFormField("diet", e.target.value)}
+                          className="mt-1"
+                          rows={2}
+                        />
+                      ) : (
+                        <p className="font-medium whitespace-pre-wrap">{currentFormData.diet || "Not provided"}</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -741,11 +1307,11 @@ const PatientIntakeManagement = () => {
                 {/* Submission Info */}
                 <Separator />
                 <div className="text-sm text-muted-foreground space-y-1">
-                  <p>Created: {selectedSubmission.created_at ? format(new Date(selectedSubmission.created_at), "MMM d, yyyy 'at' h:mm a") : "—"}</p>
-                  {selectedSubmission.submitted_at && (
+                  <p>Created: {selectedSubmission?.created_at ? format(new Date(selectedSubmission.created_at), "MMM d, yyyy 'at' h:mm a") : "—"}</p>
+                  {selectedSubmission?.submitted_at && (
                     <p>Submitted: {format(new Date(selectedSubmission.submitted_at), "MMM d, yyyy 'at' h:mm a")}</p>
                   )}
-                  {selectedSubmission.reviewed_at && (
+                  {selectedSubmission?.reviewed_at && (
                     <p>Reviewed: {format(new Date(selectedSubmission.reviewed_at), "MMM d, yyyy 'at' h:mm a")}</p>
                   )}
                 </div>
@@ -754,87 +1320,89 @@ const PatientIntakeManagement = () => {
           </ScrollArea>
           
           {/* Action Footer */}
-          <div className="border-t pt-4 mt-4">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              {/* Left actions */}
-              <div className="flex items-center gap-2">
-                {selectedSubmission?.status === "pending" && new Date(selectedSubmission.expires_at) > new Date() && (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const link = `${window.location.origin}/patient-intake/${selectedSubmission.intake_token}`;
-                        navigator.clipboard.writeText(link);
-                        toast.success("Link copied to clipboard");
-                      }}
-                    >
-                      <Copy className="h-4 w-4 mr-2" />
-                      Copy Link
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        resendInvite(selectedSubmission);
-                      }}
-                    >
-                      <Mail className="h-4 w-4 mr-2" />
-                      Resend Email
-                    </Button>
-                  </>
-                )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-destructive hover:text-destructive"
-                  onClick={() => {
-                    if (selectedSubmission) {
-                      handleDelete(selectedSubmission);
-                      setShowViewDialog(false);
-                    }
-                  }}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </Button>
-              </div>
-              
-              {/* Right actions - Approve/Reject for submitted forms */}
-              <div className="flex items-center gap-2">
-                {selectedSubmission?.status === "submitted" && (
-                  <>
-                    <Button
-                      variant="outline"
-                      className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
-                      onClick={() => {
+          {!isEditing && (
+            <div className="border-t pt-4 mt-4">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                {/* Left actions */}
+                <div className="flex items-center gap-2">
+                  {selectedSubmission?.status === "pending" && new Date(selectedSubmission.expires_at) > new Date() && (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const link = `${window.location.origin}/patient-intake/${selectedSubmission.intake_token}`;
+                          navigator.clipboard.writeText(link);
+                          toast.success("Link copied to clipboard");
+                        }}
+                      >
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy Link
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          resendInvite(selectedSubmission);
+                        }}
+                      >
+                        <Mail className="h-4 w-4 mr-2" />
+                        Resend Email
+                      </Button>
+                    </>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => {
+                      if (selectedSubmission) {
+                        handleDelete(selectedSubmission);
                         setShowViewDialog(false);
-                        setShowRejectDialog(true);
-                      }}
-                    >
-                      <X className="h-4 w-4 mr-2" />
-                      Reject
-                    </Button>
-                    <Button
-                      className="bg-green-600 hover:bg-green-700"
-                      onClick={() => {
-                        setShowViewDialog(false);
-                        setShowApproveDialog(true);
-                      }}
-                    >
-                      <Check className="h-4 w-4 mr-2" />
-                      Approve & Add Patient
-                    </Button>
-                  </>
-                )}
-                {(selectedSubmission?.status === "approved" || selectedSubmission?.status === "rejected" || selectedSubmission?.status === "pending") && (
-                  <Button variant="outline" onClick={() => setShowViewDialog(false)}>
-                    Close
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
                   </Button>
-                )}
+                </div>
+                
+                {/* Right actions - Approve/Reject for submitted forms */}
+                <div className="flex items-center gap-2">
+                  {selectedSubmission?.status === "submitted" && (
+                    <>
+                      <Button
+                        variant="outline"
+                        className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        onClick={() => {
+                          setShowViewDialog(false);
+                          setShowRejectDialog(true);
+                        }}
+                      >
+                        <X className="h-4 w-4 mr-2" />
+                        Reject
+                      </Button>
+                      <Button
+                        className="bg-green-600 hover:bg-green-700"
+                        onClick={() => {
+                          setShowViewDialog(false);
+                          setShowApproveDialog(true);
+                        }}
+                      >
+                        <Check className="h-4 w-4 mr-2" />
+                        Approve & Add Patient
+                      </Button>
+                    </>
+                  )}
+                  {(selectedSubmission?.status === "approved" || selectedSubmission?.status === "rejected" || selectedSubmission?.status === "pending") && (
+                    <Button variant="outline" onClick={() => setShowViewDialog(false)}>
+                      Close
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </DialogContent>
       </Dialog>
 
