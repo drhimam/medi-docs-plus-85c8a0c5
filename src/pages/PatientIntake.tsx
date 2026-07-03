@@ -109,7 +109,7 @@ const PatientIntake = () => {
   const [hasSavedDraft, setHasSavedDraft] = useState(false);
   const [lastAutoSave, setLastAutoSave] = useState<Date | null>(null);
   const [isAutoSaving, setIsAutoSaving] = useState(false);
-  const autoSaveIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const autoSaveIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
 
   // Dialog states for Medical History (Step 2)
