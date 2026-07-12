@@ -281,11 +281,9 @@ const PatientIntake = () => {
     }
 
     try {
-      const { data, error } = await supabase
-        .from("patient_intake_submissions")
-        .select("*")
-        .eq("intake_token", token)
-        .single();
+      const { data: rows, error } = await supabase
+        .rpc("get_patient_intake_by_token", { p_token: token });
+      const data = Array.isArray(rows) ? rows[0] : rows;
 
       if (error || !data) {
         setStatus("not_found");

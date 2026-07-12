@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Printer, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format, differenceInYears } from "date-fns";
+import DOMPurify from "dompurify";
 
 interface SOAPExportSettings {
   header_title: string;
@@ -269,7 +270,7 @@ export function SOAPLivePreviewDialog({
         return (
           <p key={idx} className="ml-4" style={{ marginBottom: 2 }}>
             <span className="mr-2">•</span>
-            <span dangerouslySetInnerHTML={{ __html: processedLine }} />
+            <span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(processedLine) }} />
           </p>
         );
       }
@@ -281,7 +282,7 @@ export function SOAPLivePreviewDialog({
         return (
           <p key={idx} className="ml-4" style={{ marginBottom: 2 }}>
             <span className="mr-2">{numberedMatch[1]}.</span>
-            <span dangerouslySetInnerHTML={{ __html: processedLine }} />
+            <span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(processedLine) }} />
           </p>
         );
       }
@@ -304,7 +305,7 @@ export function SOAPLivePreviewDialog({
       }
 
       return (
-        <p key={idx} style={{ marginBottom: 2 }} dangerouslySetInnerHTML={{ __html: processedLine }} />
+        <p key={idx} style={{ marginBottom: 2 }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(processedLine) }} />
       );
     });
   };

@@ -149,19 +149,19 @@ export function PrescriptionLivePreviewDialog({
         });
 
         if (data.logo_path) {
-          const { data: { publicUrl } } = supabase.storage
+          const { data: signed } = await supabase.storage
             .from('prescription-logos')
-            .getPublicUrl(data.logo_path);
-          setLogoUrl(publicUrl);
+            .createSignedUrl(data.logo_path, 3600);
+          setLogoUrl(signed?.signedUrl || "");
         } else {
           setLogoUrl("");
         }
 
         if (data.signature_path) {
-          const { data: { publicUrl } } = supabase.storage
+          const { data: signed } = await supabase.storage
             .from('prescription-signatures')
-            .getPublicUrl(data.signature_path);
-          setSignatureUrl(publicUrl);
+            .createSignedUrl(data.signature_path, 3600);
+          setSignatureUrl(signed?.signedUrl || "");
         } else {
           setSignatureUrl("");
         }

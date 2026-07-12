@@ -170,12 +170,12 @@ const Profile = () => {
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
-      const { data } = supabase.storage
+      // Get signed URL (private bucket)
+      const { data } = await supabase.storage
         .from("prescription-logos")
-        .getPublicUrl(filePath);
+        .createSignedUrl(filePath, 60 * 60 * 24 * 7);
 
-      setProfile({ ...profile, avatar_url: data.publicUrl });
+      setProfile({ ...profile, avatar_url: data?.signedUrl || "" });
       toast.success("Avatar uploaded");
     } catch (error) {
       console.error("Error uploading avatar:", error);

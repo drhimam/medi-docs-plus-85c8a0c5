@@ -11,6 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import DOMPurify from "dompurify";
 import { History, RotateCcw, Eye, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -224,7 +225,7 @@ export function VersionHistoryDialog({
                           <AccordionContent>
                             <div 
                               className="text-xs bg-muted p-2 rounded max-h-32 overflow-auto"
-                              dangerouslySetInnerHTML={{ __html: version.prescription || "Empty" }}
+                              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(version.prescription || "Empty") }}
                             />
                           </AccordionContent>
                         </AccordionItem>

@@ -38,3 +38,12 @@ verify_jwt = true
 
 [functions.send-soap-email]
 verify_jwt = true
+
+[functions.send-prescription-email]
+verify_jwt = true
+
+[functions.send-patient-intake-invite]
+verify_jwt = true
+
+[functions.send-sub-user-invite]
+verify_jwt = true
