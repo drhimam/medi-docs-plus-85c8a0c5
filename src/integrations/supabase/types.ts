@@ -1293,6 +1293,30 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: string
       }
+      get_patient_intake_by_token: {
+        Args: { p_token: string }
+        Returns: {
+          created_at: string
+          expires_at: string
+          form_data: Json
+          id: string
+          intake_token: string
+          patient_email: string
+          patient_name: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          submitted_at: string | null
+          updated_at: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "patient_intake_submissions"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       increment_ai_usage: {
         Args: { p_type: string; p_user_id: string }
         Returns: boolean
