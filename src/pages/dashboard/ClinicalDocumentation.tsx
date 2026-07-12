@@ -284,7 +284,25 @@ export default function ClinicalDocumentation() {
 
   const populateSubjective = (visitData: Visit, patientData: Patient) => {
     let text = "";
-    
+
+    // Patient demographics: name, age, gender, blood group
+    const fullName = `${patientData.first_name ?? ""} ${patientData.last_name ?? ""}`.trim();
+    const age = patientData.date_of_birth
+      ? differenceInYears(new Date(), new Date(patientData.date_of_birth))
+      : null;
+    const demoParts: string[] = [];
+    if (fullName) demoParts.push(`Name: ${fullName}`);
+    if (age !== null && !isNaN(age)) demoParts.push(`Age: ${age} y`);
+    if (patientData.gender) demoParts.push(`Gender: ${patientData.gender}`);
+    if (patientData.blood_group) demoParts.push(`Blood Group: ${patientData.blood_group}`);
+    if (demoParts.length > 0) {
+      text += "PATIENT DEMOGRAPHICS:\n" + demoParts.join(" | ") + "\n\n";
+    }
+
+    if (visitData.reason_for_visit) {
+      text += "CHIEF COMPLAINT:\n" + visitData.reason_for_visit + "\n\n";
+    }
+
     if (visitData.hpi) {
       text += "HISTORY OF PRESENT ILLNESS (HPI):\n" + visitData.hpi + "\n\n";
     }
