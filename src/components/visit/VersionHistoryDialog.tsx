@@ -225,7 +225,7 @@ export function VersionHistoryDialog({
                           <AccordionContent>
                             <div 
                               className="text-xs bg-muted p-2 rounded max-h-32 overflow-auto"
-                              dangerouslySetInnerHTML={{ __html: version.prescription || "Empty" }}
+                              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(version.prescription || "Empty") }}
                             />
                           </AccordionContent>
                         </AccordionItem>
