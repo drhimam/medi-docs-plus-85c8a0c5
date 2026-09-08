@@ -239,8 +239,8 @@ export const exportRequisitionToPDF = async (
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
 
-  const checkIfNeedNewPage = () => {
-    if (yPosition > pageHeight - 50) {
+  const checkIfNeedNewPage = (requiredSpace = 0) => {
+    if (yPosition + requiredSpace > pageHeight - 50) {
       doc.addPage();
       yPosition = 30;
       return true;
@@ -267,10 +267,20 @@ export const exportRequisitionToPDF = async (
     const tests = group.tests;
 
     for (let i = 0; i < tests.length; i += 2) {
-      checkIfNeedNewPage();
+      const checkboxSize = 3;
+      const textOffset = checkboxSize + 2;
+      const testTextWidth = colWidth - 13;
+      const lineHeight = 4;
+      const leftTestLines = doc.splitTextToSize(String(tests[i]), testTextWidth) as string[];
+      const rightTestLines = tests[i + 1]
+        ? (doc.splitTextToSize(String(tests[i + 1]), testTextWidth) as string[])
+        : [];
+      const rowLineCount = Math.max(leftTestLines.length, rightTestLines.length, 1);
+      const rowHeight = rowLineCount * lineHeight + 1;
+
+      checkIfNeedNewPage(rowHeight);
 
       // Left column - draw checkbox with checkmark
-      const checkboxSize = 3;
       const leftCheckboxX = margin + 4;
       const rightCheckboxX = margin + colWidth + 4;
       const checkboxY = yPosition - 2.5;
@@ -291,7 +301,7 @@ export const exportRequisitionToPDF = async (
       doc.line(startX + 0.8, startY + 0.8, startX + 2.2, startY - 0.6);
       
       doc.setTextColor(0, 0, 0);
-      doc.text(tests[i], leftCheckboxX + checkboxSize + 2, yPosition);
+      doc.text(leftTestLines, leftCheckboxX + textOffset, yPosition, { lineHeightFactor: 1.2 });
 
       // Right column if exists
       if (tests[i + 1]) {
@@ -307,10 +317,10 @@ export const exportRequisitionToPDF = async (
         doc.line(startX2 + 0.8, startY + 0.8, startX2 + 2.2, startY - 0.6);
         
         doc.setTextColor(0, 0, 0);
-        doc.text(tests[i + 1], rightCheckboxX + checkboxSize + 2, yPosition);
+        doc.text(rightTestLines, rightCheckboxX + textOffset, yPosition, { lineHeightFactor: 1.2 });
       }
 
-      yPosition += 5;
+      yPosition += rowHeight;
     }
 
     yPosition += 3;
