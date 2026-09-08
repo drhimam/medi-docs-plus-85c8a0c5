@@ -650,6 +650,8 @@ export default function InvestigationRequisitionDialog({
   const [templateDescription, setTemplateDescription] = useState("");
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
   const [showSaveTemplateForm, setShowSaveTemplateForm] = useState(false);
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
+
   
   // Split view state
   const [splitViewEnabled, setSplitViewEnabled] = useState(false);
@@ -995,27 +997,42 @@ export default function InvestigationRequisitionDialog({
       if (!user) throw new Error("Not authenticated");
 
       const selectedGroups = getSelectedTests();
-      
-      const { error } = await supabase
-        .from("investigation_templates")
-        .insert({
-          user_id: user.id,
-          name: templateName.trim(),
-          description: templateDescription.trim() || null,
-          investigations: selectedGroups,
-        });
 
-      if (error) throw error;
+      if (editingTemplateId) {
+        const { error } = await supabase
+          .from("investigation_templates")
+          .update({
+            name: templateName.trim(),
+            description: templateDescription.trim() || null,
+            investigations: selectedGroups,
+          })
+          .eq("id", editingTemplateId);
+
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("investigation_templates")
+          .insert({
+            user_id: user.id,
+            name: templateName.trim(),
+            description: templateDescription.trim() || null,
+            investigations: selectedGroups,
+          });
+
+        if (error) throw error;
+      }
 
       toast({
         title: "Success",
-        description: "Template saved successfully",
+        description: editingTemplateId ? "Template updated successfully" : "Template saved successfully",
       });
-      
+
       setShowSaveTemplateForm(false);
+      setEditingTemplateId(null);
       setTemplateName("");
       setTemplateDescription("");
       fetchTemplates();
+
     } catch (error: any) {
       console.error("Error saving template:", error);
       toast({
@@ -1299,10 +1316,24 @@ export default function InvestigationRequisitionDialog({
                                           <Plus className="h-3 w-3 mr-1" />
                                           Use
                                         </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          disabled={getSelectedCount() === 0}
+                                          title={
+                                            getSelectedCount() === 0
+                                              ? "Select tests first to update this list"
+                                              : "Replace this saved list with the current selection"
+                                          }
+                                          onClick={() => startEditingTemplate(template)}
+                                        >
+                                          <Save className="h-3 w-3" />
+                                        </Button>
                                         <Button size="sm" variant="ghost" onClick={() => handleDeleteTemplate(template.id)}>
                                           <Trash2 className="h-3 w-3 text-destructive" />
                                         </Button>
                                       </div>
+
                                     </div>
                                   </div>
                                 ))}
@@ -1364,8 +1395,17 @@ export default function InvestigationRequisitionDialog({
                 ) : showSaveTemplateForm ? (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between gap-2">
-                      <h3 className="font-medium text-sm">Save as Template</h3>
-                      <Button variant="ghost" size="sm" onClick={() => setShowSaveTemplateForm(false)}>
+                      <h3 className="font-medium text-sm">
+                        {editingTemplateId ? "Update Saved List" : "Save as Template"}
+                      </h3>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setShowSaveTemplateForm(false);
+                          setEditingTemplateId(null);
+                        }}
+                      >
                         <X className="h-4 w-4 mr-1" />
                         Cancel
                       </Button>
@@ -1401,6 +1441,11 @@ export default function InvestigationRequisitionDialog({
                             </Badge>
                           ))}
                         </div>
+                        {editingTemplateId && (
+                          <p className="text-xs text-muted-foreground mt-2">
+                            These currently selected tests will replace the saved list.
+                          </p>
+                        )}
                       </div>
                       <Button
                         onClick={handleSaveTemplate}
@@ -1415,12 +1460,13 @@ export default function InvestigationRequisitionDialog({
                         ) : (
                           <>
                             <Save className="h-4 w-4 mr-2" />
-                            Save Template
+                            {editingTemplateId ? "Update Template" : "Save Template"}
                           </>
                         )}
                       </Button>
                     </div>
                   </div>
+
                 ) : (
                   <Tabs
                     value={activeTab}
@@ -1660,12 +1706,16 @@ export default function InvestigationRequisitionDialog({
                   <DropdownMenuItem
                     onSelect={(e) => {
                       e.preventDefault();
+                      setEditingTemplateId(null);
+                      setTemplateName("");
+                      setTemplateDescription("");
                       setShowSaveTemplateForm(true);
                     }}
                     disabled={getSelectedCount() === 0 || showPreview || showTemplates}
                   >
                     Save Template
                   </DropdownMenuItem>
+
                   <DropdownMenuItem
                     onSelect={(e) => {
                       e.preventDefault();
