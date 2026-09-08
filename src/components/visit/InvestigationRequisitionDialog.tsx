@@ -1072,6 +1072,14 @@ export default function InvestigationRequisitionDialog({
     });
   };
 
+  const startEditingTemplate = (template: RequisitionTemplate) => {
+    setEditingTemplateId(template.id);
+    setTemplateName(template.name);
+    setTemplateDescription(template.description || "");
+    setShowTemplates(false);
+    setShowSaveTemplateForm(true);
+  };
+
   const handleDeleteTemplate = async (templateId: string) => {
     try {
       const { error } = await supabase
