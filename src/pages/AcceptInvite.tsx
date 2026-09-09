@@ -37,27 +37,25 @@ const AcceptInvite = () => {
 
   const validateInvite = async () => {
     try {
-      // Check if token exists and is valid
-      const { data, error } = await supabase
-        .from("sub_users")
-        .select("*")
-        .eq("invite_token", token)
-        .eq("status", "pending")
-        .gt("invite_expires_at", new Date().toISOString())
-        .maybeSingle();
+      // Token-scoped lookup (works for signed-out visitors)
+      const { data, error } = await supabase.rpc("get_invite_by_token", {
+        p_token: token,
+      });
 
-      if (error || !data) {
+      const invite = Array.isArray(data) ? data[0] : data;
+
+      if (error || !invite) {
         setInviteValid(false);
         setLoading(false);
         return;
       }
 
-      setInviteData(data);
+      setInviteData(invite);
       setInviteValid(true);
 
       // Check if user already exists
       const { data: { user } } = await supabase.auth.getUser();
-      if (user && user.email?.toLowerCase() === data.email.toLowerCase()) {
+      if (user && user.email?.toLowerCase() === invite.email.toLowerCase()) {
         setExistingUser(true);
       }
     } catch (error) {
@@ -66,6 +64,22 @@ const AcceptInvite = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const acceptInvite = async () => {
+    const { data: ownerId, error } = await supabase.rpc("accept_sub_user_invite", {
+      p_token: token,
+    });
+    if (error) throw error;
+
+    await logActivity(
+      (ownerId as string) || inviteData.owner_id,
+      "login",
+      "session",
+      undefined,
+      "Sub-user joined team",
+      "Accepted invitation and activated account"
+    );
   };
 
   const handleAcceptAsExisting = async () => {
@@ -78,31 +92,10 @@ const AcceptInvite = () => {
         return;
       }
 
-      // Update sub_user record with the user's ID
-      const { error } = await supabase
-        .from("sub_users")
-        .update({
-          sub_user_id: user.id,
-          status: "active",
-          invite_token: null,
-          invite_expires_at: null,
-        })
-        .eq("id", inviteData.id);
+      await acceptInvite();
 
-        if (error) throw error;
-
-        // Log the login activity
-        await logActivity(
-          inviteData.owner_id,
-          "login",
-          "session",
-          undefined,
-          "Sub-user joined team",
-          "Accepted invitation and activated account"
-        );
-
-        toast.success("Invitation accepted! You now have access to the team.");
-        navigate("/dashboard");
+      toast.success("Invitation accepted! You now have access to the team.");
+      navigate("/dashboard");
     } catch (error: any) {
       console.error("Error accepting invite:", error);
       toast.error(error.message || "Failed to accept invitation");
