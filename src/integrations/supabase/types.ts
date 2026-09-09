@@ -1073,6 +1073,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_settings: {
         Row: {
           appointment_reminders: boolean | null
@@ -1268,8 +1289,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_sub_user_invite: { Args: { p_token: string }; Returns: string }
       cleanup_old_reset_attempts: { Args: never; Returns: undefined }
       get_effective_user_id: { Args: never; Returns: string }
+      get_invite_by_token: {
+        Args: { p_token: string }
+        Returns: {
+          email: string
+          id: string
+          invite_expires_at: string
+          owner_id: string
+        }[]
+      }
       get_or_create_ai_usage: {
         Args: { p_user_id: string }
         Returns: {
@@ -1316,6 +1347,13 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["user_role"]
+          _user_id: string
+        }
+        Returns: boolean
       }
       increment_ai_usage: {
         Args: { p_type: string; p_user_id: string }

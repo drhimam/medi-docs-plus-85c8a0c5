@@ -58,6 +58,7 @@ export function useSubUser() {
   const [permissions, setPermissions] = useState<SubUserPermissions | null>(null);
   const [loading, setLoading] = useState(true);
   const [subUsers, setSubUsers] = useState<SubUser[]>([]);
+  const [role, setRole] = useState<"owner" | "sub_user" | null>(null);
 
   const fetchSubUserStatus = useCallback(async () => {
     try {
@@ -77,6 +78,13 @@ export function useSubUser() {
         .eq("sub_user_id", user.id)
         .eq("status", "active")
         .maybeSingle();
+
+      const { data: roleRows } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+      const roles = (roleRows || []).map((r: any) => r.role);
+      setRole(roles.includes("sub_user") ? "sub_user" : roles.includes("owner") ? "owner" : null);
 
       if (subUserData) {
         setIsSubUser(true);
@@ -215,6 +223,7 @@ export function useSubUser() {
   return {
     isSubUser,
     isOwner,
+    role,
     ownerId,
     permissions,
     loading,

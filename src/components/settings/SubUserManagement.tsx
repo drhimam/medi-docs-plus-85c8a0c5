@@ -123,14 +123,17 @@ export const SubUserManagement = () => {
           email: inviteEmail,
           inviteToken: subUserData.invite_token,
           ownerEmail: user.email,
+          appUrl: window.location.origin,
         },
       });
 
       if (inviteError) {
         console.warn("Email sending failed, but invite created:", inviteError);
+        toast.warning("Invite created, but the email could not be sent. You can resend it.");
+      } else {
+        toast.success("Invitation sent successfully!");
       }
 
-      toast.success("Invitation sent successfully!");
       setIsInviteOpen(false);
       setInviteEmail("");
       setPermissions(DEFAULT_PERMISSIONS);
@@ -173,6 +176,7 @@ export const SubUserManagement = () => {
           email: subUser.email,
           inviteToken: updatedSubUser?.invite_token,
           ownerEmail: user.email,
+          appUrl: window.location.origin,
         },
       });
 
