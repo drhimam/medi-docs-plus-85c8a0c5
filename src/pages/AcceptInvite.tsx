@@ -154,30 +154,12 @@ const AcceptInvite = () => {
       if (authError) throw authError;
 
       if (authData.user) {
-        // Update sub_user record
-        const { error: updateError } = await supabase
-          .from("sub_users")
-          .update({
-            sub_user_id: authData.user.id,
-            status: "active",
-            invite_token: null,
-            invite_expires_at: null,
-          })
-          .eq("id", inviteData.id);
-
-        if (updateError) {
-          console.error("Error updating sub_user:", updateError);
+        if (!authData.session) {
+          toast.success("Account created! Please confirm your email, then open this invitation link again.");
+          return;
         }
 
-        // Log the login activity
-        await logActivity(
-          inviteData.owner_id,
-          "login",
-          "session",
-          undefined,
-          "Sub-user registered and joined",
-          "New account created via invitation"
-        );
+        await acceptInvite();
 
         toast.success("Account created! Welcome to the team.");
         navigate("/dashboard");
