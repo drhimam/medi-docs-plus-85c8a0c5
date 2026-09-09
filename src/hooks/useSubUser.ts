@@ -58,6 +58,7 @@ export function useSubUser() {
   const [permissions, setPermissions] = useState<SubUserPermissions | null>(null);
   const [loading, setLoading] = useState(true);
   const [subUsers, setSubUsers] = useState<SubUser[]>([]);
+  const [role, setRole] = useState<"owner" | "sub_user" | null>(null);
 
   const fetchSubUserStatus = useCallback(async () => {
     try {
