@@ -223,6 +223,7 @@ export function useSubUser() {
   return {
     isSubUser,
     isOwner,
+    role,
     ownerId,
     permissions,
     loading,
