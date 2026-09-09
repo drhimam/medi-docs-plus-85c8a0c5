@@ -176,6 +176,7 @@ export const SubUserManagement = () => {
           email: subUser.email,
           inviteToken: updatedSubUser?.invite_token,
           ownerEmail: user.email,
+          appUrl: window.location.origin,
         },
       });
 
