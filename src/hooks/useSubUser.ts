@@ -79,6 +79,13 @@ export function useSubUser() {
         .eq("status", "active")
         .maybeSingle();
 
+      const { data: roleRows } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+      const roles = (roleRows || []).map((r: any) => r.role);
+      setRole(roles.includes("sub_user") ? "sub_user" : roles.includes("owner") ? "owner" : null);
+
       if (subUserData) {
         setIsSubUser(true);
         setIsOwner(false);
