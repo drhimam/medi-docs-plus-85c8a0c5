@@ -11,6 +11,7 @@ interface InviteRequest {
   email: string;
   inviteToken: string;
   ownerEmail: string;
+  appUrl?: string;
 }
 
 serve(async (req) => {
@@ -19,14 +20,15 @@ serve(async (req) => {
   }
 
   try {
-    const { email, inviteToken, ownerEmail }: InviteRequest = await req.json();
+    const { email, inviteToken, ownerEmail, appUrl }: InviteRequest = await req.json();
 
     if (!email || !inviteToken) {
       throw new Error("Email and invite token are required");
     }
 
-    const baseUrl = Deno.env.get("SUPABASE_URL")?.replace(".supabase.co", ".lovable.app") || 
-                   "https://xvpenhgywuxeaenebsji.lovable.app";
+    const baseUrl = (appUrl && /^https?:\/\//.test(appUrl))
+      ? appUrl.replace(/\/$/, "")
+      : "https://edoctordesk.com";
     const inviteUrl = `${baseUrl}/accept-invite?token=${inviteToken}`;
 
     const emailHtml = `<!DOCTYPE html>
