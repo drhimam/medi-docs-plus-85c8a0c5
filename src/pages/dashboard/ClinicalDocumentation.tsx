@@ -2791,8 +2791,10 @@ ${cleanPrescription}
               if (!user) throw new Error("User not authenticated");
 
               const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, -5);
-              const fileName = `Investigation_Requisition_${patient.first_name}_${patient.last_name}_${timestamp}.pdf`;
-              const storagePath = `${user.id}/${visitId}/requisitions/${Date.now()}.pdf`;
+              const fileName = editingDoc?.file_name
+                || `Investigation_Requisition_${patient.first_name}_${patient.last_name}_${timestamp}.pdf`;
+              const storagePath = editingDoc?.file_path
+                || `${user.id}/${visitId}/requisitions/${Date.now()}.pdf`;
 
               const pdfResult = (await exportRequisitionToPDF(
                 selectedGroups,
