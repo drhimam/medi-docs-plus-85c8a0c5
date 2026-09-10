@@ -1787,7 +1787,7 @@ export default function InvestigationRequisitionDialog({
                 </Button>
                 <Button onClick={handleGenerate} disabled={getSelectedCount() === 0}>
                   <Download className="h-4 w-4 mr-2" />
-                  Generate ({getSelectedCount()})
+                  {editMode ? "Update" : "Generate"} ({getSelectedCount()})
                 </Button>
               </div>
             </div>
