@@ -752,19 +752,27 @@ export default function InvestigationRequisitionDialog({
   // Reset state when dialog opens
   useEffect(() => {
     if (open) {
-      setSelectedInvestigations({});
+      const initialKeys = initialSelection?.keys || [];
+      const initialMap: SelectedInvestigations = {};
+      initialKeys.forEach((k) => { initialMap[k] = true; });
+      setSelectedInvestigations(initialMap);
       setSearchQuery("");
       setShowPreview(false);
-      setCustomTests([]);
+      setCustomTests(
+        initialKeys
+          .filter((k) => k.startsWith("custom:"))
+          .map((k) => k.slice("custom:".length))
+      );
       setNewCustomTest("");
-      setClinicalNotes(clinicalInfo || "");
-      setPriority("routine");
-      setFasting(false);
+      setClinicalNotes(initialSelection?.clinicalNotes ?? (clinicalInfo || ""));
+      setPriority((initialSelection?.priority as any) || "routine");
+      setFasting(initialSelection?.fasting ?? false);
       setShowTemplates(false);
       setShowSaveTemplateForm(false);
       setTemplateName("");
       setTemplateDescription("");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, clinicalInfo]);
 
   const toggleInvestigation = (category: string, testName: string) => {
