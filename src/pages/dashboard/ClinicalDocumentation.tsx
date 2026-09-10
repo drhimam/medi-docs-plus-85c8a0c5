@@ -428,6 +428,36 @@ export default function ClinicalDocumentation() {
     }
   };
 
+  const openRenameDocument = (doc: any) => {
+    setRenameDoc(doc);
+    setRenameValue(doc.description || "");
+  };
+
+  const handleRenameDocument = async () => {
+    if (!renameDoc || !renameValue.trim()) return;
+    setIsRenaming(true);
+    try {
+      const { error } = await supabase
+        .from("documents")
+        .update({ description: renameValue.trim() })
+        .eq("id", renameDoc.id);
+      if (error) throw error;
+      setRenameDoc(null);
+      fetchDocuments();
+      toast({ title: "Renamed", description: "Document name updated" });
+    } catch (error: any) {
+      console.error("Error renaming document:", error);
+      toast({ title: "Error", description: "Failed to rename document", variant: "destructive" });
+    } finally {
+      setIsRenaming(false);
+    }
+  };
+
+  const openEditRequisition = (doc: any) => {
+    setEditingRequisitionDoc(doc);
+    setShowRequisitionDialog(true);
+  };
+
   const handleSort = (field: 'document_date' | 'upload_date' | 'description') => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
