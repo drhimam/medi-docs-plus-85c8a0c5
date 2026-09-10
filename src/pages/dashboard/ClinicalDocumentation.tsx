@@ -2822,6 +2822,34 @@ ${cleanPrescription}
                 });
               if (uploadError) throw uploadError;
 
+              const requisitionMeta = {
+                selectionKeys: selectionKeys || [],
+                priority,
+                fasting,
+                clinicalNotes,
+                useLetterhead,
+              };
+
+              if (editingDoc) {
+                const { error: updateError } = await supabase
+                  .from("documents")
+                  .update({
+                    description: `Investigation requisition (${selectedTests.length} tests) - ${priority?.toUpperCase() || "ROUTINE"}`,
+                    file_size: pdfResult.blob.size,
+                    upload_date: new Date().toISOString(),
+                    metadata: requisitionMeta,
+                  })
+                  .eq("id", editingDoc.id);
+                if (updateError) throw updateError;
+
+                fetchDocuments();
+                toast({
+                  title: "Success",
+                  description: "Requisition updated",
+                });
+                return;
+              }
+
               const { error: dbError } = await supabase.from("documents").insert({
                 visit_id: visitId,
                 patient_id: patient.id,
@@ -2835,6 +2863,7 @@ ${cleanPrescription}
                 file_size: pdfResult.blob.size,
                 upload_date: new Date().toISOString(),
                 review_status: "reviewed",
+                metadata: requisitionMeta,
               });
               if (dbError) throw dbError;
 
