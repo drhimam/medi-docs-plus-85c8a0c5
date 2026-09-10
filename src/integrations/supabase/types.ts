@@ -230,6 +230,7 @@ export type Database = {
           file_size: number
           file_type: string
           id: string
+          metadata: Json | null
           patient_id: string
           review_status: string
           upload_date: string
@@ -246,6 +247,7 @@ export type Database = {
           file_size: number
           file_type: string
           id?: string
+          metadata?: Json | null
           patient_id: string
           review_status?: string
           upload_date?: string
@@ -262,6 +264,7 @@ export type Database = {
           file_size?: number
           file_type?: string
           id?: string
+          metadata?: Json | null
           patient_id?: string
           review_status?: string
           upload_date?: string
