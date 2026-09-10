@@ -2715,7 +2715,9 @@ ${cleanPrescription}
         clinicalInfo={assessment || visit?.reason_for_visit}
         visitId={visitId}
         patientId={patient?.id}
-        onGenerate={async (_requisitionText, selectedTests, priority, fasting, clinicalNotes, saveAsDocument, digitalSignature, useLetterhead) => {
+        onGenerate={async (_requisitionText, selectedTests, priority, fasting, clinicalNotes, saveAsDocument, digitalSignature, useLetterhead, selectionKeys) => {
+          const editingDoc = editingRequisitionDoc;
+          setEditingRequisitionDoc(null);
           try {
             const { data: settings } = await supabase
               .from("prescription_settings")
