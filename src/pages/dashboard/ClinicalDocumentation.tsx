@@ -2694,7 +2694,21 @@ ${cleanPrescription}
 
       <InvestigationRequisitionDialog
         open={showRequisitionDialog}
-        onOpenChange={setShowRequisitionDialog}
+        onOpenChange={(open) => {
+          setShowRequisitionDialog(open);
+          if (!open) setEditingRequisitionDoc(null);
+        }}
+        editMode={!!editingRequisitionDoc}
+        initialSelection={
+          editingRequisitionDoc?.metadata
+            ? {
+                keys: editingRequisitionDoc.metadata.selectionKeys || [],
+                priority: editingRequisitionDoc.metadata.priority,
+                fasting: editingRequisitionDoc.metadata.fasting,
+                clinicalNotes: editingRequisitionDoc.metadata.clinicalNotes,
+              }
+            : null
+        }
         patientName={patient ? `${patient.first_name} ${patient.last_name}` : ""}
         patientAge={patient ? `${differenceInYears(new Date(), new Date(patient.date_of_birth))} years` : undefined}
         patientGender={patient?.gender}
