@@ -995,7 +995,10 @@ export default function InvestigationRequisitionDialog({
       enabled: digitalSignatureEnabled,
       physicianName: digitalSignatureEnabled ? physicianName : undefined
     };
-    onGenerate(requisitionText, selectedTests, priority, fasting, clinicalNotes, saveAsDocument, digitalSignature, useLetterhead);
+    const selectionKeys = Object.entries(selectedInvestigations)
+      .filter(([_, selected]) => selected)
+      .map(([key]) => key);
+    onGenerate(requisitionText, selectedTests, priority, fasting, clinicalNotes, saveAsDocument, digitalSignature, useLetterhead, selectionKeys);
     onOpenChange(false);
   };
 
