@@ -2467,6 +2467,16 @@ ${cleanPrescription}
                                       <Download className="h-4 w-4 mr-2" />
                                       Download
                                     </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => openRenameDocument(doc)}>
+                                      <Edit className="h-4 w-4 mr-2" />
+                                      Rename
+                                    </DropdownMenuItem>
+                                    {doc.document_type === "Requisition" && doc.metadata?.selectionKeys && (
+                                      <DropdownMenuItem onClick={() => openEditRequisition(doc)}>
+                                        <FlaskConical className="h-4 w-4 mr-2" />
+                                        Edit Requisition
+                                      </DropdownMenuItem>
+                                    )}
                                     {doc.review_status !== 'reviewed' && (
                                       <DropdownMenuItem onClick={() => handleUpdateReviewStatus(doc.id, 'reviewed')}>
                                         <CheckCircle className="h-4 w-4 mr-2" />
