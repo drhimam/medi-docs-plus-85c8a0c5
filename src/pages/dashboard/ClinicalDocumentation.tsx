@@ -129,6 +129,10 @@ export default function ClinicalDocumentation() {
   const [showSOAPEmail, setShowSOAPEmail] = useState(false);
   const [showPrescriptionEmail, setShowPrescriptionEmail] = useState(false);
   const [showRequisitionDialog, setShowRequisitionDialog] = useState(false);
+  const [editingRequisitionDoc, setEditingRequisitionDoc] = useState<any | null>(null);
+  const [renameDoc, setRenameDoc] = useState<any | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [isRenaming, setIsRenaming] = useState(false);
   const assessmentRef = useRef<HTMLTextAreaElement>(null);
   const planRef = useRef<HTMLTextAreaElement>(null);
   const prescriptionEditorRef = useRef<RichTextEditorHandle>(null);
