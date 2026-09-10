@@ -35,6 +35,8 @@ import { SOAPLivePreviewDialog } from "@/components/soap/SOAPLivePreviewDialog";
 import { SOAPEmailDialog } from "@/components/soap/SOAPEmailDialog";
 import { PrescriptionEmailDialog } from "@/components/prescription/PrescriptionEmailDialog";
 import { VersionHistoryDialog } from "@/components/visit/VersionHistoryDialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import jsPDF from "jspdf";
 import { format, differenceInYears } from "date-fns";
 import DOMPurify from "dompurify";
@@ -129,6 +131,10 @@ export default function ClinicalDocumentation() {
   const [showSOAPEmail, setShowSOAPEmail] = useState(false);
   const [showPrescriptionEmail, setShowPrescriptionEmail] = useState(false);
   const [showRequisitionDialog, setShowRequisitionDialog] = useState(false);
+  const [editingRequisitionDoc, setEditingRequisitionDoc] = useState<any | null>(null);
+  const [renameDoc, setRenameDoc] = useState<any | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [isRenaming, setIsRenaming] = useState(false);
   const assessmentRef = useRef<HTMLTextAreaElement>(null);
   const planRef = useRef<HTMLTextAreaElement>(null);
   const prescriptionEditorRef = useRef<RichTextEditorHandle>(null);
@@ -422,6 +428,36 @@ export default function ClinicalDocumentation() {
     } catch (error: any) {
       console.error("Error fetching documents:", error);
     }
+  };
+
+  const openRenameDocument = (doc: any) => {
+    setRenameDoc(doc);
+    setRenameValue(doc.description || "");
+  };
+
+  const handleRenameDocument = async () => {
+    if (!renameDoc || !renameValue.trim()) return;
+    setIsRenaming(true);
+    try {
+      const { error } = await supabase
+        .from("documents")
+        .update({ description: renameValue.trim() })
+        .eq("id", renameDoc.id);
+      if (error) throw error;
+      setRenameDoc(null);
+      fetchDocuments();
+      toast({ title: "Renamed", description: "Document name updated" });
+    } catch (error: any) {
+      console.error("Error renaming document:", error);
+      toast({ title: "Error", description: "Failed to rename document", variant: "destructive" });
+    } finally {
+      setIsRenaming(false);
+    }
+  };
+
+  const openEditRequisition = (doc: any) => {
+    setEditingRequisitionDoc(doc);
+    setShowRequisitionDialog(true);
   };
 
   const handleSort = (field: 'document_date' | 'upload_date' | 'description') => {
@@ -2433,6 +2469,16 @@ ${cleanPrescription}
                                       <Download className="h-4 w-4 mr-2" />
                                       Download
                                     </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => openRenameDocument(doc)}>
+                                      <Edit className="h-4 w-4 mr-2" />
+                                      Rename
+                                    </DropdownMenuItem>
+                                    {doc.document_type === "Requisition" && doc.metadata?.selectionKeys && (
+                                      <DropdownMenuItem onClick={() => openEditRequisition(doc)}>
+                                        <FlaskConical className="h-4 w-4 mr-2" />
+                                        Edit Requisition
+                                      </DropdownMenuItem>
+                                    )}
                                     {doc.review_status !== 'reviewed' && (
                                       <DropdownMenuItem onClick={() => handleUpdateReviewStatus(doc.id, 'reviewed')}>
                                         <CheckCircle className="h-4 w-4 mr-2" />
@@ -2650,14 +2696,30 @@ ${cleanPrescription}
 
       <InvestigationRequisitionDialog
         open={showRequisitionDialog}
-        onOpenChange={setShowRequisitionDialog}
+        onOpenChange={(open) => {
+          setShowRequisitionDialog(open);
+          if (!open) setEditingRequisitionDoc(null);
+        }}
+        editMode={!!editingRequisitionDoc}
+        initialSelection={
+          editingRequisitionDoc?.metadata
+            ? {
+                keys: editingRequisitionDoc.metadata.selectionKeys || [],
+                priority: editingRequisitionDoc.metadata.priority,
+                fasting: editingRequisitionDoc.metadata.fasting,
+                clinicalNotes: editingRequisitionDoc.metadata.clinicalNotes,
+              }
+            : null
+        }
         patientName={patient ? `${patient.first_name} ${patient.last_name}` : ""}
         patientAge={patient ? `${differenceInYears(new Date(), new Date(patient.date_of_birth))} years` : undefined}
         patientGender={patient?.gender}
         clinicalInfo={assessment || visit?.reason_for_visit}
         visitId={visitId}
         patientId={patient?.id}
-        onGenerate={async (_requisitionText, selectedTests, priority, fasting, clinicalNotes, saveAsDocument, digitalSignature, useLetterhead) => {
+        onGenerate={async (_requisitionText, selectedTests, priority, fasting, clinicalNotes, saveAsDocument, digitalSignature, useLetterhead, selectionKeys) => {
+          const editingDoc = editingRequisitionDoc;
+          setEditingRequisitionDoc(null);
           try {
             const { data: settings } = await supabase
               .from("prescription_settings")
@@ -2731,8 +2793,10 @@ ${cleanPrescription}
               if (!user) throw new Error("User not authenticated");
 
               const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, -5);
-              const fileName = `Investigation_Requisition_${patient.first_name}_${patient.last_name}_${timestamp}.pdf`;
-              const storagePath = `${user.id}/${visitId}/requisitions/${Date.now()}.pdf`;
+              const fileName = editingDoc?.file_name
+                || `Investigation_Requisition_${patient.first_name}_${patient.last_name}_${timestamp}.pdf`;
+              const storagePath = editingDoc?.file_path
+                || `${user.id}/${visitId}/requisitions/${Date.now()}.pdf`;
 
               const pdfResult = (await exportRequisitionToPDF(
                 selectedGroups,
@@ -2760,6 +2824,34 @@ ${cleanPrescription}
                 });
               if (uploadError) throw uploadError;
 
+              const requisitionMeta = {
+                selectionKeys: selectionKeys || [],
+                priority,
+                fasting,
+                clinicalNotes,
+                useLetterhead,
+              };
+
+              if (editingDoc) {
+                const { error: updateError } = await supabase
+                  .from("documents")
+                  .update({
+                    description: `Investigation requisition (${selectedTests.length} tests) - ${priority?.toUpperCase() || "ROUTINE"}`,
+                    file_size: pdfResult.blob.size,
+                    upload_date: new Date().toISOString(),
+                    metadata: requisitionMeta,
+                  })
+                  .eq("id", editingDoc.id);
+                if (updateError) throw updateError;
+
+                fetchDocuments();
+                toast({
+                  title: "Success",
+                  description: "Requisition updated",
+                });
+                return;
+              }
+
               const { error: dbError } = await supabase.from("documents").insert({
                 visit_id: visitId,
                 patient_id: patient.id,
@@ -2773,6 +2865,7 @@ ${cleanPrescription}
                 file_size: pdfResult.blob.size,
                 upload_date: new Date().toISOString(),
                 review_status: "reviewed",
+                metadata: requisitionMeta,
               });
               if (dbError) throw dbError;
 

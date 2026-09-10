@@ -601,8 +601,16 @@ type InvestigationRequisitionDialogProps = {
     clinicalNotes: string, 
     saveAsDocument?: boolean,
     digitalSignature?: { enabled: boolean; physicianName?: string },
-    useLetterhead?: boolean
+    useLetterhead?: boolean,
+    selectionKeys?: string[]
   ) => void;
+  initialSelection?: {
+    keys?: string[];
+    priority?: string;
+    fasting?: boolean;
+    clinicalNotes?: string;
+  } | null;
+  editMode?: boolean;
   patientName: string;
   patientAge?: string;
   patientGender?: string;
@@ -621,6 +629,8 @@ export default function InvestigationRequisitionDialog({
   clinicalInfo,
   visitId,
   patientId,
+  initialSelection,
+  editMode,
 }: InvestigationRequisitionDialogProps) {
   const [activeTab, setActiveTab] = useState<InvestigationType>("hematology");
   const [selectedInvestigations, setSelectedInvestigations] = useState<SelectedInvestigations>({});
@@ -752,19 +762,27 @@ export default function InvestigationRequisitionDialog({
   // Reset state when dialog opens
   useEffect(() => {
     if (open) {
-      setSelectedInvestigations({});
+      const initialKeys = initialSelection?.keys || [];
+      const initialMap: SelectedInvestigations = {};
+      initialKeys.forEach((k) => { initialMap[k] = true; });
+      setSelectedInvestigations(initialMap);
       setSearchQuery("");
       setShowPreview(false);
-      setCustomTests([]);
+      setCustomTests(
+        initialKeys
+          .filter((k) => k.startsWith("custom:"))
+          .map((k) => k.slice("custom:".length))
+      );
       setNewCustomTest("");
-      setClinicalNotes(clinicalInfo || "");
-      setPriority("routine");
-      setFasting(false);
+      setClinicalNotes(initialSelection?.clinicalNotes ?? (clinicalInfo || ""));
+      setPriority((initialSelection?.priority as any) || "routine");
+      setFasting(initialSelection?.fasting ?? false);
       setShowTemplates(false);
       setShowSaveTemplateForm(false);
       setTemplateName("");
       setTemplateDescription("");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, clinicalInfo]);
 
   const toggleInvestigation = (category: string, testName: string) => {
@@ -977,7 +995,10 @@ export default function InvestigationRequisitionDialog({
       enabled: digitalSignatureEnabled,
       physicianName: digitalSignatureEnabled ? physicianName : undefined
     };
-    onGenerate(requisitionText, selectedTests, priority, fasting, clinicalNotes, saveAsDocument, digitalSignature, useLetterhead);
+    const selectionKeys = Object.entries(selectedInvestigations)
+      .filter(([_, selected]) => selected)
+      .map(([key]) => key);
+    onGenerate(requisitionText, selectedTests, priority, fasting, clinicalNotes, saveAsDocument, digitalSignature, useLetterhead, selectionKeys);
     onOpenChange(false);
   };
 
@@ -1766,7 +1787,7 @@ export default function InvestigationRequisitionDialog({
                 </Button>
                 <Button onClick={handleGenerate} disabled={getSelectedCount() === 0}>
                   <Download className="h-4 w-4 mr-2" />
-                  Generate ({getSelectedCount()})
+                  {editMode ? "Update" : "Generate"} ({getSelectedCount()})
                 </Button>
               </div>
             </div>
