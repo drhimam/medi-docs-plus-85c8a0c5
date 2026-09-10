@@ -35,6 +35,8 @@ import { SOAPLivePreviewDialog } from "@/components/soap/SOAPLivePreviewDialog";
 import { SOAPEmailDialog } from "@/components/soap/SOAPEmailDialog";
 import { PrescriptionEmailDialog } from "@/components/prescription/PrescriptionEmailDialog";
 import { VersionHistoryDialog } from "@/components/visit/VersionHistoryDialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import jsPDF from "jspdf";
 import { format, differenceInYears } from "date-fns";
 import DOMPurify from "dompurify";
