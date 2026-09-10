@@ -629,6 +629,8 @@ export default function InvestigationRequisitionDialog({
   clinicalInfo,
   visitId,
   patientId,
+  initialSelection,
+  editMode,
 }: InvestigationRequisitionDialogProps) {
   const [activeTab, setActiveTab] = useState<InvestigationType>("hematology");
   const [selectedInvestigations, setSelectedInvestigations] = useState<SelectedInvestigations>({});
