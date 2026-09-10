@@ -601,8 +601,16 @@ type InvestigationRequisitionDialogProps = {
     clinicalNotes: string, 
     saveAsDocument?: boolean,
     digitalSignature?: { enabled: boolean; physicianName?: string },
-    useLetterhead?: boolean
+    useLetterhead?: boolean,
+    selectionKeys?: string[]
   ) => void;
+  initialSelection?: {
+    keys?: string[];
+    priority?: string;
+    fasting?: boolean;
+    clinicalNotes?: string;
+  } | null;
+  editMode?: boolean;
   patientName: string;
   patientAge?: string;
   patientGender?: string;
