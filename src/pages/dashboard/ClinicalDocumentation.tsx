@@ -570,6 +570,42 @@ export default function ClinicalDocumentation() {
     }
   };
 
+  const handleShareDocument = async (doc: any) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('visit-documents')
+        .createSignedUrl(doc.file_path, 60 * 60 * 24);
+
+      if (error) throw error;
+      const shareUrl = data?.signedUrl;
+      if (!shareUrl) throw new Error("Could not create a share link");
+
+      const title = doc.description || doc.file_name || "Document";
+
+      if (navigator.share) {
+        try {
+          await navigator.share({ title, text: title, url: shareUrl });
+          return;
+        } catch (shareErr: any) {
+          if (shareErr?.name === "AbortError") return;
+        }
+      }
+
+      await navigator.clipboard.writeText(shareUrl);
+      toast({
+        title: "Share link copied",
+        description: "The link works for 24 hours.",
+      });
+    } catch (error: any) {
+      console.error("Error sharing document:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create share link",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleUpdateReviewStatus = async (docId: string, status: 'reviewed' | 'needs_review' | 'pending') => {
     try {
       const { error } = await supabase
