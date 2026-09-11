@@ -2505,6 +2505,10 @@ ${cleanPrescription}
                                       <Download className="h-4 w-4 mr-2" />
                                       Download
                                     </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleShareDocument(doc)}>
+                                      <Share2 className="h-4 w-4 mr-2" />
+                                      Share
+                                    </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => openRenameDocument(doc)}>
                                       <Edit className="h-4 w-4 mr-2" />
                                       Rename
