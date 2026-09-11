@@ -2918,6 +2918,32 @@ ${cleanPrescription}
         visitId={visitId || ""}
         onRestore={handleRestoreVersion}
       />
+
+      <Dialog open={!!renameDoc} onOpenChange={(open) => !open && setRenameDoc(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rename Document</DialogTitle>
+            <DialogDescription>Update the name shown in the documents list.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="rename-document">Document name</Label>
+            <Input
+              id="rename-document"
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleRenameDocument(); }}
+              placeholder="Enter a document name"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenameDoc(null)}>Cancel</Button>
+            <Button onClick={handleRenameDocument} disabled={isRenaming || !renameValue.trim()}>
+              {isRenaming ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
