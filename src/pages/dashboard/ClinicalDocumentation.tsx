@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Save, X, FileText, Download, Sparkles, Eye, Edit, Loader2, MoreVertical, ArrowUpDown, ExternalLink, Trash2, Settings, CheckCircle, AlertCircle, FileDown, FileSearch, Stethoscope, FlaskConical, Palette, Copy, Mail, Cloud, CloudOff, History } from "lucide-react";
+import { ArrowLeft, Save, X, FileText, Download, Sparkles, Eye, Edit, Loader2, MoreVertical, ArrowUpDown, ExternalLink, Trash2, Settings, CheckCircle, AlertCircle, FileDown, FileSearch, Stethoscope, FlaskConical, Palette, Copy, Mail, Cloud, CloudOff, History, Share2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import TranscribeButton from "@/components/TranscribeButton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -565,6 +565,42 @@ export default function ClinicalDocumentation() {
       toast({
         title: "Error",
         description: error.message || "Failed to view document",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleShareDocument = async (doc: any) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('visit-documents')
+        .createSignedUrl(doc.file_path, 60 * 60 * 24);
+
+      if (error) throw error;
+      const shareUrl = data?.signedUrl;
+      if (!shareUrl) throw new Error("Could not create a share link");
+
+      const title = doc.description || doc.file_name || "Document";
+
+      if (navigator.share) {
+        try {
+          await navigator.share({ title, text: title, url: shareUrl });
+          return;
+        } catch (shareErr: any) {
+          if (shareErr?.name === "AbortError") return;
+        }
+      }
+
+      await navigator.clipboard.writeText(shareUrl);
+      toast({
+        title: "Share link copied",
+        description: "The link works for 24 hours.",
+      });
+    } catch (error: any) {
+      console.error("Error sharing document:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create share link",
         variant: "destructive",
       });
     }
@@ -2468,6 +2504,10 @@ ${cleanPrescription}
                                     <DropdownMenuItem onClick={() => handleDownloadDocument(doc)}>
                                       <Download className="h-4 w-4 mr-2" />
                                       Download
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleShareDocument(doc)}>
+                                      <Share2 className="h-4 w-4 mr-2" />
+                                      Share
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => openRenameDocument(doc)}>
                                       <Edit className="h-4 w-4 mr-2" />
