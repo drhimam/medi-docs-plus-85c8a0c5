@@ -2471,9 +2471,9 @@ ${cleanPrescription}
                         <TableBody>
                           {sortedDocuments.map((doc) => (
                             <TableRow key={doc.id}>
-                              <TableCell>{new Date(doc.document_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</TableCell>
+                              <TableCell>{new Date(doc.document_date).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</TableCell>
                               <TableCell>{doc.description}</TableCell>
-                              <TableCell>{new Date(doc.upload_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</TableCell>
+                              <TableCell>{new Date(doc.upload_date).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</TableCell>
                               <TableCell>
                                 {doc.review_status === 'reviewed' ? (
                                   <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-200">
